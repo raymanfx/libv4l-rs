@@ -1,7 +1,5 @@
 language: rust
-rust:
-  - stable
-  - nightly
+rust: stable
 
 os: linux
 cache: cargo
@@ -11,5 +9,31 @@ before_install:
 
 jobs:
   allow_failures:
-    - rust: nightly
+    env:
+      - CAN_FAIL=true
   fast_finish: true
+  include:
+    - {}
+    - stage: fmt
+      before_script:
+        - rustup component add rustfmt
+      script:
+        - cargo fmt -- --check
+    - stage: clippy
+      env: CAN_FAIL=true
+      before_script:
+        - rustup component add clippy
+      script:
+        - cargo clippy -- -D warnings
+    - stage: build
+      script:
+        - cargo build
+    - stage: test
+      script:
+        - cargo test
+
+stages:
+  - fmt
+  - build
+  - test
+  - clippy
