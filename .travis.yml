@@ -6,6 +6,9 @@ rust:
 os: linux
 cache: cargo
 
+before_install:
+  - sudo apt-get install libv4l-dev
+
 jobs:
   allow_failures:
     - rust: nightly

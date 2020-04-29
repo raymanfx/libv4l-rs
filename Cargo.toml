@@ -4,3 +4,16 @@ version = "0.1.0"
 authors = ["Christopher N. Hesse <raymanfx@gmail.com>"]
 edition = "2018"
 license = "MIT"
+
+[dependencies]
+libc = "0.2"
+v4l-sys = { path = "v4l-sys", version = "0.1.0", optional = true }
+
+[features]
+default = ["system"]
+system = ["v4l-sys"]
+
+[workspaces]
+members = [
+    "v4l-sys",
+]
