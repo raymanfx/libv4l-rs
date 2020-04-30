@@ -1,5 +1,6 @@
 [package]
 name = "v4l"
+description = "Safe video4linux (v4l) bindings"
 version = "0.1.0"
 authors = ["Christopher N. Hesse <raymanfx@gmail.com>"]
 edition = "2018"
