@@ -1,5 +1,3 @@
-use std::ffi::CString;
-use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::{fs, io, mem};
 
@@ -35,21 +33,12 @@ impl DeviceInfo {
     /// # Example
     ///
     /// ```
-    /// use std::path::Path;
     /// use v4l::DeviceInfo;
-    /// let node = DeviceInfo::new(Path::new("/dev/video0"));
+    /// let node = DeviceInfo::new("/dev/video0");
     /// ```
-    pub fn new(path: &Path) -> io::Result<Self> {
-        let c_path = CString::new(path.as_os_str().as_bytes()).unwrap();
-        let fd: std::os::raw::c_int;
-
-        unsafe {
-            fd = v4l2_open(c_path.as_ptr(), libc::O_RDONLY);
-        }
-
-        if fd == -1 {
-            return Err(io::Error::last_os_error());
-        }
+    pub fn new<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        let path = path.as_ref();
+        let fd = v4l2::open(path, libc::O_RDONLY)?;
 
         Ok(DeviceInfo {
             fd,
