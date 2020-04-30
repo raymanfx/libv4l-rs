@@ -1,5 +1,6 @@
 # Safe video4linux (v4l) bindings
 
+[![crates.io](https://img.shields.io/crates/v/v4l.svg)](https://crates.io/crates/v4l)
 [![license](https://img.shields.io/github/license/raymanfx/libv4l-rs)](https://github.com/raymanfx/libv4l-rs/blob/master/LICENSE.txt)
 [![Build Status](https://travis-ci.org/raymanfx/libv4l2-rs.svg?branch=master)](https://travis-ci.org/raymanfx/libv4l2-rs)
 
