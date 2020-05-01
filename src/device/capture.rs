@@ -4,7 +4,7 @@ use std::{io, mem, path::Path};
 
 use crate::v4l_sys::*;
 use crate::{ioctl, v4l2};
-use crate::{CaptureFormat, DeviceInfo, FormatDescription};
+use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription};
 
 #[derive(Debug, Default)]
 /// Linux capture device abstraction
@@ -213,6 +213,77 @@ impl CaptureDevice {
         }
 
         self.get_format()
+    }
+
+    /// Returns the parameters currently in use
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::CaptureDevice;
+    /// let dev = CaptureDevice::new(0);
+    ///
+    /// if let Ok(dev) = dev {
+    ///     let params = dev.get_params();
+    ///     if let Ok(params) = params {
+    ///         print!("Active parameters:\n{}", params);
+    ///     }
+    /// }
+    /// ```
+    pub fn get_params(&self) -> io::Result<CaptureParams> {
+        unsafe {
+            let mut v4l2_params: v4l2_streamparm = mem::zeroed();
+            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2::ioctl(
+                self.fd,
+                ioctl::codes::VIDIOC_G_PARM,
+                &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            Ok(CaptureParams::from(v4l2_params.parm.capture))
+        }
+    }
+
+    /// Modifies the capture parameters and returns the actual parameters
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Desired parameters
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::{CaptureDevice, CaptureParams};
+    /// let dev = CaptureDevice::new(0);
+    ///
+    /// if let Ok(mut dev) = dev {
+    ///     let params = dev.get_params();
+    ///     if let Ok(mut params) = params {
+    ///         params = CaptureParams::with_fps(30);
+    ///         print!("Desired parameters:\n{}", params);
+    ///
+    ///         let params = dev.set_params(&params);
+    ///         match params {
+    ///             Ok(params) => print!("Actual parameters:\n{}", params),
+    ///             Err(e) => print!("{}", e),
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn set_params(&mut self, params: &CaptureParams) -> io::Result<CaptureParams> {
+        unsafe {
+            let mut v4l2_params: v4l2_streamparm = mem::zeroed();
+            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_params.parm.capture = (*params).into();
+            v4l2::ioctl(
+                self.fd,
+                ioctl::codes::VIDIOC_S_PARM,
+                &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        self.get_params()
     }
 }
 
