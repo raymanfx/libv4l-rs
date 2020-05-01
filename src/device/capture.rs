@@ -295,6 +295,22 @@ impl Drop for CaptureDevice {
     }
 }
 
+impl io::Read for CaptureDevice {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        unsafe {
+            let ret = libc::read(
+                self.fd,
+                buf.as_mut_ptr() as *mut std::os::raw::c_void,
+                buf.len(),
+            );
+            match ret {
+                -1 => Err(io::Error::last_os_error()),
+                ret => Ok(ret as usize),
+            }
+        }
+    }
+}
+
 impl From<DeviceInfo> for CaptureDevice {
     fn from(info: DeviceInfo) -> Self {
         let path = info.path().to_path_buf();
