@@ -8,7 +8,12 @@ mod capability;
 pub use capability::Capabilities;
 
 mod device;
+pub use device::capture;
+pub use device::CaptureDevice;
 pub use device::{DeviceInfo, DeviceList};
 
 mod fourcc;
 pub use fourcc::FourCC;
+
+mod format;
+pub use format::{FormatDescription, FormatFlags};
