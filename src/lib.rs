@@ -9,3 +9,6 @@ pub use capability::Capabilities;
 
 mod device;
 pub use device::{DeviceInfo, DeviceList};
+
+mod fourcc;
+pub use fourcc::FourCC;
