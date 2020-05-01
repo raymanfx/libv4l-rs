@@ -9,7 +9,8 @@ pub use capability::Capabilities;
 
 mod device;
 pub use device::capture;
-pub use device::CaptureDevice;
+pub use device::capture_format;
+pub use device::{CaptureDevice, CaptureFormat};
 pub use device::{DeviceInfo, DeviceList};
 
 mod fourcc;

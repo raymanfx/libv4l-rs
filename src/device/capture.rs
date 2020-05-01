@@ -4,7 +4,7 @@ use std::{io, mem, path::Path};
 
 use crate::v4l_sys::*;
 use crate::{ioctl, v4l2};
-use crate::{DeviceInfo, FormatDescription};
+use crate::{CaptureFormat, DeviceInfo, FormatDescription};
 
 #[derive(Debug, Default)]
 /// Linux capture device abstraction
@@ -137,6 +137,82 @@ impl CaptureDevice {
         }
 
         Ok(formats)
+    }
+
+    /// Returns the format currently in use
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::CaptureDevice;
+    /// let dev = CaptureDevice::new(0);
+    ///
+    /// if let Ok(dev) = dev {
+    ///     let fmt = dev.get_format();
+    ///     if let Ok(fmt) = fmt {
+    ///         print!("Active format:\n{}", fmt);
+    ///     }
+    /// }
+    /// ```
+    pub fn get_format(&self) -> io::Result<CaptureFormat> {
+        unsafe {
+            let mut v4l2_fmt: v4l2_format = mem::zeroed();
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2::ioctl(
+                self.fd,
+                ioctl::codes::VIDIOC_G_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            Ok(CaptureFormat::from(v4l2_fmt.fmt.pix))
+        }
+    }
+
+    /// Modifies the capture format and returns the actual format
+    ///
+    /// The driver tries to match the format parameters on a best effort basis.
+    /// Thus, if the combination of format properties cannot be achieved, the closest possible
+    /// settings are used and reported back.
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `fmt` - Desired format
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::CaptureDevice;
+    /// let dev = CaptureDevice::new(0);
+    ///
+    /// if let Ok(mut dev) = dev {
+    ///     let fmt = dev.get_format();
+    ///     if let Ok(mut fmt) = fmt {
+    ///         fmt.width = 640;
+    ///         fmt.height = 480;
+    ///         print!("Desired format:\n{}", fmt);
+    ///
+    ///         let fmt = dev.set_format(&fmt);
+    ///         match fmt {
+    ///             Ok(fmt) => print!("Actual format:\n{}", fmt),
+    ///             Err(e) => print!("{}", e),
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn set_format(&mut self, fmt: &CaptureFormat) -> io::Result<CaptureFormat> {
+        unsafe {
+            let mut v4l2_fmt: v4l2_format = mem::zeroed();
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.fmt.pix = (*fmt).into();
+            v4l2::ioctl(
+                self.fd,
+                ioctl::codes::VIDIOC_S_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        self.get_format()
     }
 }
 
