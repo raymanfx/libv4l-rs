@@ -51,6 +51,10 @@ pub fn open<P: AsRef<Path>>(path: P, flags: i32) -> io::Result<std::os::raw::c_i
 ///
 /// [codes]: v4l::ioctl::codes
 ///
+/// # Safety
+///
+/// For maximum flexibility, argp must be a raw pointer. Thus, the entire function is unsafe.
+///
 /// # Example
 ///
 /// ```
@@ -69,20 +73,18 @@ pub fn open<P: AsRef<Path>>(path: P, flags: i32) -> io::Result<std::os::raw::c_i
 /// }
 ///
 /// if let Ok(fd) = fd {
-///     v4l2::ioctl(fd, codes::VIDIOC_QUERYCAP,
-///                 &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void);
+///     unsafe {
+///         v4l2::ioctl(fd, codes::VIDIOC_QUERYCAP,
+///                     &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void);
+///     }
 /// }
 /// ```
-pub fn ioctl(
+pub unsafe fn ioctl(
     fd: std::os::raw::c_int,
     request: ioctl::_IOC_TYPE,
     argp: *mut std::os::raw::c_void,
 ) -> io::Result<()> {
-    let ret: std::os::raw::c_int;
-
-    unsafe {
-        ret = v4l2_ioctl(fd, request, argp);
-    }
+    let ret = v4l2_ioctl(fd, request, argp);
 
     if ret == -1 {
         Err(io::Error::last_os_error())

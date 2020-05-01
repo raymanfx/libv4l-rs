@@ -105,11 +105,15 @@ impl CaptureDevice {
         v4l2_fmt.index = 0;
         v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-        let mut ret = v4l2::ioctl(
-            self.fd,
-            ioctl::codes::VIDIOC_ENUM_FMT,
-            &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
-        );
+        let mut ret: io::Result<()>;
+
+        unsafe {
+            ret = v4l2::ioctl(
+                self.fd,
+                ioctl::codes::VIDIOC_ENUM_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            );
+        }
 
         if ret.is_err() {
             return Err(ret.err().unwrap());
@@ -123,11 +127,13 @@ impl CaptureDevice {
                 v4l2_fmt.description = mem::zeroed();
             }
 
-            ret = v4l2::ioctl(
-                self.fd,
-                ioctl::codes::VIDIOC_ENUM_FMT,
-                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
-            );
+            unsafe {
+                ret = v4l2::ioctl(
+                    self.fd,
+                    ioctl::codes::VIDIOC_ENUM_FMT,
+                    &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+                );
+            }
         }
 
         Ok(formats)
