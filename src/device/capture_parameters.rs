@@ -107,28 +107,6 @@ impl fmt::Display for ParameterModes {
     }
 }
 
-impl From<v4l2_fract> for Fraction {
-    fn from(frac: v4l2_fract) -> Self {
-        Fraction {
-            numerator: frac.numerator,
-            denominator: frac.denominator,
-        }
-    }
-}
-
-impl Into<v4l2_fract> for Fraction {
-    fn into(self: Fraction) -> v4l2_fract {
-        let mut frac: v4l2_fract;
-        unsafe {
-            frac = mem::zeroed();
-        }
-
-        frac.numerator = self.numerator;
-        frac.denominator = self.denominator;
-        frac
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 /// Streaming parameters (single-planar)
 pub struct CaptureParams {

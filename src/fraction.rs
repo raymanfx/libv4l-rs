@@ -1,4 +1,5 @@
-use std::fmt;
+use crate::v4l_sys::*;
+use std::{fmt, mem};
 
 #[derive(Debug, Default, Clone, Copy)]
 /// Fraction used for timing settings
@@ -32,5 +33,27 @@ impl Fraction {
 impl fmt::Display for Fraction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.numerator, self.denominator)
+    }
+}
+
+impl From<v4l2_fract> for Fraction {
+    fn from(frac: v4l2_fract) -> Self {
+        Fraction {
+            numerator: frac.numerator,
+            denominator: frac.denominator,
+        }
+    }
+}
+
+impl Into<v4l2_fract> for Fraction {
+    fn into(self: Fraction) -> v4l2_fract {
+        let mut frac: v4l2_fract;
+        unsafe {
+            frac = mem::zeroed();
+        }
+
+        frac.numerator = self.numerator;
+        frac.denominator = self.denominator;
+        frac
     }
 }
