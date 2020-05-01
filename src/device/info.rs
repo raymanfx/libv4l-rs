@@ -107,6 +107,7 @@ impl DeviceInfo {
 }
 
 /// Represents an iterable list of valid devices
+#[derive(Default)]
 pub struct DeviceList {
     /// Position in the list
     pos: usize,
