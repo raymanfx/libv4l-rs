@@ -26,7 +26,7 @@ Multi-planar capture will not be targeted in the near future unless someone else
  * v4l-sys bindings
  * I/O codes (VIDIOC_*)
 
-#### 0.2
+#### 0.2 (released)
  * Device list with capability querying
  * Device abstraction
      * Format enumeration
