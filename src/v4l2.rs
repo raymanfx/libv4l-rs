@@ -139,6 +139,10 @@ pub unsafe fn ioctl(
 /// * `fd` - File descriptor representing an opened device
 /// * `offset` - Offset in the source region, usually 0
 ///
+/// # Safety
+///
+/// Start must be a raw pointer. Thus, the entire function is unsafe.
+///
 /// # Example
 ///
 /// ```
@@ -152,12 +156,16 @@ pub unsafe fn ioctl(
 ///     /* VIDIOC_REQBUFS */
 ///     /* VIDIOC_QUERYBUF */
 ///     let mapping_length: usize = 1000;
-///     let mapping = v4l2::mmap(ptr::null_mut(), mapping_length,
-///                              libc::PROT_READ | libc::PROT_WRITE, libc::MAP_SHARED, fd, 0);
+///
+///     unsafe {
+///         let mapping = v4l2::mmap(ptr::null_mut(), mapping_length,
+///                                  libc::PROT_READ | libc::PROT_WRITE,
+///                                  libc::MAP_SHARED, fd, 0);
+///     }
 ///     v4l2::close(fd).unwrap();
 /// }
 /// ```
-pub fn mmap(
+pub unsafe fn mmap(
     start: *mut std::os::raw::c_void,
     length: usize,
     prot: std::os::raw::c_int,
@@ -165,11 +173,7 @@ pub fn mmap(
     fd: std::os::raw::c_int,
     offset: i64,
 ) -> io::Result<*mut std::os::raw::c_void> {
-    let ret: *mut std::os::raw::c_void;
-    unsafe {
-        ret = v4l2_mmap(start, length as u64, prot, flags, fd, offset);
-    }
-
+    let ret = v4l2_mmap(start, length as u64, prot, flags, fd, offset);
     if ret as usize == std::usize::MAX {
         Err(io::Error::last_os_error())
     } else {
@@ -186,6 +190,10 @@ pub fn mmap(
 /// * `start` - Starting address of the mapping
 /// * `length` - Length of the mapped region
 ///
+/// # Safety
+///
+/// Start must be a raw pointer. Thus, the entire function is unsafe.
+///
 /// # Example
 ///
 /// ```
@@ -199,20 +207,20 @@ pub fn mmap(
 ///     /* VIDIOC_REQBUFS */
 ///     /* VIDIOC_QUERYBUF */
 ///     let mapping_length: usize = 1000;
-///     let mapping = v4l2::mmap(ptr::null_mut(), mapping_length,
-///                              libc::PROT_READ | libc::PROT_WRITE, libc::MAP_SHARED, fd, 0);
-///     if let Ok(mapping) = mapping {
-///         v4l2::munmap(mapping, mapping_length).unwrap();
+///
+///     unsafe {
+///         let mapping = v4l2::mmap(ptr::null_mut(), mapping_length,
+///                                  libc::PROT_READ | libc::PROT_WRITE,
+///                                  libc::MAP_SHARED, fd, 0);
+///         if let Ok(mapping) = mapping {
+///             v4l2::munmap(mapping, mapping_length).unwrap();
+///         }
 ///     }
 ///     v4l2::close(fd).unwrap();
 /// }
 /// ```
-pub fn munmap(start: *mut std::os::raw::c_void, length: usize) -> io::Result<()> {
-    let ret: std::os::raw::c_int;
-    unsafe {
-        ret = v4l2_munmap(start, length as u64);
-    }
-
+pub unsafe fn munmap(start: *mut std::os::raw::c_void, length: usize) -> io::Result<()> {
+    let ret = v4l2_munmap(start, length as u64);
     if ret == -1 {
         Err(io::Error::last_os_error())
     } else {
