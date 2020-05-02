@@ -4,6 +4,9 @@ pub mod v4l2;
 
 pub mod ioctl;
 
+pub mod buffer;
+pub use buffer::{Buffer, BufferFlags, BufferManager, BufferStream};
+
 mod capability;
 pub use capability::Capabilities;
 
