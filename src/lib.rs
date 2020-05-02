@@ -23,5 +23,8 @@ pub use format::{FormatDescription, FormatFlags};
 mod fraction;
 pub use fraction::Fraction;
 
+mod memory;
+pub use memory::Memory;
+
 mod timestamp;
 pub use timestamp::Timestamp;
