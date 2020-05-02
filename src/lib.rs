@@ -7,6 +7,9 @@ pub mod ioctl;
 pub mod buffer;
 pub use buffer::{Buffer, BufferFlags, BufferManager, BufferStream};
 
+pub mod buffers;
+pub use buffers::{MappedBuffer, MappedBufferStream};
+
 mod capability;
 pub use capability::Capabilities;
 
