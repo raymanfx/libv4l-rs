@@ -6,11 +6,10 @@ use crate::v4l_sys::*;
 use crate::{ioctl, v4l2};
 use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription};
 
-#[derive(Debug, Default)]
 /// Linux capture device abstraction
 pub struct CaptureDevice {
     /// raw OS file descriptor
-    fd: std::os::raw::c_int,
+    pub(crate) fd: std::os::raw::c_int,
 }
 
 impl CaptureDevice {
@@ -72,6 +71,22 @@ impl CaptureDevice {
         }
 
         Ok(CaptureDevice { fd })
+    }
+
+    /// Returns the raw fd of the device
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::CaptureDevice;
+    /// let dev = CaptureDevice::new(0);
+    ///
+    /// if let Ok(dev) = dev {
+    ///     print!("Device file descriptor: {}", dev.fd());
+    /// }
+    /// ```
+    pub fn fd(&self) -> std::os::raw::c_int {
+        self.fd
     }
 
     /// Returns a vector of valid formats for this device
