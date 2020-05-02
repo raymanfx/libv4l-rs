@@ -2,7 +2,7 @@ use std::{io, mem, path::Path};
 
 use crate::v4l_sys::*;
 use crate::{ioctl, v4l2};
-use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription};
+use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription, FourCC, Fraction};
 
 /// Linux capture device abstraction
 pub struct CaptureDevice {
@@ -35,6 +35,67 @@ impl CaptureDevice {
         }
 
         Ok(CaptureDevice { fd })
+    }
+
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    /// Builder: set the format with commonly used parameters
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - Width in pixels
+    /// * `height` - Height in pixels
+    /// * `fourcc` - Four character code
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::mem;
+    /// use v4l::CaptureDevice;
+    ///
+    /// // ignore this, it is necessary to avoid CI failure
+    /// let dev = CaptureDevice::new(0);
+    /// if let Ok(dev) = dev {
+    ///     std::mem::drop(dev);
+    ///
+    ///     // this is the real example
+    ///     let dev = CaptureDevice::new(0).unwrap().format(640, 480, b"RGB3");
+    /// }
+    /// ```
+    pub fn format(mut self, width: u32, height: u32, fourcc: &[u8; 4]) -> io::Result<Self> {
+        let mut fmt = self.get_format()?;
+        fmt.width = width;
+        fmt.height = height;
+        fmt.fourcc = FourCC::new(fourcc);
+        self.set_format(&fmt)?;
+        Ok(self)
+    }
+
+    /// Builder: set frame interval
+    ///
+    /// # Arguments
+    ///
+    /// * `fps` - Frames per second
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::mem;
+    /// use v4l::CaptureDevice;
+    ///
+    /// // ignore this, it is necessary to avoid CI failure
+    /// let dev = CaptureDevice::new(0);
+    /// if let Ok(dev) = dev {
+    ///     std::mem::drop(dev);
+    ///
+    ///     // this is the real example
+    ///     let dev = CaptureDevice::new(0).unwrap().format(640, 480, b"RGB3").unwrap().fps(30);
+    /// }
+    /// ```
+    pub fn fps(mut self, fps: u32) -> io::Result<Self> {
+        let mut params = self.get_params()?;
+        params.interval = Fraction::new(1, fps);
+        self.set_params(&params)?;
+        Ok(self)
     }
 
     /// Returns a capture device by path
