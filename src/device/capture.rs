@@ -1,5 +1,3 @@
-use std::ffi::{CString, OsString};
-use std::os::unix::ffi::OsStrExt;
 use std::{io, mem, path::Path};
 
 use crate::v4l_sys::*;
@@ -29,13 +27,8 @@ impl CaptureDevice {
     /// let dev = CaptureDevice::new(0);
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
-        let path_str = format!("{}{}", "/dev/video", index);
-        let c_path = CString::new(OsString::from(path_str).as_bytes()).unwrap();
-        let fd: std::os::raw::c_int;
-
-        unsafe {
-            fd = v4l2_open(c_path.as_ptr(), libc::O_RDWR);
-        }
+        let path = format!("{}{}", "/dev/video", index);
+        let fd = v4l2::open(path, libc::O_RDWR)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
@@ -59,12 +52,7 @@ impl CaptureDevice {
     /// let dev = CaptureDevice::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let c_path = CString::new(path.as_ref().as_os_str().as_bytes()).unwrap();
-        let fd: std::os::raw::c_int;
-
-        unsafe {
-            fd = v4l2_open(c_path.as_ptr(), libc::O_RDWR);
-        }
+        let fd = v4l2::open(path, libc::O_RDWR)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
@@ -304,9 +292,7 @@ impl CaptureDevice {
 
 impl Drop for CaptureDevice {
     fn drop(&mut self) {
-        unsafe {
-            v4l2_close(self.fd);
-        }
+        v4l2::close(self.fd).unwrap();
     }
 }
 

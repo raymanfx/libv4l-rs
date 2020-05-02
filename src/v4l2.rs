@@ -39,6 +39,39 @@ pub fn open<P: AsRef<Path>>(path: P, flags: i32) -> io::Result<std::os::raw::c_i
     }
 }
 
+/// A convenience wrapper around v4l2_close.
+///
+/// In case of errors, the last OS error will be reported, aka errno on Linux.
+///
+/// # Arguments
+///
+/// * `fd` - File descriptor of a previously opened device
+///
+/// # Example
+///
+/// ```
+/// extern crate v4l;
+///
+/// use v4l::v4l2;
+///
+/// let fd = v4l2::open("/dev/video0", libc::O_RDWR);
+/// if let Ok(fd) = fd {
+///     v4l2::close(fd).unwrap();
+/// }
+/// ```
+pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
+    let ret: std::os::raw::c_int;
+    unsafe {
+        ret = v4l2_close(fd);
+    }
+
+    if ret == -1 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
 /// A convenience wrapper around v4l2_ioctl.
 ///
 /// In case of errors, the last OS error will be reported, aka errno on Linux.
