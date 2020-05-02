@@ -35,5 +35,7 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 #### 0.3
  * Device buffer abstraction
-     * Streaming I/O (mmap, userptr, dmabuf)
-     * Capture method for Device
+     * Streaming I/O (mmap)
+
+#### 0.4
+ * Streaming I/O (userptr)
