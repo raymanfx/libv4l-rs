@@ -7,7 +7,7 @@ use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription};
 /// Linux capture device abstraction
 pub struct CaptureDevice {
     /// raw OS file descriptor
-    pub(crate) fd: std::os::raw::c_int,
+    fd: std::os::raw::c_int,
 }
 
 impl CaptureDevice {
@@ -67,13 +67,13 @@ impl CaptureDevice {
     ///
     /// ```
     /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::new(0);
+    /// let mut dev = CaptureDevice::new(0);
     ///
-    /// if let Ok(dev) = dev {
+    /// if let Ok(mut dev) = dev {
     ///     print!("Device file descriptor: {}", dev.fd());
     /// }
     /// ```
-    pub fn fd(&self) -> std::os::raw::c_int {
+    pub fn fd(&mut self) -> std::os::raw::c_int {
         self.fd
     }
 
