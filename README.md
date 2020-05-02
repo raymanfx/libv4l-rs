@@ -33,7 +33,7 @@ Multi-planar capture will not be targeted in the near future unless someone else
      * Format getter/setter
      * Parameter getter/setter
 
-#### 0.3
+#### 0.3 (released)
  * Device buffer abstraction
      * Streaming I/O (mmap)
 
