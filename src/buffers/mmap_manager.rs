@@ -169,16 +169,18 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             )?;
         }
 
+        let ptr;
+        let view;
         unsafe {
-            let ptr = self.bufs[v4l2_buf.index as usize].0 as *mut u8;
-            let view = slice::from_raw_parts::<u8>(ptr, v4l2_buf.bytesused as usize);
-
-            Ok(MappedBuffer::new(
-                view,
-                v4l2_buf.sequence,
-                v4l2_buf.timestamp.into(),
-                v4l2_buf.flags.into(),
-            ))
+            ptr = self.bufs[v4l2_buf.index as usize].0 as *mut u8;
+            view = slice::from_raw_parts::<u8>(ptr, v4l2_buf.bytesused as usize);
         }
+
+        Ok(MappedBuffer::new(
+            view,
+            v4l2_buf.sequence,
+            v4l2_buf.timestamp.into(),
+            v4l2_buf.flags.into(),
+        ))
     }
 }
