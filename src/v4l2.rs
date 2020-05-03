@@ -3,7 +3,71 @@ use std::os::unix::ffi::OsStrExt;
 use std::{io, path::Path};
 
 use crate::ioctl;
-use crate::v4l_sys::*;
+
+#[cfg(feature = "v4l-sys")]
+mod detail {
+    use crate::ioctl;
+    use crate::v4l_sys::*;
+
+    pub unsafe fn open(path: *const std::os::raw::c_char, flags: i32) -> std::os::raw::c_int {
+        v4l2_open(path, flags)
+    }
+    pub unsafe fn close(fd: std::os::raw::c_int) -> std::os::raw::c_int {
+        v4l2_close(fd)
+    }
+    pub unsafe fn ioctl(
+        fd: std::os::raw::c_int,
+        request: ioctl::_IOC_TYPE,
+        argp: *mut std::os::raw::c_void,
+    ) -> std::os::raw::c_int {
+        v4l2_ioctl(fd, request, argp)
+    }
+    pub unsafe fn mmap(
+        start: *mut std::os::raw::c_void,
+        length: usize,
+        prot: std::os::raw::c_int,
+        flags: std::os::raw::c_int,
+        fd: std::os::raw::c_int,
+        offset: i64,
+    ) -> *mut std::os::raw::c_void {
+        v4l2_mmap(start, length as u64, prot, flags, fd, offset)
+    }
+    pub unsafe fn munmap(start: *mut std::os::raw::c_void, length: usize) -> std::os::raw::c_int {
+        v4l2_munmap(start, length as u64)
+    }
+}
+
+#[cfg(feature = "v4l2-sys")]
+mod detail {
+    use crate::ioctl;
+
+    pub unsafe fn open(path: *const std::os::raw::c_char, flags: i32) -> std::os::raw::c_int {
+        libc::open(path, flags)
+    }
+    pub unsafe fn close(fd: std::os::raw::c_int) -> std::os::raw::c_int {
+        libc::close(fd)
+    }
+    pub unsafe fn ioctl(
+        fd: std::os::raw::c_int,
+        request: ioctl::_IOC_TYPE,
+        argp: *mut std::os::raw::c_void,
+    ) -> std::os::raw::c_int {
+        libc::ioctl(fd, request, argp)
+    }
+    pub unsafe fn mmap(
+        start: *mut std::os::raw::c_void,
+        length: usize,
+        prot: std::os::raw::c_int,
+        flags: std::os::raw::c_int,
+        fd: std::os::raw::c_int,
+        offset: i64,
+    ) -> *mut std::os::raw::c_void {
+        libc::mmap(start, length, prot, flags, fd, offset)
+    }
+    pub unsafe fn munmap(start: *mut std::os::raw::c_void, length: usize) -> std::os::raw::c_int {
+        libc::munmap(start, length)
+    }
+}
 
 /// A convenience wrapper around v4l2_open.
 ///
@@ -29,7 +93,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: i32) -> io::Result<std::os::raw::c_i
     let c_path = CString::new(path.as_ref().as_os_str().as_bytes()).unwrap();
 
     unsafe {
-        fd = v4l2_open(c_path.as_ptr(), flags);
+        fd = detail::open(c_path.as_ptr(), flags);
     }
 
     if fd == -1 {
@@ -62,7 +126,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: i32) -> io::Result<std::os::raw::c_i
 pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
     let ret: std::os::raw::c_int;
     unsafe {
-        ret = v4l2_close(fd);
+        ret = detail::close(fd);
     }
 
     if ret == -1 {
@@ -117,7 +181,7 @@ pub unsafe fn ioctl(
     request: ioctl::_IOC_TYPE,
     argp: *mut std::os::raw::c_void,
 ) -> io::Result<()> {
-    let ret = v4l2_ioctl(fd, request, argp);
+    let ret = detail::ioctl(fd, request, argp);
 
     if ret == -1 {
         Err(io::Error::last_os_error())
@@ -173,7 +237,7 @@ pub unsafe fn mmap(
     fd: std::os::raw::c_int,
     offset: i64,
 ) -> io::Result<*mut std::os::raw::c_void> {
-    let ret = v4l2_mmap(start, length as u64, prot, flags, fd, offset);
+    let ret = detail::mmap(start, length, prot, flags, fd, offset);
     if ret as usize == std::usize::MAX {
         Err(io::Error::last_os_error())
     } else {
@@ -220,7 +284,7 @@ pub unsafe fn mmap(
 /// }
 /// ```
 pub unsafe fn munmap(start: *mut std::os::raw::c_void, length: usize) -> io::Result<()> {
-    let ret = v4l2_munmap(start, length as u64);
+    let ret = detail::munmap(start, length);
     if ret == -1 {
         Err(io::Error::last_os_error())
     } else {

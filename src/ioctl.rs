@@ -68,7 +68,7 @@ macro_rules! _IOWR {
 #[allow(dead_code)]
 pub mod codes {
     use super::_IOC_TYPE;
-    use v4l_sys::*;
+    use crate::v4l_sys::*;
 
     pub const VIDIOC_QUERYCAP: _IOC_TYPE = _IOR!(b'V', 0, v4l2_capability);
     pub const VIDIOC_RESERVED: _IOC_TYPE = _IO!(b'V', 1);

@@ -57,7 +57,12 @@
 //!
 //! Have a look at the examples to learn more about device and buffer management.
 
+#[cfg(feature = "v4l-sys")]
 pub use v4l_sys;
+
+#[cfg(feature = "v4l2-sys")]
+pub use v4l2_sys as v4l_sys;
+
 pub mod v4l2;
 
 pub mod ioctl;

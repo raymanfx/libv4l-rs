@@ -15,9 +15,7 @@ pub struct DeviceInfo {
 
 impl Drop for DeviceInfo {
     fn drop(&mut self) {
-        unsafe {
-            v4l2_close(self.fd);
-        }
+        v4l2::close(self.fd).unwrap();
     }
 }
 
