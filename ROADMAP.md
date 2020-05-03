@@ -5,9 +5,10 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
-#### 0.4
+#### 0.4 (released)
 
 > * Streaming I/O (userptr)
+> * Optional libv4l vs v4l2 FFI dependencies
 
 #### 0.3 (released)
 > * Device buffer abstraction
