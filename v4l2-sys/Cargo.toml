@@ -1,6 +1,6 @@
 [package]
-name = "v4l2-sys"
-description = "Raw v4l2 bindings"
+name = "v4l2-sys-mit"
+description = "Raw v4l2 bindings (MIT licensed)"
 version = "0.1.0"
 authors = ["Christopher N. Hesse <raymanfx@gmail.com>"]
 edition = "2018"
