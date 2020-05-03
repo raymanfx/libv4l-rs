@@ -20,6 +20,18 @@
 //! * User pointer (memory region allocated in host memory, written into by the kernel)
 //! * DMA (direct memory access for memory transfer without involving the CPU)
 //!
+//! The following schematic shows the mmap and userptr mechanisms:
+//!
+//! **mmap**
+//!
+//! 1. device --[MAP]--> kernel --[MAP]--> user
+//! 2. device --[DMA]--> kernel --[MAP]--> user
+//!
+//! **userptr**
+//!
+//! 3. device --[DMA]-->                   user
+//!
+//!
 //! It is important to note that user pointer is for device-to-user memory transfer whereas
 //! DMA is for device-to-device transfer, e.g. directly uploading a captured frame into GPU
 //! memory.
