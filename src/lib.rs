@@ -80,33 +80,32 @@ pub mod v4l2;
 pub mod ioctl;
 
 pub mod buffer;
-pub use buffer::{Buffer, BufferFlags, BufferManager, BufferStream};
+pub use buffer::{Buffer, BufferManager, BufferStream};
 
 pub mod buffers;
 pub use buffers::{MappedBuffer, MappedBufferStream};
 pub use buffers::{UserBuffer, UserBufferStream};
 
-mod capability;
+pub mod capability;
 pub use capability::Capabilities;
 
-mod device;
-pub use device::capture;
-pub use device::capture_format;
-pub use device::capture_parameters;
-pub use device::{CaptureDevice, CaptureFormat, CaptureParams};
+pub mod device;
+pub use device::capture::CaptureDevice;
+pub use device::capture_format::CaptureFormat;
+pub use device::capture_parameters::CaptureParams;
 pub use device::{DeviceInfo, DeviceList};
 
-mod fourcc;
+pub mod fourcc;
 pub use fourcc::FourCC;
 
-mod format;
-pub use format::{FormatDescription, FormatFlags};
+pub mod format;
+pub use format::FormatDescription;
 
-mod fraction;
+pub mod fraction;
 pub use fraction::Fraction;
 
-mod memory;
+pub mod memory;
 pub use memory::Memory;
 
-mod timestamp;
+pub mod timestamp;
 pub use timestamp::Timestamp;

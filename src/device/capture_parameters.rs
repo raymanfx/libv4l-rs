@@ -1,133 +1,79 @@
+use bitflags::bitflags;
 use std::{fmt, mem};
 
 use crate::v4l_sys::*;
 use crate::Fraction;
 
-#[allow(clippy::unreadable_literal)]
-#[rustfmt::skip]
-#[repr(u32)]
-pub enum Capability {
-    TimePerFrame        = 0x1000,
-}
-
-#[allow(clippy::unreadable_literal)]
-#[rustfmt::skip]
-#[repr(u32)]
-pub enum Mode {
-    HighQuality         = 0x0001,
-}
-
-#[derive(Debug, Default, Copy, Clone)]
-/// Parameter capability flags
-pub struct ParameterCapabilites {
-    /// Capability flags such as V4L2_CAP_TIMEPERFRAME
-    pub flags: u32,
-}
-
-impl From<u32> for ParameterCapabilites {
-    fn from(flags: u32) -> Self {
-        ParameterCapabilites { flags }
+bitflags! {
+    pub struct Capabilities: u32 {
+        #[allow(clippy::unreadable_literal)]
+        const TIME_PER_FRAME    = 0x1000;
     }
 }
 
-impl Into<u32> for ParameterCapabilites {
+impl From<u32> for Capabilities {
+    fn from(caps: u32) -> Self {
+        Capabilities::from_bits_truncate(caps)
+    }
+}
+
+impl Into<u32> for Capabilities {
     fn into(self) -> u32 {
-        self.flags
+        self.bits()
     }
 }
 
-impl fmt::Display for ParameterCapabilites {
+impl fmt::Display for Capabilities {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut prefix = "";
-        let mut flags = self.flags;
-
-        let mut print_flag = |flag: Capability, info: &str| -> fmt::Result {
-            let flag = flag as u32;
-            if flags & flag != 0 {
-                write!(f, "{}{}", prefix, info)?;
-                prefix = ", ";
-
-                // remove from input flags so we can know about flags we do not recognize
-                flags &= !flag;
-            }
-            Ok(())
-        };
-
-        print_flag(Capability::TimePerFrame, "Time per frame")?;
-
-        if flags != 0 {
-            write!(f, "{}{}", prefix, flags)?;
-        }
-        Ok(())
+        fmt::Debug::fmt(self, f)
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
-/// Parameter mode flags
-pub struct ParameterModes {
-    /// Mode flags such as V4L2_MODE_HIGHQUALITY
-    pub flags: u32,
-}
-
-impl From<u32> for ParameterModes {
-    fn from(flags: u32) -> Self {
-        ParameterModes { flags }
+bitflags! {
+    pub struct Modes: u32 {
+        const HIGH_QUALITY      = 0x1000;
     }
 }
 
-impl Into<u32> for ParameterModes {
+impl From<u32> for Modes {
+    fn from(caps: u32) -> Self {
+        Modes::from_bits_truncate(caps)
+    }
+}
+
+impl Into<u32> for Modes {
     fn into(self) -> u32 {
-        self.flags
+        self.bits()
     }
 }
 
-impl fmt::Display for ParameterModes {
+impl fmt::Display for Modes {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut prefix = "";
-        let mut flags = self.flags;
-
-        let mut print_flag = |flag: Mode, info: &str| -> fmt::Result {
-            let flag = flag as u32;
-            if flags & flag != 0 {
-                write!(f, "{}{}", prefix, info)?;
-                prefix = ", ";
-
-                // remove from input flags so we can know about flags we do not recognize
-                flags &= !flag;
-            }
-            Ok(())
-        };
-
-        print_flag(Mode::HighQuality, "High quality")?;
-
-        if flags != 0 {
-            write!(f, "{}{}", prefix, flags)?;
-        }
-        Ok(())
+        fmt::Debug::fmt(self, f)
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming parameters (single-planar)
 pub struct CaptureParams {
-    pub capabilities: ParameterCapabilites,
-    pub modes: ParameterModes,
+    pub capabilities: Capabilities,
+    pub modes: Modes,
     pub interval: Fraction,
 }
 
 impl CaptureParams {
     pub fn new(frac: Fraction) -> Self {
         CaptureParams {
-            capabilities: ParameterCapabilites::default(),
-            modes: ParameterModes::default(),
+            capabilities: Capabilities::from(0),
+            modes: Modes::from(0),
             interval: frac,
         }
     }
 
     pub fn with_fps(fps: u32) -> Self {
         CaptureParams {
-            capabilities: ParameterCapabilites::default(),
-            modes: ParameterModes::default(),
+            capabilities: Capabilities::from(0),
+            modes: Modes::from(0),
             interval: Fraction::new(1, fps),
         }
     }
@@ -145,8 +91,8 @@ impl fmt::Display for CaptureParams {
 impl From<v4l2_captureparm> for CaptureParams {
     fn from(params: v4l2_captureparm) -> Self {
         CaptureParams {
-            capabilities: ParameterCapabilites::from(params.capability),
-            modes: ParameterModes::from(params.capturemode),
+            capabilities: Capabilities::from(params.capability),
+            modes: Modes::from(params.capturemode),
             interval: Fraction::from(params.timeperframe),
         }
     }

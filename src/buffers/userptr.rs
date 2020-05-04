@@ -1,11 +1,11 @@
-use crate::{Buffer, BufferFlags, Timestamp};
+use crate::{buffer, Timestamp};
 
 /// Buffer allocated in userspace (by the application)
 ///
 /// Devices supporting user pointer mode will directly transfer image memory to the buffer
 /// "for free" by using direct memory access (DMA).
 pub struct UserBuffer<'a> {
-    flags: BufferFlags,
+    flags: buffer::Flags,
     timestamp: Timestamp,
     sequence: u32,
 
@@ -33,14 +33,14 @@ impl<'a> UserBuffer<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::{BufferFlags, Timestamp, UserBuffer};
+    /// use v4l::{buffer, Timestamp, UserBuffer};
     ///
     /// let data: Vec<u8> = Vec::new();
     /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
-    /// let flags = BufferFlags::from(0);
+    /// let flags = buffer::Flags::from(0);
     /// let buf = UserBuffer::new(&data, 0, ts, flags);
     /// ```
-    pub fn new(view: &'a [u8], seq: u32, ts: Timestamp, flags: BufferFlags) -> Self {
+    pub fn new(view: &'a [u8], seq: u32, ts: Timestamp, flags: buffer::Flags) -> Self {
         UserBuffer {
             flags,
             timestamp: ts,
@@ -50,7 +50,7 @@ impl<'a> UserBuffer<'a> {
     }
 }
 
-impl<'a> Buffer for UserBuffer<'a> {
+impl<'a> buffer::Buffer for UserBuffer<'a> {
     fn data(&self) -> &[u8] {
         &self.view
     }
@@ -71,7 +71,7 @@ impl<'a> Buffer for UserBuffer<'a> {
         self.timestamp
     }
 
-    fn flags(&self) -> BufferFlags {
+    fn flags(&self) -> buffer::Flags {
         self.flags
     }
 }

@@ -1,4 +1,4 @@
-use crate::{Buffer, BufferFlags, Timestamp};
+use crate::{buffer, Timestamp};
 
 /// Memory mapped buffer
 ///
@@ -7,7 +7,7 @@ use crate::{Buffer, BufferFlags, Timestamp};
 /// the buffer instance.
 /// Acquiring ownership of the data in userspace is not possible, so it has to be copied.
 pub struct MappedBuffer<'a> {
-    flags: BufferFlags,
+    flags: buffer::Flags,
     timestamp: Timestamp,
     sequence: u32,
 
@@ -30,14 +30,14 @@ impl<'a> MappedBuffer<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::{BufferFlags, MappedBuffer, Timestamp};
+    /// use v4l::{buffer, MappedBuffer, Timestamp};
     ///
     /// let data: Vec<u8> = Vec::new();
     /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
-    /// let flags = BufferFlags::from(0);
+    /// let flags = buffer::Flags::from(0);
     /// let buf = MappedBuffer::new(&data, 0, ts, flags);
     /// ```
-    pub fn new(view: &'a [u8], seq: u32, ts: Timestamp, flags: BufferFlags) -> Self {
+    pub fn new(view: &'a [u8], seq: u32, ts: Timestamp, flags: buffer::Flags) -> Self {
         MappedBuffer {
             flags,
             timestamp: ts,
@@ -47,7 +47,7 @@ impl<'a> MappedBuffer<'a> {
     }
 }
 
-impl<'a> Buffer for MappedBuffer<'a> {
+impl<'a> buffer::Buffer for MappedBuffer<'a> {
     fn data(&self) -> &[u8] {
         &self.view
     }
@@ -68,7 +68,7 @@ impl<'a> Buffer for MappedBuffer<'a> {
         self.timestamp
     }
 
-    fn flags(&self) -> BufferFlags {
+    fn flags(&self) -> buffer::Flags {
         self.flags
     }
 }

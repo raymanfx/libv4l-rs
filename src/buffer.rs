@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use std::{fmt, io};
 
 use crate::Timestamp;
@@ -28,105 +29,65 @@ pub enum BufferType {
     Private             = 0x80,
 }
 
-/// Buffer flags
-#[allow(clippy::unreadable_literal)]
-#[rustfmt::skip]
-#[repr(u32)]
-pub enum BufferFlag {
-    /// Buffer is mapped
-    Mapped              = 0x00000001,
-    /// Buffer is queued for processing
-    Queued              = 0x00000002,
-    /// Buffer is ready
-    Done                = 0x00000004,
-    /// Image is a keyframe (I-frame)
-    Keyframe            = 0x00000008,
-    /// Image is a P-frame
-    Pframe              = 0x00000010,
-    /// Image is a B-frame
-    Bframe              = 0x00000020,
-    /// Buffer is ready, but the data contained within is corrupted
-    Error               = 0x00000040,
-    /// Buffer is added to an unqueued request
-    InRequest           = 0x00000080,
-    /// Timecode field is valid
-    Timecode            = 0x00000100,
-    /// Don't return the capture buffer until OUTPUT timestamp changes
-    M2MHoldCaptureBuf   = 0x00000200,
-    /// Buffer is prepared for queuing
-    Prepared            = 0x00000400,
-    /// Cache handling flags
-    NoCacheInvalidate   = 0x00000800,
-    NoCacheClean        = 0x00001000,
-    /// Timestamp type
-    TimestampMask       = 0x0000e000,
-    //TimestampUnknown    = 0x00000000,
-    TimestampMonotonic  = 0x00002000,
-    TimestampCopy       = 0x00004000,
-    TstampMask          = 0x00070000,
-    //TstampSrcEof        = 0x00000000,
-    TstampSrcSoe        = 0x00010000,
-    /// mem2mem encoder/decoder
-    Last                = 0x00100000,
-    /// request_fd is valid
-    RequestFd           = 0x00800000,
-}
-
-#[derive(Debug, Default, Copy, Clone)]
-/// Buffer flags
-pub struct BufferFlags {
-    /// Buffer flags such as V4L2_BUF_FLAG_MAPPED
-    pub flags: u32,
-}
-
-impl From<u32> for BufferFlags {
-    fn from(flags: u32) -> Self {
-        BufferFlags { flags }
+bitflags! {
+    #[allow(clippy::unreadable_literal)]
+    pub struct Flags: u32 {
+        /// Buffer is mapped
+        const MAPPED                = 0x00000001;
+        /// Buffer is queued for processing
+        const QUEUED                = 0x00000002;
+        /// Buffer is ready
+        const DONE                  = 0x00000004;
+        /// Image is a keyframe (I-frame)
+        const KEYFRAME              = 0x00000008;
+        /// Image is a P-frame
+        const PFRAME                = 0x00000010;
+        /// Image is a B-frame
+        const BFRAME                = 0x00000020;
+        /// Buffer is ready, but the data contained within is corrupted
+        const ERROR                 = 0x00000040;
+        /// Buffer is added to an unqueued request
+        const IN_REQUEST            = 0x00000080;
+        /// Timecode field is valid
+        const TIMECODE              = 0x00000100;
+        /// Don't return the capture buffer until OUTPUT timestamp changes
+        const M2M_HOLD_CAPTURE_BUF  = 0x00000200;
+        /// Buffer is prepared for queuing
+        const PREPARED              = 0x00000400;
+        /// Cache handling flags
+        const NO_CACHE_INVALIDATE   = 0x00000800;
+        const NO_CACHE_CLEAN        = 0x00001000;
+        /// Timestamp type
+        const TIMESTAMP_MASK        = 0x0000e000;
+        const TIMESTAMP_UNKNOWN     = 0x00000000;
+        const TIMESTAMP_MONOTONIC   = 0x00002000;
+        const TIMESTAMP_COPY        = 0x00004000;
+        /// Timestamp sources
+        const TSTAMP_SRC_MASK       = 0x00070000;
+        const TSTAMP_SRC_EOF        = 0x00000000;
+        const TSTAMP_SRC_SOE        = 0x00010000;
+        /// mem2mem encoder/decoder
+        const LAST                  = 0x00100000;
+        /// request_fd is valid
+        const REQUEST_FD            = 0x00800000;
     }
 }
 
-impl fmt::Display for BufferFlags {
+impl From<u32> for Flags {
+    fn from(flags: u32) -> Flags {
+        Flags::from_bits_truncate(flags)
+    }
+}
+
+impl Into<u32> for Flags {
+    fn into(self) -> u32 {
+        self.bits()
+    }
+}
+
+impl fmt::Display for Flags {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut prefix = "";
-        let mut flags = self.flags;
-
-        let mut print_flag = |flag: BufferFlag, info: &str| -> fmt::Result {
-            let flag = flag as u32;
-            if flags & flag != 0 {
-                write!(f, "{}{}", prefix, info)?;
-                prefix = ", ";
-
-                // remove from input flags so we can know about flags we do not recognize
-                flags &= !flag;
-            }
-            Ok(())
-        };
-
-        print_flag(BufferFlag::Mapped, "mapped")?;
-        print_flag(BufferFlag::Queued, "queued")?;
-        print_flag(BufferFlag::Done, "ready")?;
-        print_flag(BufferFlag::Keyframe, "I-frame")?;
-        print_flag(BufferFlag::Pframe, "P-frame")?;
-        print_flag(BufferFlag::Bframe, "B-frame")?;
-        print_flag(BufferFlag::Error, "corruped")?;
-        print_flag(BufferFlag::InRequest, "in request")?;
-        print_flag(BufferFlag::Timecode, "timecode")?;
-        print_flag(BufferFlag::M2MHoldCaptureBuf, "hold")?;
-        print_flag(BufferFlag::Prepared, "prepared for queuing")?;
-        print_flag(BufferFlag::NoCacheInvalidate, "no cache invalidate")?;
-        print_flag(BufferFlag::NoCacheClean, "no cache clean")?;
-        print_flag(BufferFlag::TimestampMask, "timestamp")?;
-        print_flag(BufferFlag::TimestampMonotonic, "monotonic timestamp")?;
-        print_flag(BufferFlag::TimestampCopy, "copied timestamp")?;
-        print_flag(BufferFlag::TstampMask, "TstampMask")?;
-        print_flag(BufferFlag::TstampSrcSoe, "TstampSrcSoe")?;
-        print_flag(BufferFlag::Last, "last")?;
-        print_flag(BufferFlag::RequestFd, "request fd valid")?;
-
-        if flags != 0 {
-            write!(f, "{}{}", prefix, flags)?;
-        }
-        Ok(())
+        fmt::Debug::fmt(self, f)
     }
 }
 
@@ -148,7 +109,7 @@ pub trait Buffer {
     fn timestamp(&self) -> Timestamp;
 
     /// Buffer flags
-    fn flags(&self) -> BufferFlags;
+    fn flags(&self) -> Flags;
 }
 
 /// Manage buffers for a device

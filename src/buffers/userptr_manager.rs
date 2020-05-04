@@ -1,7 +1,7 @@
 use std::{io, marker, mem, os, slice};
 
 use crate::v4l_sys::*;
-use crate::{ioctl, v4l2};
+use crate::{buffer, ioctl, v4l2};
 use crate::{BufferManager, CaptureDevice, Memory, UserBuffer};
 
 /// Manage user allocated buffers
@@ -211,7 +211,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             view,
             v4l2_buf.sequence,
             v4l2_buf.timestamp.into(),
-            v4l2_buf.flags.into(),
+            buffer::Flags::from(v4l2_buf.flags),
         ))
     }
 }
