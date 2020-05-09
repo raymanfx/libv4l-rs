@@ -91,6 +91,44 @@ impl fmt::Display for Flags {
     }
 }
 
+/// Buffer metadata, mostly used not to convolute the main buffer structs
+#[derive(Copy, Clone)]
+pub struct Metadata {
+    /// Sequence number, counting the frames
+    pub seq: u32,
+    /// Time of capture (usually set by the driver)
+    pub timestamp: Timestamp,
+    /// Buffer flags
+    pub flags: Flags,
+}
+
+impl Metadata {
+    /// Returns a buffer metadata description
+    ///
+    /// # Arguments
+    ///
+    /// * `seq` - Sequence number as counted by the driver
+    /// * `ts` - Timestamp as reported by the driver
+    /// * `flags` - Flags as set by the driver
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::{buffer, Timestamp};
+    ///
+    /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
+    /// let flags = buffer::Flags::from(0);
+    /// let meta = buffer::Metadata::new(0, ts, flags);
+    /// ```
+    pub fn new(seq: u32, ts: Timestamp, flags: Flags) -> Self {
+        Metadata {
+            seq,
+            timestamp: ts,
+            flags,
+        }
+    }
+}
+
 /// Represents a host (allocated) or device (mapped) buffer
 pub trait Buffer {
     /// Slice of read-only data
@@ -102,14 +140,8 @@ pub trait Buffer {
     /// Whether the backing buffer is empty
     fn is_empty(&self) -> bool;
 
-    /// Sequence number of the buffer, counting the frames
-    fn seq(&self) -> u32;
-
-    /// Time of capture (usually set by the driver)
-    fn timestamp(&self) -> Timestamp;
-
-    /// Buffer flags
-    fn flags(&self) -> Flags;
+    /// Metadata such as allocation flags, timestamp and more
+    fn meta(&self) -> &Metadata;
 }
 
 /// Manage buffers for a device

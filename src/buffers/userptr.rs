@@ -1,15 +1,12 @@
-use crate::{buffer, Timestamp};
+use crate::buffer;
 
 /// Buffer allocated in userspace (by the application)
 ///
 /// Devices supporting user pointer mode will directly transfer image memory to the buffer
 /// "for free" by using direct memory access (DMA).
 pub struct UserBuffer<'a> {
-    flags: buffer::Flags,
-    timestamp: Timestamp,
-    sequence: u32,
-
     view: &'a [u8],
+    metadata: buffer::Metadata,
 }
 
 impl<'a> UserBuffer<'a> {
@@ -26,9 +23,7 @@ impl<'a> UserBuffer<'a> {
     /// # Arguments
     ///
     /// * `view` - Slice of raw memory
-    /// * `seq` - Sequence number as counted by the driver
-    /// * `ts` - Timestamp as reported by the driver
-    /// * `flags` - Flags as set by the driver
+    /// * `meta` - Metadata, usually filled in by the driver
     ///
     /// # Example
     ///
@@ -38,14 +33,13 @@ impl<'a> UserBuffer<'a> {
     /// let data: Vec<u8> = Vec::new();
     /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
     /// let flags = buffer::Flags::from(0);
-    /// let buf = UserBuffer::new(&data, 0, ts, flags);
+    /// let meta = buffer::Metadata::new(0, ts, flags);
+    /// let buf = UserBuffer::new(&data, meta);
     /// ```
-    pub fn new(view: &'a [u8], seq: u32, ts: Timestamp, flags: buffer::Flags) -> Self {
+    pub fn new(view: &'a [u8], meta: buffer::Metadata) -> Self {
         UserBuffer {
-            flags,
-            timestamp: ts,
-            sequence: seq,
             view,
+            metadata: meta,
         }
     }
 }
@@ -63,15 +57,7 @@ impl<'a> buffer::Buffer for UserBuffer<'a> {
         self.view.is_empty()
     }
 
-    fn seq(&self) -> u32 {
-        self.sequence
-    }
-
-    fn timestamp(&self) -> Timestamp {
-        self.timestamp
-    }
-
-    fn flags(&self) -> buffer::Flags {
-        self.flags
+    fn meta(&self) -> &buffer::Metadata {
+        &self.metadata
     }
 }

@@ -209,9 +209,11 @@ impl<'a> BufferManager for UserBufferManager<'a> {
 
         Ok(UserBuffer::new(
             view,
-            v4l2_buf.sequence,
-            v4l2_buf.timestamp.into(),
-            buffer::Flags::from(v4l2_buf.flags),
+            buffer::Metadata::new(
+                v4l2_buf.sequence,
+                v4l2_buf.timestamp.into(),
+                v4l2_buf.flags.into(),
+            ),
         ))
     }
 }

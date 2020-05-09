@@ -61,8 +61,8 @@
 //!     println!(
 //!         "Buffer size: {}, seq: {}, timestamp: {}",
 //!        frame.len(),
-//!        frame.seq(),
-//!        frame.timestamp()
+//!        frame.meta().seq,
+//!        frame.meta().timestamp
 //!    );
 //!}
 //!```
