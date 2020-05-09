@@ -80,7 +80,7 @@ pub mod v4l2;
 pub mod ioctl;
 
 pub mod buffer;
-pub use buffer::{Buffer, BufferManager, BufferStream};
+pub use buffer::{Buffer, BufferManager, BufferStream, HostBuffer};
 
 pub mod buffers;
 pub use buffers::{MappedBuffer, MappedBufferStream};
