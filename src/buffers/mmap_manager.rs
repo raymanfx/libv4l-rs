@@ -1,7 +1,7 @@
 use std::{io, marker, mem, os, ptr, slice};
 
 use crate::v4l_sys::*;
-use crate::{buffer, ioctl, v4l2};
+use crate::{buffer, v4l2};
 use crate::{BufferManager, CaptureDevice, MappedBuffer, Memory};
 
 /// Manage mapped buffers
@@ -75,7 +75,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_REQBUFS,
+                v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -89,13 +89,13 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
                 v4l2_buf.index = i;
                 v4l2::ioctl(
                     self.fd,
-                    ioctl::codes::VIDIOC_QUERYBUF,
+                    v4l2::vidioc::VIDIOC_QUERYBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
 
                 v4l2::ioctl(
                     self.fd,
-                    ioctl::codes::VIDIOC_QBUF,
+                    v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
 
@@ -139,7 +139,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_buf.index = self.buf_index as u32;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_QBUF,
+                v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -164,7 +164,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_buf.memory = Memory::Mmap as u32;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_DQBUF,
+                v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }

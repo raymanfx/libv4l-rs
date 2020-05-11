@@ -1,7 +1,7 @@
 use std::{io, mem, path::Path};
 
+use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{ioctl, v4l2};
 use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription, FourCC, Fraction};
 
 /// Linux capture device abstraction
@@ -174,7 +174,7 @@ impl CaptureDevice {
         unsafe {
             ret = v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_ENUM_FMT,
+                v4l2::vidioc::VIDIOC_ENUM_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             );
         }
@@ -194,7 +194,7 @@ impl CaptureDevice {
             unsafe {
                 ret = v4l2::ioctl(
                     self.fd,
-                    ioctl::codes::VIDIOC_ENUM_FMT,
+                    v4l2::vidioc::VIDIOC_ENUM_FMT,
                     &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
                 );
             }
@@ -224,7 +224,7 @@ impl CaptureDevice {
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_G_FMT,
+                v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
 
@@ -271,7 +271,7 @@ impl CaptureDevice {
             v4l2_fmt.fmt.pix = (*fmt).into();
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_S_FMT,
+                v4l2::vidioc::VIDIOC_S_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -300,7 +300,7 @@ impl CaptureDevice {
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_G_PARM,
+                v4l2::vidioc::VIDIOC_G_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
 
@@ -342,7 +342,7 @@ impl CaptureDevice {
             v4l2_params.parm.capture = (*params).into();
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_S_PARM,
+                v4l2::vidioc::VIDIOC_S_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
         }

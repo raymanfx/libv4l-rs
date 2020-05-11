@@ -2,11 +2,11 @@ use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::{io, path::Path};
 
-use crate::ioctl;
+use crate::v4l2::vidioc;
 
 #[cfg(feature = "v4l-sys")]
 mod detail {
-    use crate::ioctl;
+    use crate::v4l2::vidioc;
     use crate::v4l_sys::*;
 
     pub unsafe fn open(path: *const std::os::raw::c_char, flags: i32) -> std::os::raw::c_int {
@@ -17,7 +17,7 @@ mod detail {
     }
     pub unsafe fn ioctl(
         fd: std::os::raw::c_int,
-        request: ioctl::_IOC_TYPE,
+        request: vidioc::_IOC_TYPE,
         argp: *mut std::os::raw::c_void,
     ) -> std::os::raw::c_int {
         v4l2_ioctl(fd, request, argp)
@@ -39,7 +39,7 @@ mod detail {
 
 #[cfg(feature = "v4l2-sys")]
 mod detail {
-    use crate::ioctl;
+    use crate::v4l2::vidioc;
 
     pub unsafe fn open(path: *const std::os::raw::c_char, flags: i32) -> std::os::raw::c_int {
         libc::open(path, flags)
@@ -161,7 +161,6 @@ pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
 ///
 /// use v4l::v4l_sys::*;
 /// use v4l::v4l2;
-/// use v4l::ioctl::codes;
 ///
 /// let fd = v4l2::open("/dev/video0", libc::O_RDWR);
 /// let mut v4l2_caps: v4l2_capability;
@@ -171,14 +170,14 @@ pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
 ///
 /// if let Ok(fd) = fd {
 ///     unsafe {
-///         v4l2::ioctl(fd, codes::VIDIOC_QUERYCAP,
+///         v4l2::ioctl(fd, v4l2::vidioc::VIDIOC_QUERYCAP,
 ///                     &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void);
 ///     }
 /// }
 /// ```
 pub unsafe fn ioctl(
     fd: std::os::raw::c_int,
-    request: ioctl::_IOC_TYPE,
+    request: vidioc::_IOC_TYPE,
     argp: *mut std::os::raw::c_void,
 ) -> io::Result<()> {
     let ret = detail::ioctl(fd, request, argp);

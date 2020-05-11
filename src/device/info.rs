@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::{fs, io, mem};
 
+use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::Capabilities;
-use crate::{ioctl, v4l2};
 
 /// Represents a video4linux device node
 pub struct DeviceInfo {
@@ -95,7 +95,7 @@ impl DeviceInfo {
             let mut v4l2_caps: v4l2_capability = mem::zeroed();
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_QUERYCAP,
+                v4l2::vidioc::VIDIOC_QUERYCAP,
                 &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void,
             )?;
 

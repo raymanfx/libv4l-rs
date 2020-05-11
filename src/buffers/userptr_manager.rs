@@ -1,7 +1,7 @@
 use std::{io, marker, mem, os, slice};
 
 use crate::v4l_sys::*;
-use crate::{buffer, ioctl, v4l2};
+use crate::{buffer, v4l2};
 use crate::{BufferManager, CaptureDevice, Memory, UserBuffer};
 
 /// Manage user allocated buffers
@@ -73,7 +73,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_G_FMT,
+                v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -93,7 +93,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_REQBUFS,
+                v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -116,7 +116,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
                 v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
                 v4l2::ioctl(
                     self.fd,
-                    ioctl::codes::VIDIOC_QBUF,
+                    v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
             }
@@ -146,7 +146,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_QBUF,
+                v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -171,7 +171,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
                 self.fd,
-                ioctl::codes::VIDIOC_DQBUF,
+                v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }

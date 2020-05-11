@@ -77,8 +77,6 @@ pub use v4l2_sys as v4l_sys;
 
 pub mod v4l2;
 
-pub mod ioctl;
-
 pub mod buffer;
 pub use buffer::{Buffer, BufferManager, BufferStream, HostBuffer};
 

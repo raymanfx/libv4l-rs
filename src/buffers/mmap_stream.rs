@@ -1,8 +1,8 @@
 use std::io;
 
 use crate::buffers::MappedBufferManager;
+use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{ioctl, v4l2};
 use crate::{BufferManager, BufferStream, CaptureDevice, MappedBuffer};
 
 /// Stream of mapped buffers
@@ -72,7 +72,7 @@ impl<'a> BufferStream for MappedBufferStream<'a> {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
                 self.dev.fd(),
-                ioctl::codes::VIDIOC_STREAMON,
+                v4l2::vidioc::VIDIOC_STREAMON,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
@@ -89,7 +89,7 @@ impl<'a> BufferStream for MappedBufferStream<'a> {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
                 self.dev.fd(),
-                ioctl::codes::VIDIOC_STREAMOFF,
+                v4l2::vidioc::VIDIOC_STREAMOFF,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
