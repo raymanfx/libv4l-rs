@@ -5,7 +5,7 @@ use crate::FourCC;
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming format (single-planar)
-pub struct CaptureFormat {
+pub struct Format {
     /// width in pixels
     pub width: u32,
     /// height in pixels
@@ -19,7 +19,7 @@ pub struct CaptureFormat {
     pub size: u32,
 }
 
-impl CaptureFormat {
+impl Format {
     /// Returns a capture format
     ///
     /// # Arguments
@@ -32,11 +32,11 @@ impl CaptureFormat {
     ///
     /// ```
     /// use v4l::FourCC;
-    /// use v4l::CaptureFormat;
-    /// let fmt = CaptureFormat::new(640, 480, FourCC::new(b"YUYV"));
+    /// use v4l::capture::Format;
+    /// let fmt = Format::new(640, 480, FourCC::new(b"YUYV"));
     /// ```
     pub fn new(width: u32, height: u32, fourcc: FourCC) -> Self {
-        CaptureFormat {
+        Format {
             width,
             height,
             fourcc,
@@ -46,7 +46,7 @@ impl CaptureFormat {
     }
 }
 
-impl fmt::Display for CaptureFormat {
+impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "width  : {}", self.width)?;
         writeln!(f, "height : {}", self.height)?;
@@ -57,9 +57,9 @@ impl fmt::Display for CaptureFormat {
     }
 }
 
-impl From<v4l2_pix_format> for CaptureFormat {
+impl From<v4l2_pix_format> for Format {
     fn from(fmt: v4l2_pix_format) -> Self {
-        CaptureFormat {
+        Format {
             width: fmt.width,
             height: fmt.height,
             fourcc: FourCC::from(fmt.pixelformat),
@@ -69,8 +69,8 @@ impl From<v4l2_pix_format> for CaptureFormat {
     }
 }
 
-impl Into<v4l2_pix_format> for CaptureFormat {
-    fn into(self: CaptureFormat) -> v4l2_pix_format {
+impl Into<v4l2_pix_format> for Format {
+    fn into(self: Format) -> v4l2_pix_format {
         let mut fmt: v4l2_pix_format;
         unsafe {
             fmt = mem::zeroed();

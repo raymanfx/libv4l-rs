@@ -5,6 +5,17 @@ use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::Capabilities;
 
+pub use crate::buffer::BufferType as Type;
+
+/// Manage buffers for a device
+pub trait Device {
+    /// Returns the raw fd of the device
+    fn fd(&self) -> std::os::raw::c_int;
+
+    /// Type of the device (capture, overlay, output)
+    fn typ(&self) -> Type;
+}
+
 /// Represents a video4linux device node
 pub struct DeviceInfo {
     /// File descriptor

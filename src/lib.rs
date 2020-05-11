@@ -87,11 +87,11 @@ pub use buffers::{UserBuffer, UserBufferStream};
 pub mod capability;
 pub use capability::Capabilities;
 
+pub mod capture;
+pub use capture::Device as CaptureDevice;
+
 pub mod device;
-pub use device::capture::CaptureDevice;
-pub use device::capture_format::CaptureFormat;
-pub use device::capture_parameters::CaptureParams;
-pub use device::{DeviceInfo, DeviceList};
+pub use device::{Device, DeviceInfo, DeviceList};
 
 pub mod fourcc;
 pub use fourcc::FourCC;

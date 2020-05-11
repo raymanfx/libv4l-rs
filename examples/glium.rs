@@ -8,9 +8,8 @@ use glium::{implement_vertex, program, uniform};
 use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
-use v4l::{
-    Buffer, CaptureDevice, CaptureFormat, CaptureParams, FourCC, HostBuffer, MappedBufferStream,
-};
+use v4l::capture;
+use v4l::{Buffer, CaptureDevice, Device, FourCC, HostBuffer, MappedBufferStream};
 
 fn main() {
     let matches = App::new("v4l capture")
@@ -49,8 +48,8 @@ fn main() {
     let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
     let buffers = buffers.parse::<u32>().unwrap();
 
-    let mut format: CaptureFormat;
-    let params: CaptureParams;
+    let mut format: capture::Format;
+    let params: capture::Parameters;
 
     let dev = RwLock::new(CaptureDevice::with_path(path.clone()).expect("Failed to open device"));
     {
@@ -145,7 +144,7 @@ fn main() {
         let mut dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream = MappedBufferStream::with_buffers(&mut dev, buffers)
+        let mut stream = MappedBufferStream::with_buffers(&mut *dev, buffers)
             .expect("Failed to create buffer stream");
 
         loop {

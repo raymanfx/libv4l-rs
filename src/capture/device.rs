@@ -1,16 +1,18 @@
 use std::{io, mem, path::Path};
 
+use crate::capture::{Format, Parameters};
+use crate::device;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{CaptureFormat, CaptureParams, DeviceInfo, FormatDescription, FourCC, Fraction};
+use crate::{DeviceInfo, FormatDescription, FourCC, Fraction};
 
 /// Linux capture device abstraction
-pub struct CaptureDevice {
+pub struct Device {
     /// raw OS file descriptor
     fd: std::os::raw::c_int,
 }
 
-impl CaptureDevice {
+impl Device {
     /// Returns a capture device by index
     ///
     /// Devices are usually enumerated by the system.
@@ -23,8 +25,8 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::new(0);
+    /// use v4l::capture::Device;
+    /// let dev = Device::new(0);
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
         let path = format!("{}{}", "/dev/video", index);
@@ -34,7 +36,7 @@ impl CaptureDevice {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(CaptureDevice { fd })
+        Ok(Device { fd })
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -50,15 +52,14 @@ impl CaptureDevice {
     ///
     /// ```
     /// use std::mem;
-    /// use v4l::CaptureDevice;
+    /// use v4l::capture::Device;
     ///
     /// // ignore this, it is necessary to avoid CI failure
-    /// let dev = CaptureDevice::new(0);
-    /// if let Ok(dev) = dev {
+    /// if let Ok(dev) = Device::new(0) {
     ///     std::mem::drop(dev);
     ///
     ///     // this is the real example
-    ///     let dev = CaptureDevice::new(0).unwrap().format(640, 480, b"RGB3");
+    ///     let dev = Device::new(0).unwrap().format(640, 480, b"RGB3");
     /// }
     /// ```
     pub fn format(mut self, width: u32, height: u32, fourcc: &[u8; 4]) -> io::Result<Self> {
@@ -80,15 +81,14 @@ impl CaptureDevice {
     ///
     /// ```
     /// use std::mem;
-    /// use v4l::CaptureDevice;
+    /// use v4l::capture::Device;
     ///
     /// // ignore this, it is necessary to avoid CI failure
-    /// let dev = CaptureDevice::new(0);
-    /// if let Ok(dev) = dev {
+    /// if let Ok(dev) = Device::new(0) {
     ///     std::mem::drop(dev);
     ///
     ///     // this is the real example
-    ///     let dev = CaptureDevice::new(0).unwrap().format(640, 480, b"RGB3").unwrap().fps(30);
+    ///     let dev = Device::new(0).unwrap().format(640, 480, b"RGB3").unwrap().fps(30);
     /// }
     /// ```
     pub fn fps(mut self, fps: u32) -> io::Result<Self> {
@@ -109,8 +109,8 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::with_path("/dev/video0");
+    /// use v4l::capture::Device;
+    /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let fd = v4l2::open(path, libc::O_RDWR)?;
@@ -119,23 +119,7 @@ impl CaptureDevice {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(CaptureDevice { fd })
-    }
-
-    /// Returns the raw fd of the device
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::CaptureDevice;
-    /// let mut dev = CaptureDevice::new(0);
-    ///
-    /// if let Ok(mut dev) = dev {
-    ///     print!("Device file descriptor: {}", dev.fd());
-    /// }
-    /// ```
-    pub fn fd(&mut self) -> std::os::raw::c_int {
-        self.fd
+        Ok(Device { fd })
     }
 
     /// Returns a vector of valid formats for this device
@@ -146,10 +130,9 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::new(0);
+    /// use v4l::capture::Device;
     ///
-    /// if let Ok(dev) = dev {
+    /// if let Ok(dev) = Device::new(0) {
     ///     let formats = dev.enumerate_formats();
     ///     if let Ok(formats) = formats {
     ///         for fmt in formats {
@@ -208,17 +191,16 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::new(0);
+    /// use v4l::capture::Device;
     ///
-    /// if let Ok(dev) = dev {
+    /// if let Ok(dev) = Device::new(0) {
     ///     let fmt = dev.get_format();
     ///     if let Ok(fmt) = fmt {
     ///         print!("Active format:\n{}", fmt);
     ///     }
     /// }
     /// ```
-    pub fn get_format(&self) -> io::Result<CaptureFormat> {
+    pub fn get_format(&self) -> io::Result<Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -228,7 +210,7 @@ impl CaptureDevice {
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(CaptureFormat::from(v4l2_fmt.fmt.pix))
+            Ok(Format::from(v4l2_fmt.fmt.pix))
         }
     }
 
@@ -246,10 +228,9 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::new(0);
+    /// use v4l::capture::Device;
     ///
-    /// if let Ok(mut dev) = dev {
+    /// if let Ok(mut dev) = Device::new(0) {
     ///     let fmt = dev.get_format();
     ///     if let Ok(mut fmt) = fmt {
     ///         fmt.width = 640;
@@ -264,7 +245,7 @@ impl CaptureDevice {
     ///     }
     /// }
     /// ```
-    pub fn set_format(&mut self, fmt: &CaptureFormat) -> io::Result<CaptureFormat> {
+    pub fn set_format(&mut self, fmt: &Format) -> io::Result<Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -284,17 +265,16 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
-    /// let dev = CaptureDevice::new(0);
+    /// use v4l::capture::Device;
     ///
-    /// if let Ok(dev) = dev {
+    /// if let Ok(dev) = Device::new(0) {
     ///     let params = dev.get_params();
     ///     if let Ok(params) = params {
     ///         print!("Active parameters:\n{}", params);
     ///     }
     /// }
     /// ```
-    pub fn get_params(&self) -> io::Result<CaptureParams> {
+    pub fn get_params(&self) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -304,7 +284,7 @@ impl CaptureDevice {
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(CaptureParams::from(v4l2_params.parm.capture))
+            Ok(Parameters::from(v4l2_params.parm.capture))
         }
     }
 
@@ -318,13 +298,12 @@ impl CaptureDevice {
     /// # Example
     ///
     /// ```
-    /// use v4l::{CaptureDevice, CaptureParams};
-    /// let dev = CaptureDevice::new(0);
+    /// use v4l::capture::{Device, Parameters};
     ///
-    /// if let Ok(mut dev) = dev {
+    /// if let Ok(mut dev) = Device::new(0) {
     ///     let params = dev.get_params();
     ///     if let Ok(mut params) = params {
-    ///         params = CaptureParams::with_fps(30);
+    ///         params = Parameters::with_fps(30);
     ///         print!("Desired parameters:\n{}", params);
     ///
     ///         let params = dev.set_params(&params);
@@ -335,7 +314,7 @@ impl CaptureDevice {
     ///     }
     /// }
     /// ```
-    pub fn set_params(&mut self, params: &CaptureParams) -> io::Result<CaptureParams> {
+    pub fn set_params(&mut self, params: &Parameters) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -351,13 +330,35 @@ impl CaptureDevice {
     }
 }
 
-impl Drop for CaptureDevice {
+impl Drop for Device {
     fn drop(&mut self) {
         v4l2::close(self.fd).unwrap();
     }
 }
 
-impl io::Read for CaptureDevice {
+impl device::Device for Device {
+    /// Returns the raw fd of the device
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::Device;
+    /// use v4l::capture::Device as CaptureDevice;
+    ///
+    /// if let Ok(dev) = CaptureDevice::new(0) {
+    ///     print!("Device file descriptor: {}", dev.fd());
+    /// }
+    /// ```
+    fn fd(&self) -> std::os::raw::c_int {
+        self.fd
+    }
+
+    fn typ(&self) -> device::Type {
+        device::Type::VideoCapture
+    }
+}
+
+impl io::Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         unsafe {
             let ret = libc::read(
@@ -373,13 +374,13 @@ impl io::Read for CaptureDevice {
     }
 }
 
-impl From<DeviceInfo> for CaptureDevice {
+impl From<DeviceInfo> for Device {
     fn from(info: DeviceInfo) -> Self {
         let path = info.path().to_path_buf();
         std::mem::drop(info);
 
         // The DeviceInfo struct was valid, so there should be no way to construct an invalid
-        // CaptureDevice instance here.
-        CaptureDevice::with_path(&path).unwrap()
+        // Device instance here.
+        Device::with_path(&path).unwrap()
     }
 }

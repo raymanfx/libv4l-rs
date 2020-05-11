@@ -3,13 +3,13 @@ use std::io;
 use crate::buffers::UserBufferManager;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{BufferManager, BufferStream, CaptureDevice, UserBuffer};
+use crate::{BufferManager, BufferStream, Device, UserBuffer};
 
 /// Stream of user buffers
 ///
 /// A manager instance is used internally for buffer handling.
 pub struct UserBufferStream<'a> {
-    dev: &'a mut CaptureDevice,
+    dev: &'a mut dyn Device,
     manager: UserBufferManager<'a>,
 
     active: bool,
@@ -33,11 +33,11 @@ impl<'a> UserBufferStream<'a> {
     ///     let stream = UserBufferStream::new(&mut dev);
     /// }
     /// ```
-    pub fn new(dev: &'a mut CaptureDevice) -> io::Result<Self> {
+    pub fn new(dev: &'a mut dyn Device) -> io::Result<Self> {
         UserBufferStream::with_buffers(dev, 4)
     }
 
-    pub fn with_buffers(dev: &'a mut CaptureDevice, count: u32) -> io::Result<Self> {
+    pub fn with_buffers(dev: &'a mut dyn Device, count: u32) -> io::Result<Self> {
         let mut manager = UserBufferManager::with_fd(dev.fd());
 
         manager.allocate(count)?;

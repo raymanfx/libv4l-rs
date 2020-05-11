@@ -2,7 +2,7 @@ use std::{io, marker, mem, os, ptr, slice};
 
 use crate::v4l_sys::*;
 use crate::{buffer, v4l2};
-use crate::{BufferManager, CaptureDevice, MappedBuffer, Memory};
+use crate::{BufferManager, Device, MappedBuffer, Memory};
 
 /// Manage mapped buffers
 ///
@@ -33,12 +33,12 @@ impl<'a> MappedBufferManager<'a> {
     /// use v4l::CaptureDevice;
     /// use v4l::buffers::MappedBufferManager;
     ///
-    /// let mut dev = CaptureDevice::new(0);
-    /// if let Ok(mut dev) = dev {
-    ///     let mgr = MappedBufferManager::new(&mut dev);
+    /// let dev = CaptureDevice::new(0);
+    /// if let Ok(dev) = dev {
+    ///     let mgr = MappedBufferManager::new(&dev);
     /// }
     /// ```
-    pub fn new(dev: &'a mut CaptureDevice) -> Self {
+    pub fn new(dev: &'a dyn Device) -> Self {
         MappedBufferManager {
             fd: dev.fd(),
             bufs: Vec::new(),

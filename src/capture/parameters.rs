@@ -55,15 +55,15 @@ impl fmt::Display for Modes {
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming parameters (single-planar)
-pub struct CaptureParams {
+pub struct Parameters {
     pub capabilities: Capabilities,
     pub modes: Modes,
     pub interval: Fraction,
 }
 
-impl CaptureParams {
+impl Parameters {
     pub fn new(frac: Fraction) -> Self {
-        CaptureParams {
+        Parameters {
             capabilities: Capabilities::from(0),
             modes: Modes::from(0),
             interval: frac,
@@ -71,7 +71,7 @@ impl CaptureParams {
     }
 
     pub fn with_fps(fps: u32) -> Self {
-        CaptureParams {
+        Parameters {
             capabilities: Capabilities::from(0),
             modes: Modes::from(0),
             interval: Fraction::new(1, fps),
@@ -79,7 +79,7 @@ impl CaptureParams {
     }
 }
 
-impl fmt::Display for CaptureParams {
+impl fmt::Display for Parameters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "capabilities : {}", self.capabilities)?;
         writeln!(f, "modes        : {}", self.modes)?;
@@ -88,9 +88,9 @@ impl fmt::Display for CaptureParams {
     }
 }
 
-impl From<v4l2_captureparm> for CaptureParams {
+impl From<v4l2_captureparm> for Parameters {
     fn from(params: v4l2_captureparm) -> Self {
-        CaptureParams {
+        Parameters {
             capabilities: Capabilities::from(params.capability),
             modes: Modes::from(params.capturemode),
             interval: Fraction::from(params.timeperframe),
@@ -98,8 +98,8 @@ impl From<v4l2_captureparm> for CaptureParams {
     }
 }
 
-impl Into<v4l2_captureparm> for CaptureParams {
-    fn into(self: CaptureParams) -> v4l2_captureparm {
+impl Into<v4l2_captureparm> for Parameters {
+    fn into(self: Parameters) -> v4l2_captureparm {
         let mut params: v4l2_captureparm;
         unsafe {
             params = mem::zeroed();
