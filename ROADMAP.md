@@ -5,6 +5,12 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+#### 0.5 (released)
+
+> * Device API refactoring
+>   * We only support the V4L2 capture API for now
+>   * Overlay, Output and friends will be added in future releases
+
 #### 0.4 (released)
 
 > * Streaming I/O (userptr)
