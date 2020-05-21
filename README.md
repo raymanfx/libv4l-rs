@@ -1,8 +1,8 @@
 # Safe video4linux (v4l) bindings
 
-[![crates.io](https://img.shields.io/crates/v/v4l.svg)](https://crates.io/crates/v4l)
-[![license](https://img.shields.io/github/license/raymanfx/libv4l-rs)](https://github.com/raymanfx/libv4l-rs/blob/master/LICENSE.txt)
-[![Build Status](https://travis-ci.org/raymanfx/libv4l2-rs.svg?branch=master)](https://travis-ci.org/raymanfx/libv4l2-rs)
+[![crates.io](https://img.shields.io/crates/v/v4l.svg?style=for-the-badge)](https://crates.io/crates/v4l)
+[![license](https://img.shields.io/github/license/raymanfx/libv4l-rs?style=for-the-badge)](https://github.com/raymanfx/libv4l-rs/blob/master/LICENSE.txt)
+[![Build Status](https://img.shields.io/travis/raymanfx/libv4l-rs/master.svg?style=for-the-badge&logo=travis)](https://travis-ci.org/raymanfx/libv4l-rs)
 
 This crate provides safe bindings to the libv4l* stack consisting of:
  * libv4l1
