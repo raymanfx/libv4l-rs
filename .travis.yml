@@ -28,6 +28,7 @@ jobs:
     - stage: build
       script:
         - cargo build
+        - cargo build --no-default-features --features v4l2
     - stage: test
       script:
         - cargo test
