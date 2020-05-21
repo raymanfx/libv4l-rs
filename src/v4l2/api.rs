@@ -49,7 +49,7 @@ mod detail {
     }
     pub unsafe fn ioctl(
         fd: std::os::raw::c_int,
-        request: ioctl::_IOC_TYPE,
+        request: vidioc::_IOC_TYPE,
         argp: *mut std::os::raw::c_void,
     ) -> std::os::raw::c_int {
         libc::ioctl(fd, request, argp)
