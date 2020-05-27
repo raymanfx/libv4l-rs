@@ -102,6 +102,9 @@ pub use format::FormatDescription;
 pub mod fraction;
 pub use fraction::Fraction;
 
+pub mod framesize;
+pub use framesize::FrameSize;
+
 pub mod memory;
 pub use memory::Memory;
 

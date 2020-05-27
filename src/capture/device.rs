@@ -1,10 +1,11 @@
+use std::convert::TryFrom;
 use std::{io, mem, path::Path};
 
 use crate::capture::{Format, Parameters};
 use crate::device;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{DeviceInfo, FormatDescription, FourCC, Fraction};
+use crate::{DeviceInfo, FormatDescription, FourCC, Fraction, FrameSize};
 
 /// Linux capture device abstraction
 pub struct Device {
@@ -258,6 +259,55 @@ impl Device {
         }
 
         self.get_format()
+    }
+
+    /// Returns a vector of valid framesizes that the device supports for the given pixel format
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::capture::Device;
+    /// use v4l::FourCC;
+    ///
+    /// if let Ok(dev) = Device::new(0) {
+    ///     let framesizes = dev.enumerate_framesizes(FourCC::new(b"YUYV"));
+    ///     if let Ok(framesizes) = framesizes {
+    ///         for framesize in framesizes {
+    ///             print!("{}", framesize);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn enumerate_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
+        let mut framesizes = Vec::new();
+        let mut v4l2_struct: v4l2_frmsizeenum = unsafe { mem::zeroed() };
+
+        v4l2_struct.index = 0;
+        v4l2_struct.pixel_format = fourcc.into();
+
+        loop {
+            let ret = unsafe {
+                v4l2::ioctl(
+                    self.fd,
+                    v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES,
+                    &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
+                )
+            };
+
+            if ret.is_err() {
+                if v4l2_struct.index == 0 {
+                    return Err(ret.err().unwrap());
+                } else {
+                    return Ok(framesizes);
+                }
+            }
+
+            if let Ok(frame_size) = FrameSize::try_from(v4l2_struct) {
+                framesizes.push(frame_size);
+            }
+
+            v4l2_struct.index += 1;
+        }
     }
 
     /// Returns the parameters currently in use
