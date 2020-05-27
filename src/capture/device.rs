@@ -5,7 +5,7 @@ use crate::capture::{Format, Parameters};
 use crate::device;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{DeviceInfo, FormatDescription, FourCC, Fraction, FrameSize};
+use crate::{DeviceInfo, FormatDescription, FourCC, Fraction, FrameInterval, FrameSize};
 
 /// Linux capture device abstraction
 pub struct Device {
@@ -259,6 +259,63 @@ impl Device {
         }
 
         self.get_format()
+    }
+
+    /// Returns a vector of all frame intervals that the device supports
+    /// for the given pixel format and frame size.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::capture::Device;
+    /// use v4l::FourCC;
+    ///
+    /// if let Ok(dev) = Device::new(0) {
+    ///     let frameintervals = dev.enumerate_frameintervals(FourCC::new(b"YUYV"), 640, 480);
+    ///     if let Ok(frameintervals) = frameintervals {
+    ///         for frameinterval in frameintervals {
+    ///             print!("{}", frameinterval);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn enumerate_frameintervals(
+        &self,
+        fourcc: FourCC,
+        width: u32,
+        height: u32,
+    ) -> io::Result<Vec<FrameInterval>> {
+        let mut frameintervals = Vec::new();
+        let mut v4l2_struct: v4l2_frmivalenum = unsafe { mem::zeroed() };
+
+        v4l2_struct.index = 0;
+        v4l2_struct.pixel_format = fourcc.into();
+        v4l2_struct.width = width;
+        v4l2_struct.height = height;
+
+        loop {
+            let ret = unsafe {
+                v4l2::ioctl(
+                    self.fd,
+                    v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS,
+                    &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
+                )
+            };
+
+            if ret.is_err() {
+                if v4l2_struct.index == 0 {
+                    return Err(ret.err().unwrap());
+                } else {
+                    return Ok(frameintervals);
+                }
+            }
+
+            if let Ok(frame_interval) = FrameInterval::try_from(v4l2_struct) {
+                frameintervals.push(frame_interval);
+            }
+
+            v4l2_struct.index += 1;
+        }
     }
 
     /// Returns a vector of valid framesizes that the device supports for the given pixel format
