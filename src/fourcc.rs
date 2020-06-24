@@ -3,7 +3,7 @@ use std::{fmt, str};
 #[derive(Debug, Default, Copy, Clone, Eq)]
 /// Four character code representing a pixelformat
 pub struct FourCC {
-    repr: [u8; 4],
+    pub repr: [u8; 4],
 }
 
 impl FourCC {
@@ -22,6 +22,19 @@ impl FourCC {
     /// ```
     pub fn new(repr: &[u8; 4]) -> FourCC {
         FourCC { repr: *repr }
+    }
+
+    /// Returns the string representation of a four character code
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::FourCC;
+    /// let fourcc = FourCC::new(b"YUYV");
+    /// let str = fourcc.str().unwrap();
+    /// ```
+    pub fn str(&self) -> Result<&str, str::Utf8Error> {
+        str::from_utf8(&self.repr)
     }
 }
 
