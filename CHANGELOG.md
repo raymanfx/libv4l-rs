@@ -1,4 +1,4 @@
-# Roadmap
+# Changelog
 
 Currently, the focus is on implementing the high-level V4L2 single-planar API.
 Multi-planar capture will not be targeted in the near future unless someone else starts working on it.

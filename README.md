@@ -18,8 +18,8 @@ On top of that, there will be a high level, more idiomatic API to use video capt
 There will be simple utility applications to list devices and capture frames.
 A minimalistic OpenGL/Vulkan viewer to display frames is planned for the future.
 
-## Roadmap
-See [ROADMAP.md](https://github.com/raymanfx/libv4l-rs/blob/master/ROADMAP.md)
+## Changelog
+See [CHANGELOG.md](https://github.com/raymanfx/libv4l-rs/blob/master/CHANGELOG.md)
 
 ## Dependencies
 You have the choice between two dependencies (both provided by this crate internally):
