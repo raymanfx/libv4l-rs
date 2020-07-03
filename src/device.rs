@@ -93,7 +93,7 @@ impl DeviceInfo {
         let path = format!("{}{}{}", "/sys/class/video4linux/video", index, "/name");
         let name = fs::read_to_string(path);
         match name {
-            Ok(name) => Some(name),
+            Ok(name) => Some(name.trim().to_string()),
             Err(_) => None,
         }
     }

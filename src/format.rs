@@ -59,7 +59,10 @@ impl From<v4l2_fmtdesc> for FormatDescription {
             index: desc.index,
             typ: desc.type_,
             flags: Flags::from(desc.flags),
-            description: str::from_utf8(&desc.description).unwrap().to_string(),
+            description: str::from_utf8(&desc.description)
+                .unwrap()
+                .trim_matches(char::from(0))
+                .to_string(),
             fourcc: FourCC::from(desc.pixelformat),
         }
     }

@@ -81,9 +81,18 @@ pub struct Capabilities {
 impl From<v4l2_capability> for Capabilities {
     fn from(cap: v4l2_capability) -> Self {
         let mut caps = Capabilities {
-            driver: str::from_utf8(&cap.driver).unwrap().to_string(),
-            card: str::from_utf8(&cap.card).unwrap().to_string(),
-            bus: str::from_utf8(&cap.bus_info).unwrap().to_string(),
+            driver: str::from_utf8(&cap.driver)
+                .unwrap()
+                .trim_matches(char::from(0))
+                .to_string(),
+            card: str::from_utf8(&cap.card)
+                .unwrap()
+                .trim_matches(char::from(0))
+                .to_string(),
+            bus: str::from_utf8(&cap.bus_info)
+                .unwrap()
+                .trim_matches(char::from(0))
+                .to_string(),
             version: (0, 0, 0),
             capabilities: Flags::from(cap.device_caps),
         };
