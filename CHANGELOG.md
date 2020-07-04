@@ -5,6 +5,10 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+#### 0.6
+
+> * Use v4l2 bindings by default
+
 #### 0.5 (released)
 
 > * Device API refactoring

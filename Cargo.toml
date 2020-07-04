@@ -19,7 +19,7 @@ clap = "^2.33.0"
 glium = "0.27.0"
 
 [features]
-default = ["libv4l"]
+default = ["v4l2"]
 libv4l = ["v4l-sys"]
 v4l2 = ["v4l2-sys"]
 
