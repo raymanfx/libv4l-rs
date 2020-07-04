@@ -3,7 +3,7 @@ use std::{fs, io, mem};
 
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::Capabilities;
+use crate::{Capabilities, Control};
 
 pub use crate::buffer::BufferType as Type;
 
@@ -112,6 +112,39 @@ impl DeviceInfo {
 
             Ok(Capabilities::from(v4l2_caps))
         }
+    }
+
+    /// Query for device controls
+    ///
+    /// This returns the supported controls for a device such as gain, focus, white balance, etc.
+    pub fn query_controls(&self) -> io::Result<Vec<Control>> {
+        let mut controls = Vec::new();
+        unsafe {
+            let mut v4l2_ctrl: v4l2_queryctrl = mem::zeroed();
+
+            loop {
+                v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
+                v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_COMPOUND;
+                match v4l2::ioctl(
+                    self.fd,
+                    v4l2::vidioc::VIDIOC_QUERYCTRL,
+                    &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+                ) {
+                    Ok(_) => {
+                        controls.push(Control::from(v4l2_ctrl));
+                    }
+                    Err(e) => {
+                        if controls.is_empty() || e.kind() != io::ErrorKind::InvalidInput {
+                            return Err(e);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(controls)
     }
 }
 

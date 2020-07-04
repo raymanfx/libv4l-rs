@@ -90,6 +90,9 @@ pub use capability::Capabilities;
 pub mod capture;
 pub use capture::Device as CaptureDevice;
 
+pub mod control;
+pub use control::Control;
+
 pub mod device;
 pub use device::{Device, DeviceInfo, DeviceList};
 
