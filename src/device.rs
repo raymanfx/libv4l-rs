@@ -1,6 +1,8 @@
+use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::{fs, io, mem};
 
+use crate::control;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::{Capabilities, Control};
@@ -131,7 +133,51 @@ impl DeviceInfo {
                     &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
                 ) {
                     Ok(_) => {
-                        controls.push(Control::from(v4l2_ctrl));
+                        // get the basic control information
+                        let mut control = Control::from(v4l2_ctrl);
+
+                        // if this is a menu control, enumerate its items
+                        if control.typ == control::Type::Menu
+                            || control.typ == control::Type::IntegerMenu
+                        {
+                            let mut items = Vec::new();
+
+                            let mut v4l2_menu: v4l2_querymenu = mem::zeroed();
+                            v4l2_menu.id = v4l2_ctrl.id;
+
+                            for i in (v4l2_ctrl.minimum..=v4l2_ctrl.maximum)
+                                .step_by(v4l2_ctrl.step as usize)
+                            {
+                                v4l2_menu.index = i as u32;
+                                let res = v4l2::ioctl(
+                                    self.fd,
+                                    v4l2::vidioc::VIDIOC_QUERYMENU,
+                                    &mut v4l2_menu as *mut _ as *mut std::os::raw::c_void,
+                                );
+
+                                // BEWARE OF DRAGONS!
+                                // The API docs [1] state VIDIOC_QUERYMENU should may return EINVAL
+                                // for some indices between minimum and maximum when an item is not
+                                // supported by a driver.
+                                //
+                                // I have no idea why it is advertised in the first place then, but
+                                // have seen this happen with a Logitech C920 HD Pro webcam.
+                                // In case of errors, let's just skip the offending index.
+                                //
+                                // [1] https://github.com/torvalds/linux/blob/master/Documentation/userspace-api/media/v4l/vidioc-queryctrl.rst#description
+                                if res.is_err() {
+                                    continue;
+                                }
+
+                                let item =
+                                    control::MenuItem::try_from((control.typ, v4l2_menu)).unwrap();
+                                items.push((v4l2_menu.index, item));
+                            }
+
+                            control.items = Some(items);
+                        }
+
+                        controls.push(control);
                     }
                     Err(e) => {
                         if controls.is_empty() || e.kind() != io::ErrorKind::InvalidInput {

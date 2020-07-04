@@ -8,7 +8,7 @@ use crate::v4l_sys::*;
 #[allow(clippy::unreadable_literal)]
 #[rustfmt::skip]
 #[repr(u32)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Type {
     Integer         = 1,
     Boolean         = 2,
@@ -103,6 +103,46 @@ impl fmt::Display for Flags {
 }
 
 #[derive(Debug)]
+/// Device control menu item
+pub enum MenuItem {
+    Name(String),
+    Value(i64),
+}
+
+impl fmt::Display for MenuItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MenuItem::Name(name) => {
+                write!(f, "{}", name)?;
+            }
+            MenuItem::Value(value) => {
+                write!(f, "{}", value)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl TryFrom<(Type, v4l2_querymenu)> for MenuItem {
+    type Error = ();
+
+    fn try_from(item: (Type, v4l2_querymenu)) -> Result<Self, Self::Error> {
+        unsafe {
+            match item.0 {
+                Type::Menu => Ok(MenuItem::Name(
+                    str::from_utf8(&item.1.__bindgen_anon_1.name)
+                        .unwrap()
+                        .trim_matches(char::from(0))
+                        .to_string(),
+                )),
+                Type::IntegerMenu => Ok(MenuItem::Value(item.1.__bindgen_anon_1.value)),
+                _ => Err(()),
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 /// Device control
 pub struct Control {
     /// Control identifier, set by the the application
@@ -121,6 +161,9 @@ pub struct Control {
     pub default: i32,
     /// Control flags
     pub flags: Flags,
+
+    /// Items for menu controls (only valid if typ is a menu type)
+    pub items: Option<Vec<(u32, MenuItem)>>,
 }
 
 impl From<v4l2_queryctrl> for Control {
@@ -137,6 +180,7 @@ impl From<v4l2_queryctrl> for Control {
             step: ctrl.step,
             default: ctrl.default_value,
             flags: Flags::from(ctrl.flags),
+            items: None,
         }
     }
 }
@@ -151,6 +195,12 @@ impl fmt::Display for Control {
         writeln!(f, "Step       : {}", self.step)?;
         writeln!(f, "Default    : {}", self.default)?;
         writeln!(f, "Flags      : {}", self.flags)?;
+        if let Some(items) = &self.items {
+            writeln!(f, "Menu ==>")?;
+            for item in items {
+                writeln!(f, " * {}", item.1)?;
+            }
+        }
         Ok(())
     }
 }
