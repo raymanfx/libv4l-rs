@@ -5,7 +5,7 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
-#### 0.6
+#### 0.6 (released)
 
 > * Use v4l2 bindings by default
 > * Device control query support
