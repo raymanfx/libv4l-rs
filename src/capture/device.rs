@@ -1,6 +1,7 @@
 use std::{io, mem, path::Path, path::PathBuf};
 
 use crate::capture::{Format, Parameters};
+use crate::control;
 use crate::device;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -339,6 +340,84 @@ impl Device {
         }
 
         self.get_params()
+    }
+
+    /// Returns the control value for an ID
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Control identifier
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::capture::Device;
+    /// use v4l::control;
+    /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
+    ///
+    /// if let Ok(dev) = Device::new(0) {
+    ///     let ctrl = dev.get_control(V4L2_CID_BRIGHTNESS);
+    ///     if let Ok(val) = ctrl {
+    ///         match val {
+    ///             control::Control::Value(val) => { println!("Brightness: {}", val) }
+    ///             _ => {}
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn get_control(&self, id: u32) -> io::Result<control::Control> {
+        unsafe {
+            let mut v4l2_ctrl: v4l2_control = mem::zeroed();
+            v4l2_ctrl.id = id;
+            v4l2::ioctl(
+                self.fd,
+                v4l2::vidioc::VIDIOC_G_CTRL,
+                &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            Ok(control::Control::Value(v4l2_ctrl.value))
+        }
+    }
+
+    /// Modifies the control value
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Control identifier
+    /// * `val` - New value
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::capture::Device;
+    /// use v4l::control;
+    /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
+    ///
+    /// if let Ok(mut dev) = Device::new(0) {
+    ///     dev.set_control(V4L2_CID_BRIGHTNESS, control::Control::Value(0))
+    ///         .expect("Failed to set brightness");
+    /// }
+    /// ```
+    pub fn set_control(&mut self, id: u32, val: control::Control) -> io::Result<()> {
+        unsafe {
+            let mut v4l2_ctrl: v4l2_control = mem::zeroed();
+            v4l2_ctrl.id = id;
+            match val {
+                control::Control::Value(val) => v4l2_ctrl.value = val,
+                _ => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "only single value controls are supported at the moment",
+                    ))
+                }
+            }
+            v4l2::ioctl(
+                self.fd,
+                v4l2::vidioc::VIDIOC_S_CTRL,
+                &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+            )
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use bitflags::bitflags;
-use std::convert::TryFrom;
-use std::{fmt, str};
+use std::convert::{TryFrom, TryInto};
+use std::{fmt, mem, str};
 
 use crate::v4l_sys::*;
 
@@ -143,8 +143,8 @@ impl TryFrom<(Type, v4l2_querymenu)> for MenuItem {
 }
 
 #[derive(Debug)]
-/// Device control
-pub struct Control {
+/// Device control description
+pub struct Description {
     /// Control identifier, set by the the application
     pub id: u32,
     /// Type of control
@@ -166,9 +166,9 @@ pub struct Control {
     pub items: Option<Vec<(u32, MenuItem)>>,
 }
 
-impl From<v4l2_queryctrl> for Control {
+impl From<v4l2_queryctrl> for Description {
     fn from(ctrl: v4l2_queryctrl) -> Self {
-        Control {
+        Description {
             id: ctrl.id,
             typ: Type::try_from(ctrl.type_).unwrap(),
             name: str::from_utf8(&ctrl.name)
@@ -185,7 +185,7 @@ impl From<v4l2_queryctrl> for Control {
     }
 }
 
-impl fmt::Display for Control {
+impl fmt::Display for Description {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "ID         : {}", self.id)?;
         writeln!(f, "Type       : {}", self.typ)?;
@@ -202,5 +202,37 @@ impl fmt::Display for Control {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+/// Device control value
+pub enum Control {
+    /* single values */
+    Value(i32),
+    Value64(i64),
+    String(String),
+}
+
+impl From<v4l2_control> for Control {
+    fn from(ctrl: v4l2_control) -> Self {
+        Control::Value(ctrl.value)
+    }
+}
+
+impl TryInto<v4l2_control> for Control {
+    type Error = ();
+
+    fn try_into(self) -> Result<v4l2_control, Self::Error> {
+        unsafe {
+            let mut ctrl: v4l2_control = mem::zeroed();
+            match self {
+                Control::Value(val) => {
+                    ctrl.value = val;
+                    Ok(ctrl)
+                }
+                _ => Err(()),
+            }
+        }
     }
 }

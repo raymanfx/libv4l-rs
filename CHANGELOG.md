@@ -5,6 +5,10 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+#### 0.7
+
+> * Device control get/set support
+
 #### 0.6 (released)
 
 > * Use v4l2 bindings by default

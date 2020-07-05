@@ -5,7 +5,7 @@ use std::{fs, io, mem};
 use crate::control;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{Capabilities, Control, FourCC, FrameInterval, FrameSize};
+use crate::{Capabilities, FourCC, FrameInterval, FrameSize};
 
 pub use crate::buffer::BufferType as Type;
 
@@ -225,7 +225,7 @@ impl DeviceInfo {
     /// Query for device controls
     ///
     /// This returns the supported controls for a device such as gain, focus, white balance, etc.
-    pub fn query_controls(&self) -> io::Result<Vec<Control>> {
+    pub fn query_controls(&self) -> io::Result<Vec<control::Description>> {
         let mut controls = Vec::new();
         unsafe {
             let mut v4l2_ctrl: v4l2_queryctrl = mem::zeroed();
@@ -240,7 +240,7 @@ impl DeviceInfo {
                 ) {
                     Ok(_) => {
                         // get the basic control information
-                        let mut control = Control::from(v4l2_ctrl);
+                        let mut control = control::Description::from(v4l2_ctrl);
 
                         // if this is a menu control, enumerate its items
                         if control.typ == control::Type::Menu
