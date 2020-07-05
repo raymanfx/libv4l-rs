@@ -145,7 +145,7 @@ impl Device {
     /// use v4l::capture::Device;
     ///
     /// if let Ok(dev) = Device::new(0) {
-    ///     let formats = dev.enumerate_formats();
+    ///     let formats = dev.enum_formats();
     ///     if let Ok(formats) = formats {
     ///         for fmt in formats {
     ///             print!("{}", fmt);
@@ -153,7 +153,7 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn enumerate_formats(&self) -> io::Result<Vec<FormatDescription>> {
+    pub fn enum_formats(&self) -> io::Result<Vec<FormatDescription>> {
         let mut formats: Vec<FormatDescription> = Vec::new();
         let mut v4l2_fmt: v4l2_fmtdesc;
 
