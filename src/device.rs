@@ -5,7 +5,7 @@ use std::{fs, io, mem};
 use crate::control;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{Capabilities, Control};
+use crate::{Capabilities, Control, FourCC, FrameInterval, FrameSize};
 
 pub use crate::buffer::BufferType as Type;
 
@@ -21,9 +21,9 @@ pub trait Device {
 /// Represents a video4linux device node
 pub struct DeviceInfo {
     /// File descriptor
-    fd: std::os::raw::c_int,
+    pub(crate) fd: std::os::raw::c_int,
     /// Device node path
-    path: PathBuf,
+    pub(crate) path: PathBuf,
 }
 
 impl Drop for DeviceInfo {
@@ -87,6 +87,112 @@ impl DeviceInfo {
         }
 
         Some(index.unwrap())
+    }
+
+    /// Returns a vector of all frame intervals that the device supports
+    /// for the given pixel format and frame size.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::DeviceInfo;
+    /// use v4l::FourCC;
+    ///
+    /// if let Ok(dev) = DeviceInfo::new("/dev/video0") {
+    ///     let frameintervals = dev.enum_frameintervals(FourCC::new(b"YUYV"), 640, 480);
+    ///     if let Ok(frameintervals) = frameintervals {
+    ///         for frameinterval in frameintervals {
+    ///             print!("{}", frameinterval);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn enum_frameintervals(
+        &self,
+        fourcc: FourCC,
+        width: u32,
+        height: u32,
+    ) -> io::Result<Vec<FrameInterval>> {
+        let mut frameintervals = Vec::new();
+        let mut v4l2_struct: v4l2_frmivalenum = unsafe { mem::zeroed() };
+
+        v4l2_struct.index = 0;
+        v4l2_struct.pixel_format = fourcc.into();
+        v4l2_struct.width = width;
+        v4l2_struct.height = height;
+
+        loop {
+            let ret = unsafe {
+                v4l2::ioctl(
+                    self.fd,
+                    v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS,
+                    &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
+                )
+            };
+
+            if ret.is_err() {
+                if v4l2_struct.index == 0 {
+                    return Err(ret.err().unwrap());
+                } else {
+                    return Ok(frameintervals);
+                }
+            }
+
+            if let Ok(frame_interval) = FrameInterval::try_from(v4l2_struct) {
+                frameintervals.push(frame_interval);
+            }
+
+            v4l2_struct.index += 1;
+        }
+    }
+
+    /// Returns a vector of valid framesizes that the device supports for the given pixel format
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::DeviceInfo;
+    /// use v4l::FourCC;
+    ///
+    /// if let Ok(dev) = DeviceInfo::new("/dev/video0") {
+    ///     let framesizes = dev.enum_framesizes(FourCC::new(b"YUYV"));
+    ///     if let Ok(framesizes) = framesizes {
+    ///         for framesize in framesizes {
+    ///             print!("{}", framesize);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
+        let mut framesizes = Vec::new();
+        let mut v4l2_struct: v4l2_frmsizeenum = unsafe { mem::zeroed() };
+
+        v4l2_struct.index = 0;
+        v4l2_struct.pixel_format = fourcc.into();
+
+        loop {
+            let ret = unsafe {
+                v4l2::ioctl(
+                    self.fd,
+                    v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES,
+                    &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
+                )
+            };
+
+            if ret.is_err() {
+                if v4l2_struct.index == 0 {
+                    return Err(ret.err().unwrap());
+                } else {
+                    return Ok(framesizes);
+                }
+            }
+
+            if let Ok(frame_size) = FrameSize::try_from(v4l2_struct) {
+                framesizes.push(frame_size);
+            }
+
+            v4l2_struct.index += 1;
+        }
     }
 
     /// Returns name of the device by parsing its sysfs entry

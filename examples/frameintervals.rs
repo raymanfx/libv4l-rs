@@ -32,7 +32,8 @@ fn main() {
     let dev = CaptureDevice::with_path(path).expect("Failed to open device");
     let format = dev.get_format().expect("Failed to get format");
     let frameintervals = dev
-        .enumerate_frameintervals(format.fourcc, format.width, format.height)
+        .info()
+        .enum_frameintervals(format.fourcc, format.width, format.height)
         .expect("Failed to enumerate frame intervals");
 
     println!("Active format:\n{}", format);

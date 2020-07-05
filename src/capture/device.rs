@@ -1,16 +1,17 @@
-use std::convert::TryFrom;
-use std::{io, mem, path::Path};
+use std::{io, mem, path::Path, path::PathBuf};
 
 use crate::capture::{Format, Parameters};
 use crate::device;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{DeviceInfo, FormatDescription, FourCC, Fraction, FrameInterval, FrameSize};
+use crate::{DeviceInfo, FormatDescription, FourCC, Fraction};
 
 /// Linux capture device abstraction
 pub struct Device {
-    /// raw OS file descriptor
+    /// Raw OS file descriptor
     fd: std::os::raw::c_int,
+    /// Device node path
+    path: PathBuf,
 }
 
 impl Device {
@@ -31,13 +32,16 @@ impl Device {
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
         let path = format!("{}{}", "/dev/video", index);
-        let fd = v4l2::open(path, libc::O_RDWR)?;
+        let fd = v4l2::open(&path, libc::O_RDWR)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device { fd })
+        Ok(Device {
+            fd,
+            path: PathBuf::from(&path),
+        })
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -114,13 +118,20 @@ impl Device {
     /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let fd = v4l2::open(path, libc::O_RDWR)?;
+        let fd = v4l2::open(&path, libc::O_RDWR)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device { fd })
+        Ok(Device {
+            fd,
+            path: PathBuf::from(path.as_ref()),
+        })
+    }
+
+    pub fn info(&self) -> DeviceInfo {
+        DeviceInfo::new(&self.path).unwrap()
     }
 
     /// Returns a vector of valid formats for this device
@@ -261,112 +272,6 @@ impl Device {
         self.get_format()
     }
 
-    /// Returns a vector of all frame intervals that the device supports
-    /// for the given pixel format and frame size.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::capture::Device;
-    /// use v4l::FourCC;
-    ///
-    /// if let Ok(dev) = Device::new(0) {
-    ///     let frameintervals = dev.enumerate_frameintervals(FourCC::new(b"YUYV"), 640, 480);
-    ///     if let Ok(frameintervals) = frameintervals {
-    ///         for frameinterval in frameintervals {
-    ///             print!("{}", frameinterval);
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    pub fn enumerate_frameintervals(
-        &self,
-        fourcc: FourCC,
-        width: u32,
-        height: u32,
-    ) -> io::Result<Vec<FrameInterval>> {
-        let mut frameintervals = Vec::new();
-        let mut v4l2_struct: v4l2_frmivalenum = unsafe { mem::zeroed() };
-
-        v4l2_struct.index = 0;
-        v4l2_struct.pixel_format = fourcc.into();
-        v4l2_struct.width = width;
-        v4l2_struct.height = height;
-
-        loop {
-            let ret = unsafe {
-                v4l2::ioctl(
-                    self.fd,
-                    v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS,
-                    &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
-                )
-            };
-
-            if ret.is_err() {
-                if v4l2_struct.index == 0 {
-                    return Err(ret.err().unwrap());
-                } else {
-                    return Ok(frameintervals);
-                }
-            }
-
-            if let Ok(frame_interval) = FrameInterval::try_from(v4l2_struct) {
-                frameintervals.push(frame_interval);
-            }
-
-            v4l2_struct.index += 1;
-        }
-    }
-
-    /// Returns a vector of valid framesizes that the device supports for the given pixel format
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::capture::Device;
-    /// use v4l::FourCC;
-    ///
-    /// if let Ok(dev) = Device::new(0) {
-    ///     let framesizes = dev.enumerate_framesizes(FourCC::new(b"YUYV"));
-    ///     if let Ok(framesizes) = framesizes {
-    ///         for framesize in framesizes {
-    ///             print!("{}", framesize);
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    pub fn enumerate_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
-        let mut framesizes = Vec::new();
-        let mut v4l2_struct: v4l2_frmsizeenum = unsafe { mem::zeroed() };
-
-        v4l2_struct.index = 0;
-        v4l2_struct.pixel_format = fourcc.into();
-
-        loop {
-            let ret = unsafe {
-                v4l2::ioctl(
-                    self.fd,
-                    v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES,
-                    &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
-                )
-            };
-
-            if ret.is_err() {
-                if v4l2_struct.index == 0 {
-                    return Err(ret.err().unwrap());
-                } else {
-                    return Ok(framesizes);
-                }
-            }
-
-            if let Ok(frame_size) = FrameSize::try_from(v4l2_struct) {
-                framesizes.push(frame_size);
-            }
-
-            v4l2_struct.index += 1;
-        }
-    }
-
     /// Returns the parameters currently in use
     ///
     /// # Example
@@ -483,11 +388,12 @@ impl io::Read for Device {
 
 impl From<DeviceInfo> for Device {
     fn from(info: DeviceInfo) -> Self {
-        let path = info.path().to_path_buf();
+        let fd = info.fd;
+        let path = info.path.clone();
         std::mem::drop(info);
 
         // The DeviceInfo struct was valid, so there should be no way to construct an invalid
         // Device instance here.
-        Device::with_path(&path).unwrap()
+        Device { fd, path }
     }
 }
