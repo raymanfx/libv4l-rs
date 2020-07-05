@@ -5,9 +5,12 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
-#### 0.7
+#### 0.7 (released)
 
 > * Device control get/set support
+> * New QueryDevice trait
+>   * Implemented for all types which implement Device
+>   * Allows for querying properties such as supported frame times and controls
 
 #### 0.6 (released)
 
