@@ -2,7 +2,7 @@ extern crate clap;
 extern crate v4l;
 
 use clap::{App, Arg};
-use v4l::CaptureDevice;
+use v4l::{CaptureDevice, QueryDevice};
 
 fn main() {
     let matches = App::new("v4l device")
@@ -32,7 +32,6 @@ fn main() {
     let dev = CaptureDevice::with_path(path).expect("Failed to open device");
     let format = dev.get_format().expect("Failed to get format");
     let framesizes = dev
-        .info()
         .enum_framesizes(format.fourcc)
         .expect("Failed to enumerate frame sizes");
 

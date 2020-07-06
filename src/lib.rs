@@ -93,7 +93,7 @@ pub use capture::Device as CaptureDevice;
 pub mod control;
 
 pub mod device;
-pub use device::{Device, DeviceInfo, DeviceList};
+pub use device::{Device, DeviceInfo, DeviceList, QueryDevice};
 
 pub mod fourcc;
 pub use fourcc::FourCC;

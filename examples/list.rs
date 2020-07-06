@@ -7,11 +7,5 @@ fn main() {
 
     for dev in list {
         println!("{}: {}", dev.index().unwrap(), dev.name().unwrap());
-
-        let caps = dev.query_caps();
-        match caps {
-            Ok(caps) => println!("{}", caps),
-            Err(e) => println!("{}", e),
-        }
     }
 }

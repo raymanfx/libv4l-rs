@@ -2,7 +2,7 @@ extern crate clap;
 extern crate v4l;
 
 use clap::{App, Arg};
-use v4l::DeviceInfo;
+use v4l::{CaptureDevice, QueryDevice};
 
 fn main() {
     let matches = App::new("v4l device")
@@ -29,7 +29,7 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = DeviceInfo::new(path).expect("Failed to open device");
+    let dev = CaptureDevice::with_path(path).expect("Failed to open device");
     let controls = dev.query_controls().expect("Failed to query controls");
 
     for control in controls {

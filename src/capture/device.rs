@@ -1,4 +1,5 @@
-use std::{io, mem, path::Path, path::PathBuf};
+use std::convert::TryFrom;
+use std::{io, mem, path::Path};
 
 use crate::capture::{Format, Parameters};
 use crate::control;
@@ -11,8 +12,6 @@ use crate::{DeviceInfo, FormatDescription, FourCC, Fraction};
 pub struct Device {
     /// Raw OS file descriptor
     fd: std::os::raw::c_int,
-    /// Device node path
-    path: PathBuf,
 }
 
 impl Device {
@@ -39,10 +38,7 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device {
-            fd,
-            path: PathBuf::from(&path),
-        })
+        Ok(Device { fd })
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -125,14 +121,7 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device {
-            fd,
-            path: PathBuf::from(path.as_ref()),
-        })
-    }
-
-    pub fn info(&self) -> DeviceInfo {
-        DeviceInfo::new(&self.path).unwrap()
+        Ok(Device { fd })
     }
 
     /// Returns a vector of valid formats for this device
@@ -465,14 +454,10 @@ impl io::Read for Device {
     }
 }
 
-impl From<DeviceInfo> for Device {
-    fn from(info: DeviceInfo) -> Self {
-        let fd = info.fd;
-        let path = info.path.clone();
-        std::mem::drop(info);
+impl TryFrom<DeviceInfo> for Device {
+    type Error = io::Error;
 
-        // The DeviceInfo struct was valid, so there should be no way to construct an invalid
-        // Device instance here.
-        Device { fd, path }
+    fn try_from(info: DeviceInfo) -> Result<Self, Self::Error> {
+        Device::with_path(info.path())
     }
 }

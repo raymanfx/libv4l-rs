@@ -18,96 +18,29 @@ pub trait Device {
     fn typ(&self) -> Type;
 }
 
-/// Represents a video4linux device node
-pub struct DeviceInfo {
-    /// File descriptor
-    pub(crate) fd: std::os::raw::c_int,
-    /// Device node path
-    pub(crate) path: PathBuf,
+/// Query device properties such as supported formats and controls
+pub trait QueryDevice {
+    /// Returns a vector of all frame intervals that the device supports for the given pixel format
+    /// and frame size
+    fn enum_frameintervals(
+        &self,
+        fourcc: FourCC,
+        width: u32,
+        height: u32,
+    ) -> io::Result<Vec<FrameInterval>>;
+
+    /// Returns a vector of valid framesizes that the device supports for the given pixel format
+    fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>>;
+
+    /// Returns video4linux framework defined information such as card, driver, etc.
+    fn query_caps(&self) -> io::Result<Capabilities>;
+
+    /// Returns the supported controls for a device such as gain, focus, white balance, etc.
+    fn query_controls(&self) -> io::Result<Vec<control::Description>>;
 }
 
-impl Drop for DeviceInfo {
-    fn drop(&mut self) {
-        v4l2::close(self.fd).unwrap();
-    }
-}
-
-impl DeviceInfo {
-    /// Returns a device node observer by path
-    ///
-    /// The device is opened in read only mode.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Node path (usually a character device or sysfs entry)
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::DeviceInfo;
-    /// let node = DeviceInfo::new("/dev/video0");
-    /// ```
-    pub fn new<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let path = path.as_ref();
-        let fd = v4l2::open(path, libc::O_RDONLY)?;
-
-        Ok(DeviceInfo {
-            fd,
-            path: PathBuf::from(path),
-        })
-    }
-
-    /// Returns the absolute path of the device node
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    /// Returns the index of the device node
-    pub fn index(&self) -> Option<usize> {
-        let file_name = self.path.file_name()?;
-
-        let mut index_str = String::new();
-        for c in file_name
-            .to_str()?
-            .chars()
-            .rev()
-            .collect::<String>()
-            .chars()
-        {
-            if !c.is_digit(10) {
-                break;
-            }
-
-            index_str.push(c);
-        }
-
-        let index = index_str.parse::<usize>();
-        if index.is_err() {
-            return None;
-        }
-
-        Some(index.unwrap())
-    }
-
-    /// Returns a vector of all frame intervals that the device supports
-    /// for the given pixel format and frame size.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::DeviceInfo;
-    /// use v4l::FourCC;
-    ///
-    /// if let Ok(dev) = DeviceInfo::new("/dev/video0") {
-    ///     let frameintervals = dev.enum_frameintervals(FourCC::new(b"YUYV"), 640, 480);
-    ///     if let Ok(frameintervals) = frameintervals {
-    ///         for frameinterval in frameintervals {
-    ///             print!("{}", frameinterval);
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    pub fn enum_frameintervals(
+impl<T: Device> QueryDevice for T {
+    fn enum_frameintervals(
         &self,
         fourcc: FourCC,
         width: u32,
@@ -124,7 +57,7 @@ impl DeviceInfo {
         loop {
             let ret = unsafe {
                 v4l2::ioctl(
-                    self.fd,
+                    self.fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS,
                     &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
                 )
@@ -146,24 +79,7 @@ impl DeviceInfo {
         }
     }
 
-    /// Returns a vector of valid framesizes that the device supports for the given pixel format
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::DeviceInfo;
-    /// use v4l::FourCC;
-    ///
-    /// if let Ok(dev) = DeviceInfo::new("/dev/video0") {
-    ///     let framesizes = dev.enum_framesizes(FourCC::new(b"YUYV"));
-    ///     if let Ok(framesizes) = framesizes {
-    ///         for framesize in framesizes {
-    ///             print!("{}", framesize);
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    pub fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
+    fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
         let mut framesizes = Vec::new();
         let mut v4l2_struct: v4l2_frmsizeenum = unsafe { mem::zeroed() };
 
@@ -173,7 +89,7 @@ impl DeviceInfo {
         loop {
             let ret = unsafe {
                 v4l2::ioctl(
-                    self.fd,
+                    self.fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES,
                     &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
                 )
@@ -195,25 +111,11 @@ impl DeviceInfo {
         }
     }
 
-    /// Returns name of the device by parsing its sysfs entry
-    pub fn name(&self) -> Option<String> {
-        let index = self.index()?;
-        let path = format!("{}{}{}", "/sys/class/video4linux/video", index, "/name");
-        let name = fs::read_to_string(path);
-        match name {
-            Ok(name) => Some(name.trim().to_string()),
-            Err(_) => None,
-        }
-    }
-
-    /// Query for device capabilities
-    ///
-    /// This returns video4linux framework defined information such as card, driver, etc.
-    pub fn query_caps(&self) -> io::Result<Capabilities> {
+    fn query_caps(&self) -> io::Result<Capabilities> {
         unsafe {
             let mut v4l2_caps: v4l2_capability = mem::zeroed();
             v4l2::ioctl(
-                self.fd,
+                self.fd(),
                 v4l2::vidioc::VIDIOC_QUERYCAP,
                 &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -222,10 +124,7 @@ impl DeviceInfo {
         }
     }
 
-    /// Query for device controls
-    ///
-    /// This returns the supported controls for a device such as gain, focus, white balance, etc.
-    pub fn query_controls(&self) -> io::Result<Vec<control::Description>> {
+    fn query_controls(&self) -> io::Result<Vec<control::Description>> {
         let mut controls = Vec::new();
         unsafe {
             let mut v4l2_ctrl: v4l2_queryctrl = mem::zeroed();
@@ -234,7 +133,7 @@ impl DeviceInfo {
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_COMPOUND;
                 match v4l2::ioctl(
-                    self.fd,
+                    self.fd(),
                     v4l2::vidioc::VIDIOC_QUERYCTRL,
                     &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
                 ) {
@@ -256,7 +155,7 @@ impl DeviceInfo {
                             {
                                 v4l2_menu.index = i as u32;
                                 let res = v4l2::ioctl(
-                                    self.fd,
+                                    self.fd(),
                                     v4l2::vidioc::VIDIOC_QUERYMENU,
                                     &mut v4l2_menu as *mut _ as *mut std::os::raw::c_void,
                                 );
@@ -297,6 +196,77 @@ impl DeviceInfo {
         }
 
         Ok(controls)
+    }
+}
+
+/// Represents a video4linux device node
+pub struct DeviceInfo {
+    /// Device node path
+    path: PathBuf,
+}
+
+impl DeviceInfo {
+    /// Returns a device node observer by path
+    ///
+    /// The device is opened in read only mode.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Node path (usually a character device or sysfs entry)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::DeviceInfo;
+    /// let node = DeviceInfo::new("/dev/video0");
+    /// ```
+    pub fn new<P: AsRef<Path>>(path: P) -> Self {
+        DeviceInfo {
+            path: PathBuf::from(path.as_ref()),
+        }
+    }
+
+    /// Returns the absolute path of the device node
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// Returns the index of the device node
+    pub fn index(&self) -> Option<usize> {
+        let file_name = self.path.file_name()?;
+
+        let mut index_str = String::new();
+        for c in file_name
+            .to_str()?
+            .chars()
+            .rev()
+            .collect::<String>()
+            .chars()
+        {
+            if !c.is_digit(10) {
+                break;
+            }
+
+            index_str.push(c);
+        }
+
+        let index = index_str.parse::<usize>();
+        if index.is_err() {
+            return None;
+        }
+
+        Some(index.unwrap())
+    }
+
+    /// Returns name of the device by parsing its sysfs entry
+    pub fn name(&self) -> Option<String> {
+        let index = self.index()?;
+        let path = format!("{}{}{}", "/sys/class/video4linux/video", index, "/name");
+        let name = fs::read_to_string(path);
+        match name {
+            Ok(name) => Some(name.trim().to_string()),
+            Err(_) => None,
+        }
     }
 }
 
@@ -358,10 +328,6 @@ impl Iterator for DeviceList {
         }
 
         self.pos += 1;
-        let dev = DeviceInfo::new(&self.paths[pos]);
-        match dev {
-            Ok(dev) => Some(dev),
-            Err(_) => None,
-        }
+        Some(DeviceInfo::new(&self.paths[pos]))
     }
 }
