@@ -78,9 +78,10 @@ pub use v4l2_sys as v4l_sys;
 pub mod v4l2;
 
 pub mod buffer;
-pub use buffer::{Buffer, BufferManager, BufferStream, HostBuffer};
+pub use buffer::{Buffer, BufferManager, BufferStream};
 
 pub mod buffers;
+pub use buffers::HostBuffer;
 pub use buffers::{MappedBuffer, MappedBufferStream};
 pub use buffers::{UserBuffer, UserBufferStream};
 

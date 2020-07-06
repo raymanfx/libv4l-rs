@@ -1,3 +1,6 @@
+pub mod host;
+pub use host::HostBuffer;
+
 pub mod mmap;
 pub use mmap::MappedBuffer;
 pub mod mmap_manager;
