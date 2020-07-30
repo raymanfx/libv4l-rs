@@ -9,7 +9,7 @@ use crate::{BufferManager, Device, MappedBuffer, Memory};
 /// All buffers are unmapped in the Drop impl.
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub struct MappedBufferManager<'a> {
-    fd: os::raw::c_int,
+    dev: &'a dyn Device,
 
     bufs: Vec<(*mut os::raw::c_void, usize)>,
     buf_index: usize,
@@ -40,16 +40,7 @@ impl<'a> MappedBufferManager<'a> {
     /// ```
     pub fn new(dev: &'a dyn Device) -> Self {
         MappedBufferManager {
-            fd: dev.fd(),
-            bufs: Vec::new(),
-            buf_index: 0,
-            phantom: marker::PhantomData,
-        }
-    }
-
-    pub(crate) fn with_fd(fd: os::raw::c_int) -> Self {
-        MappedBufferManager {
-            fd,
+            dev,
             bufs: Vec::new(),
             buf_index: 0,
             phantom: marker::PhantomData,
@@ -74,7 +65,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_reqbufs.count = count;
             v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -88,13 +79,13 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
                 v4l2_buf.memory = Memory::Mmap as u32;
                 v4l2_buf.index = i;
                 v4l2::ioctl(
-                    self.fd,
+                    self.dev.fd(),
                     v4l2::vidioc::VIDIOC_QUERYBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
 
                 v4l2::ioctl(
-                    self.fd,
+                    self.dev.fd(),
                     v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
@@ -104,7 +95,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
                     v4l2_buf.length as usize,
                     libc::PROT_READ | libc::PROT_WRITE,
                     libc::MAP_SHARED,
-                    self.fd,
+                    self.dev.fd(),
                     v4l2_buf.m.offset as i64,
                 )?;
 
@@ -130,7 +121,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_reqbufs.count = 0;
             v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -152,7 +143,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_buf.memory = Memory::Mmap as u32;
             v4l2_buf.index = self.buf_index as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -177,7 +168,7 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_buf.memory = Memory::Mmap as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;

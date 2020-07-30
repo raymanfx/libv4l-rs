@@ -1,4 +1,4 @@
-use std::{io, marker, mem, os, slice};
+use std::{io, marker, mem, slice};
 
 use crate::v4l_sys::*;
 use crate::{buffer, v4l2};
@@ -8,7 +8,7 @@ use crate::{BufferManager, Device, Memory, UserBuffer};
 ///
 /// All buffers are released in the Drop impl.
 pub struct UserBufferManager<'a> {
-    fd: os::raw::c_int,
+    dev: &'a dyn Device,
 
     bufs: Vec<Vec<u8>>,
     buf_index: usize,
@@ -39,16 +39,7 @@ impl<'a> UserBufferManager<'a> {
     /// ```
     pub fn new(dev: &'a dyn Device) -> Self {
         UserBufferManager {
-            fd: dev.fd(),
-            bufs: Vec::new(),
-            buf_index: 0,
-            phantom: marker::PhantomData,
-        }
-    }
-
-    pub(crate) fn with_fd(fd: os::raw::c_int) -> Self {
-        UserBufferManager {
-            fd,
+            dev,
             bufs: Vec::new(),
             buf_index: 0,
             phantom: marker::PhantomData,
@@ -72,7 +63,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_fmt = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -92,7 +83,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_reqbufs.count = count;
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -115,7 +106,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
                 v4l2_buf.m.userptr = buf.as_ptr() as u64;
                 v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
                 v4l2::ioctl(
-                    self.fd,
+                    self.dev.fd(),
                     v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
@@ -134,7 +125,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_reqbufs.count = 0;
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )
@@ -156,7 +147,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_buf.m.userptr = buf.as_ptr() as u64;
             v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -181,7 +172,7 @@ impl<'a> BufferManager for UserBufferManager<'a> {
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.fd,
+                self.dev.fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;

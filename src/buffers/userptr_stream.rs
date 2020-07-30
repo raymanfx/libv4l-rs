@@ -9,7 +9,7 @@ use crate::{BufferManager, BufferStream, Device, UserBuffer};
 ///
 /// A manager instance is used internally for buffer handling.
 pub struct UserBufferStream<'a> {
-    dev: &'a mut dyn Device,
+    dev: &'a dyn Device,
     manager: UserBufferManager<'a>,
 
     active: bool,
@@ -28,18 +28,17 @@ impl<'a> UserBufferStream<'a> {
     /// use v4l::CaptureDevice;
     /// use v4l::buffers::UserBufferStream;
     ///
-    /// let mut dev = CaptureDevice::new(0);
-    /// if let Ok(mut dev) = dev {
-    ///     let stream = UserBufferStream::new(&mut dev);
+    /// let dev = CaptureDevice::new(0);
+    /// if let Ok(dev) = dev {
+    ///     let stream = UserBufferStream::new(&dev);
     /// }
     /// ```
-    pub fn new(dev: &'a mut dyn Device) -> io::Result<Self> {
+    pub fn new(dev: &'a dyn Device) -> io::Result<Self> {
         UserBufferStream::with_buffers(dev, 4)
     }
 
-    pub fn with_buffers(dev: &'a mut dyn Device, count: u32) -> io::Result<Self> {
-        let mut manager = UserBufferManager::with_fd(dev.fd());
-
+    pub fn with_buffers(dev: &'a dyn Device, count: u32) -> io::Result<Self> {
+        let mut manager = UserBufferManager::new(dev);
         manager.allocate(count)?;
 
         Ok(UserBufferStream {
