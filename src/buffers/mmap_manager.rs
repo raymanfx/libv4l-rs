@@ -122,6 +122,20 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
             }
         }
 
+        // free all buffers by requesting 0
+        let mut v4l2_reqbufs: v4l2_requestbuffers;
+        unsafe {
+            v4l2_reqbufs = mem::zeroed();
+            v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_reqbufs.count = 0;
+            v4l2_reqbufs.memory = Memory::Mmap as u32;
+            v4l2::ioctl(
+                self.fd,
+                v4l2::vidioc::VIDIOC_REQBUFS,
+                &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
         self.bufs.clear();
         Ok(())
     }
