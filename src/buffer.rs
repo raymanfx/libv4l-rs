@@ -145,7 +145,7 @@ pub trait Buffer {
 }
 
 /// Manage buffers for a device
-pub trait BufferManager {
+pub trait Arena {
     /// Type of the buffers (DMA, mmap, userptr)
     type Buffer;
 
@@ -172,7 +172,7 @@ pub trait BufferManager {
 }
 
 /// Streaming I/O
-pub trait BufferStream: Iterator {
+pub trait Stream: Iterator {
     type Buffer;
 
     /// Whether the stream is currently active
@@ -196,18 +196,18 @@ pub trait BufferStream: Iterator {
 /// This works more like a generator rather than a classic iterator because frames are captured as
 /// they are requested (on the fly). Once an error condition occurs, None is returned so the caller
 /// can know about a broken stream.
-pub struct StreamIterator<'a, S: BufferStream> {
+pub struct StreamIterator<'a, S: Stream> {
     /// Mutable stream reference representing exclusive ownership
     stream: &'a mut S,
 }
 
-impl<'a, S: BufferStream> StreamIterator<'a, S> {
+impl<'a, S: Stream> StreamIterator<'a, S> {
     pub fn new(stream: &'a mut S) -> Self {
         StreamIterator { stream }
     }
 }
 
-impl<'a, S: BufferStream> Iterator for StreamIterator<'a, S> {
+impl<'a, S: Stream> Iterator for StreamIterator<'a, S> {
     type Item = S::Buffer;
 
     fn next(&mut self) -> Option<Self::Item> {

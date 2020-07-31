@@ -1,21 +1,22 @@
-use std::io;
+use std::{io, os};
 
-use crate::buffers::UserBufferManager;
+use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait};
+use crate::io::userptr::{arena::Arena, buffer::Buffer};
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{BufferManager, BufferStream, Device, UserBuffer};
+use crate::{buffer, Device};
 
 /// Stream of user buffers
 ///
-/// A manager instance is used internally for buffer handling.
-pub struct UserBufferStream<'a> {
-    dev: &'a dyn Device,
-    manager: UserBufferManager<'a>,
+/// An arena instance is used internally for buffer handling.
+pub struct Stream<'a> {
+    fd: os::raw::c_int,
+    arena: Arena<'a>,
 
     active: bool,
 }
 
-impl<'a> UserBufferStream<'a> {
+impl<'a> Stream<'a> {
     /// Returns a stream for frame capturing
     ///
     /// # Arguments
@@ -26,37 +27,37 @@ impl<'a> UserBufferStream<'a> {
     ///
     /// ```
     /// use v4l::CaptureDevice;
-    /// use v4l::buffers::UserBufferStream;
+    /// use v4l::io::userptr::Stream;
     ///
     /// let dev = CaptureDevice::new(0);
     /// if let Ok(dev) = dev {
-    ///     let stream = UserBufferStream::new(&dev);
+    ///     let stream = Stream::new(&dev);
     /// }
     /// ```
     pub fn new(dev: &'a dyn Device) -> io::Result<Self> {
-        UserBufferStream::with_buffers(dev, 4)
+        Stream::with_buffers(dev, 4)
     }
 
     pub fn with_buffers(dev: &'a dyn Device, count: u32) -> io::Result<Self> {
-        let mut manager = UserBufferManager::new(dev);
-        manager.allocate(count)?;
+        let mut arena = Arena::new(dev);
+        arena.allocate(count)?;
 
-        Ok(UserBufferStream {
-            dev,
-            manager,
+        Ok(Stream {
+            fd: dev.fd(),
+            arena,
             active: false,
         })
     }
 }
 
-impl<'a> Drop for UserBufferStream<'a> {
+impl<'a> Drop for Stream<'a> {
     fn drop(&mut self) {
         self.stop().unwrap();
     }
 }
 
-impl<'a> BufferStream for UserBufferStream<'a> {
-    type Buffer = UserBuffer<'a>;
+impl<'a> buffer::Stream for Stream<'a> {
+    type Buffer = Buffer<'a>;
 
     fn active(&self) -> bool {
         self.active
@@ -66,7 +67,7 @@ impl<'a> BufferStream for UserBufferStream<'a> {
         unsafe {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.dev.fd(),
+                self.fd,
                 v4l2::vidioc::VIDIOC_STREAMON,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -79,7 +80,7 @@ impl<'a> BufferStream for UserBufferStream<'a> {
         unsafe {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.dev.fd(),
+                self.fd,
                 v4l2::vidioc::VIDIOC_STREAMOFF,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -89,16 +90,16 @@ impl<'a> BufferStream for UserBufferStream<'a> {
     }
 
     fn queue(&mut self) -> io::Result<()> {
-        self.manager.queue()
+        self.arena.queue()
     }
 
     fn dequeue(&mut self) -> io::Result<Self::Buffer> {
-        self.manager.dequeue()
+        self.arena.dequeue()
     }
 }
 
-impl<'a> Iterator for UserBufferStream<'a> {
-    type Item = UserBuffer<'a>;
+impl<'a> Iterator for Stream<'a> {
+    type Item = Buffer<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.active && self.start().is_err() {

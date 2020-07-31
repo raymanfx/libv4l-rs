@@ -9,7 +9,7 @@ use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
 use v4l::capture;
-use v4l::{Buffer, CaptureDevice, Device, FourCC, HostBuffer, MappedBufferStream};
+use v4l::{Buffer, CaptureDevice, FourCC, MappedBufferStream};
 
 fn main() {
     let matches = App::new("v4l capture")
@@ -149,20 +149,18 @@ fn main() {
 
         loop {
             let buf = stream.next().expect("Failed to capture buffer");
-            let hostbuf = HostBuffer::from(&buf);
-            tx.send(hostbuf).unwrap();
+            let data = buf.data().to_vec();
+            tx.send(data).unwrap();
         }
     });
 
     event_loop.run(move |event, _, control_flow| {
         let t0 = Instant::now();
-        let buf = rx.recv().unwrap();
+        let data = rx.recv().unwrap();
         let t1 = Instant::now();
 
-        let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
-            buf.data(),
-            (format.width, format.height),
-        );
+        let image =
+            glium::texture::RawImage2d::from_raw_rgb_reversed(&data, (format.width, format.height));
         let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
 
         // building the uniforms

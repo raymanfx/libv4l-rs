@@ -4,12 +4,12 @@ use crate::buffer;
 ///
 /// Devices supporting user pointer mode will directly transfer image memory to the buffer
 /// "for free" by using direct memory access (DMA).
-pub struct UserBuffer<'a> {
+pub struct Buffer<'a> {
     view: &'a [u8],
     metadata: buffer::Metadata,
 }
 
-impl<'a> UserBuffer<'a> {
+impl<'a> Buffer<'a> {
     /// Returns a user buffer representation
     ///
     /// Buffers created this way provide read-only access to the backing data, just like mapped
@@ -28,23 +28,23 @@ impl<'a> UserBuffer<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::{buffer, Timestamp, UserBuffer};
+    /// use v4l::{buffer, Timestamp, io::userptr::Buffer};
     ///
     /// let data: Vec<u8> = Vec::new();
     /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
     /// let flags = buffer::Flags::from(0);
     /// let meta = buffer::Metadata::new(0, ts, flags);
-    /// let buf = UserBuffer::new(&data, meta);
+    /// let buf = Buffer::new(&data, meta);
     /// ```
     pub fn new(view: &'a [u8], meta: buffer::Metadata) -> Self {
-        UserBuffer {
+        Buffer {
             view,
             metadata: meta,
         }
     }
 }
 
-impl<'a> buffer::Buffer for UserBuffer<'a> {
+impl<'a> buffer::Buffer for Buffer<'a> {
     fn data(&self) -> &[u8] {
         &self.view
     }

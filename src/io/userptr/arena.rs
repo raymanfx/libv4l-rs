@@ -1,27 +1,28 @@
-use std::{io, marker, mem, os, ptr, slice};
+use std::{io, marker, mem, os, slice};
 
+use crate::buffer::Arena as ArenaTrait;
+use crate::io::userptr::buffer::Buffer;
 use crate::v4l_sys::*;
 use crate::{buffer, v4l2};
-use crate::{BufferManager, Device, MappedBuffer, Memory};
+use crate::{Device, Memory};
 
-/// Manage mapped buffers
+/// Manage user allocated buffers
 ///
-/// All buffers are unmapped in the Drop impl.
-/// In case of errors during unmapping, we panic because there is memory corruption going on.
-pub struct MappedBufferManager<'a> {
-    dev: &'a dyn Device,
+/// All buffers are released in the Drop impl.
+pub struct Arena<'a> {
+    fd: os::raw::c_int,
 
-    bufs: Vec<(*mut os::raw::c_void, usize)>,
+    bufs: Vec<Vec<u8>>,
     buf_index: usize,
 
     phantom: marker::PhantomData<&'a ()>,
 }
 
-impl<'a> MappedBufferManager<'a> {
+impl<'a> Arena<'a> {
     /// Returns a new buffer manager instance
     ///
     /// You usually do not need to use this directly.
-    /// A MappedBufferStream creates its own manager instance by default.
+    /// A UserBufferStream creates its own manager instance by default.
     ///
     /// # Arguments
     ///
@@ -31,16 +32,16 @@ impl<'a> MappedBufferManager<'a> {
     ///
     /// ```
     /// use v4l::CaptureDevice;
-    /// use v4l::buffers::MappedBufferManager;
+    /// use v4l::io::userptr::Arena;
     ///
     /// let dev = CaptureDevice::new(0);
     /// if let Ok(dev) = dev {
-    ///     let mgr = MappedBufferManager::new(&dev);
+    ///     let mgr = Arena::new(&dev);
     /// }
     /// ```
     pub fn new(dev: &'a dyn Device) -> Self {
-        MappedBufferManager {
-            dev,
+        Arena {
+            fd: dev.fd(),
             bufs: Vec::new(),
             buf_index: 0,
             phantom: marker::PhantomData,
@@ -48,58 +49,69 @@ impl<'a> MappedBufferManager<'a> {
     }
 }
 
-impl<'a> Drop for MappedBufferManager<'a> {
+impl<'a> Drop for Arena<'a> {
     fn drop(&mut self) {
         self.release().unwrap();
     }
 }
 
-impl<'a> BufferManager for MappedBufferManager<'a> {
-    type Buffer = MappedBuffer<'a>;
+impl<'a> buffer::Arena for Arena<'a> {
+    type Buffer = Buffer<'a>;
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
+        // we need to get the maximum buffer size from the format first
+        let mut v4l2_fmt: v4l2_format;
+        unsafe {
+            v4l2_fmt = mem::zeroed();
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2::ioctl(
+                self.fd,
+                v4l2::vidioc::VIDIOC_G_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        #[cfg(feature = "v4l-sys")]
+        eprintln!(
+            "\n### WARNING ###\n\
+            As of early 2020, libv4l2 still does not support USERPTR buffers!\n\
+            You may want to use this crate with the raw v4l2 FFI bindings instead!\n"
+        );
+
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
             v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_reqbufs.count = count;
-            v4l2_reqbufs.memory = Memory::Mmap as u32;
+            v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.dev.fd(),
+                self.fd,
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
 
+        // allocate the new user buffers
+        self.bufs.resize(v4l2_reqbufs.count as usize, Vec::new());
         for i in 0..v4l2_reqbufs.count {
+            let buf = &mut self.bufs[i as usize];
+            unsafe {
+                buf.resize(v4l2_fmt.fmt.pix.sizeimage as usize, 0);
+            }
+
             let mut v4l2_buf: v4l2_buffer;
             unsafe {
                 v4l2_buf = mem::zeroed();
                 v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                v4l2_buf.memory = Memory::Mmap as u32;
+                v4l2_buf.memory = Memory::UserPtr as u32;
                 v4l2_buf.index = i;
+                v4l2_buf.m.userptr = buf.as_ptr() as u64;
+                v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
                 v4l2::ioctl(
-                    self.dev.fd(),
-                    v4l2::vidioc::VIDIOC_QUERYBUF,
-                    &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-                )?;
-
-                v4l2::ioctl(
-                    self.dev.fd(),
+                    self.fd,
                     v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
-
-                let ptr = v4l2::mmap(
-                    ptr::null_mut(),
-                    v4l2_buf.length as usize,
-                    libc::PROT_READ | libc::PROT_WRITE,
-                    libc::MAP_SHARED,
-                    self.dev.fd(),
-                    v4l2_buf.m.offset as i64,
-                )?;
-
-                self.bufs.push((ptr, v4l2_buf.length as usize));
             }
         }
 
@@ -107,28 +119,19 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
     }
 
     fn release(&mut self) -> io::Result<()> {
-        for buf in &self.bufs {
-            unsafe {
-                v4l2::munmap(buf.0, buf.1)?;
-            }
-        }
-
         // free all buffers by requesting 0
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
             v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_reqbufs.count = 0;
-            v4l2_reqbufs.memory = Memory::Mmap as u32;
+            v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.dev.fd(),
+                self.fd,
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
-            )?;
+            )
         }
-
-        self.bufs.clear();
-        Ok(())
     }
 
     fn queue(&mut self) -> io::Result<()> {
@@ -137,13 +140,16 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
         }
 
         let mut v4l2_buf: v4l2_buffer;
+        let buf = &mut self.bufs[self.buf_index as usize];
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_buf.memory = Memory::Mmap as u32;
+            v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2_buf.index = self.buf_index as u32;
+            v4l2_buf.m.userptr = buf.as_ptr() as u64;
+            v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
-                self.dev.fd(),
+                self.fd,
                 v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -166,22 +172,46 @@ impl<'a> BufferManager for MappedBufferManager<'a> {
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_buf.memory = Memory::Mmap as u32;
+            v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.dev.fd(),
+                self.fd,
                 v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
 
+        let mut index: Option<usize> = None;
+        for i in 0..self.bufs.len() {
+            let buf = &self.bufs[i];
+            unsafe {
+                if (buf.as_ptr()) == (v4l2_buf.m.userptr as *const u8) {
+                    index = Some(i);
+                    break;
+                }
+            }
+        }
+
+        if index.is_none() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "failed to find buffer",
+            ));
+        }
+
+        // The borrow checker prevents us from handing out slices to the internal buffer pool
+        // (self.bufs), so we work around this limitation by passing slices to the v4l2_buf
+        // instance instead, which holds a pointer itself.
+        // That pointer just points back to one of the buffers we allocated ourselves (self.bufs),
+        // which we ensured by checking for the index earlier.
+
         let ptr;
         let view;
         unsafe {
-            ptr = self.bufs[v4l2_buf.index as usize].0 as *mut u8;
+            ptr = v4l2_buf.m.userptr as *mut u8;
             view = slice::from_raw_parts::<u8>(ptr, v4l2_buf.bytesused as usize);
         }
 
-        Ok(MappedBuffer::new(
+        Ok(Buffer::new(
             view,
             buffer::Metadata::new(
                 v4l2_buf.sequence,

@@ -78,12 +78,11 @@ pub use v4l2_sys as v4l_sys;
 pub mod v4l2;
 
 pub mod buffer;
-pub use buffer::{Buffer, BufferManager, BufferStream};
+pub use buffer::{Arena, Buffer, Stream};
 
-pub mod buffers;
-pub use buffers::HostBuffer;
-pub use buffers::{MappedBuffer, MappedBufferStream};
-pub use buffers::{UserBuffer, UserBufferStream};
+pub mod io;
+pub use io::mmap::Stream as MappedBufferStream;
+pub use io::userptr::Stream as UserBufferStream;
 
 pub mod capability;
 pub use capability::Capabilities;

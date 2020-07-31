@@ -6,12 +6,12 @@ use crate::buffer;
 /// Read only access (e.g. by directly uploading it to the GPU) is permitted for the lifetime of
 /// the buffer instance.
 /// Acquiring ownership of the data in userspace is not possible, so it has to be copied.
-pub struct MappedBuffer<'a> {
+pub struct Buffer<'a> {
     view: &'a [u8],
     metadata: buffer::Metadata,
 }
 
-impl<'a> MappedBuffer<'a> {
+impl<'a> Buffer<'a> {
     /// Returns a mapped memory region representation
     ///
     /// Buffers created this way provide read-only access to the backing data, enforcing callers
@@ -25,23 +25,23 @@ impl<'a> MappedBuffer<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::{buffer, MappedBuffer, Timestamp};
+    /// use v4l::{buffer, io::mmap::Buffer, Timestamp};
     ///
     /// let data: Vec<u8> = Vec::new();
     /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
     /// let flags = buffer::Flags::from(0);
     /// let meta = buffer::Metadata::new(0, ts, flags);
-    /// let buf = MappedBuffer::new(&data, meta);
+    /// let buf = Buffer::new(&data, meta);
     /// ```
     pub fn new(view: &'a [u8], meta: buffer::Metadata) -> Self {
-        MappedBuffer {
+        Buffer {
             view,
             metadata: meta,
         }
     }
 }
 
-impl<'a> buffer::Buffer for MappedBuffer<'a> {
+impl<'a> buffer::Buffer for Buffer<'a> {
     fn data(&self) -> &[u8] {
         &self.view
     }
