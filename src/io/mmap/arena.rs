@@ -1,9 +1,8 @@
 use std::{io, marker, mem, os, ptr, slice};
 
-use crate::buffer::Arena as ArenaTrait;
-use crate::io::mmap::buffer::Buffer;
+use crate::buffer::{Arena as ArenaTrait, Buffer, Metadata};
+use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{buffer, v4l2};
 use crate::{Device, Memory};
 
 /// Manage mapped buffers
@@ -56,7 +55,7 @@ impl<'a> Drop for Arena<'a> {
     }
 }
 
-impl<'a> buffer::Arena for Arena<'a> {
+impl<'a> ArenaTrait for Arena<'a> {
     type Buffer = Buffer<'a>;
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
@@ -185,7 +184,7 @@ impl<'a> buffer::Arena for Arena<'a> {
 
         Ok(Buffer::new(
             view,
-            buffer::Metadata::new(
+            Metadata::new(
                 v4l2_buf.sequence,
                 v4l2_buf.timestamp.into(),
                 v4l2_buf.flags.into(),

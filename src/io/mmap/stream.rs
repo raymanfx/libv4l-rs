@@ -1,8 +1,8 @@
 use std::{io, os};
 
-use crate::buffer;
+use crate::buffer::Buffer;
 use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait};
-use crate::io::mmap::{arena::Arena, buffer::Buffer};
+use crate::io::mmap::arena::Arena;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::Device;
@@ -57,7 +57,7 @@ impl<'a> Drop for Stream<'a> {
     }
 }
 
-impl<'a> buffer::Stream for Stream<'a> {
+impl<'a> StreamTrait for Stream<'a> {
     type Buffer = Buffer<'a>;
 
     fn active(&self) -> bool {

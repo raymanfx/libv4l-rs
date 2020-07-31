@@ -3,7 +3,7 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use std::time::Instant;
-use v4l::{Buffer, CaptureDevice, MappedBufferStream};
+use v4l::{CaptureDevice, MappedBufferStream};
 
 fn main() {
     let matches = App::new("v4l mmap")

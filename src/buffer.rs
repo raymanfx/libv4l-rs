@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, io};
+use std::{fmt, io, ops};
 
 use crate::Timestamp;
 
@@ -129,19 +129,58 @@ impl Metadata {
     }
 }
 
-/// Represents a host (allocated) or device (mapped) buffer
-pub trait Buffer {
+/// Represents a buffer view
+pub struct Buffer<'a> {
+    view: &'a [u8],
+    metadata: Metadata,
+}
+
+impl<'a> Buffer<'a> {
+    /// Returns a memory region view
+    ///
+    /// Buffers created this way provide read-only access to the backing data, enforcing callers
+    /// to copy the data before mutating it.
+    ///
+    /// # Arguments
+    ///
+    /// * `view` - Slice of raw memory
+    /// * `meta` - Metadata, usually filled in by the driver
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::{buffer, Timestamp};
+    ///
+    /// let data: Vec<u8> = Vec::new();
+    /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
+    /// let flags = buffer::Flags::from(0);
+    /// let meta = buffer::Metadata::new(0, ts, flags);
+    /// let buf = buffer::Buffer::new(&data, meta);
+    /// ```
+    pub fn new(view: &'a [u8], meta: Metadata) -> Self {
+        Buffer {
+            view,
+            metadata: meta,
+        }
+    }
+
     /// Slice of read-only data
-    fn data(&self) -> &[u8];
-
-    /// Size of the backing memory region
-    fn len(&self) -> usize;
-
-    /// Whether the backing buffer is empty
-    fn is_empty(&self) -> bool;
+    pub fn data(&self) -> &[u8] {
+        self.view
+    }
 
     /// Metadata such as allocation flags, timestamp and more
-    fn meta(&self) -> &Metadata;
+    pub fn meta(&self) -> &Metadata {
+        &self.metadata
+    }
+}
+
+impl<'a> ops::Deref for Buffer<'a> {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        self.view
+    }
 }
 
 /// Manage buffers for a device

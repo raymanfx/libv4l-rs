@@ -9,7 +9,7 @@ use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
 use v4l::capture;
-use v4l::{Buffer, CaptureDevice, FourCC, MappedBufferStream};
+use v4l::{CaptureDevice, FourCC, MappedBufferStream};
 
 fn main() {
     let matches = App::new("v4l capture")
