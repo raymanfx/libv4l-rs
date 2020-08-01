@@ -19,7 +19,7 @@ impl Fraction {
     /// # Example
     ///
     /// ```
-    /// use v4l::Fraction;
+    /// use v4l::fraction::Fraction;
     /// let frac = Fraction::new(30, 1);
     /// ```
     pub fn new(num: u32, denom: u32) -> Self {

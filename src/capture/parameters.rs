@@ -1,8 +1,8 @@
 use bitflags::bitflags;
 use std::{fmt, mem};
 
+use crate::fraction::Fraction;
 use crate::v4l_sys::*;
-use crate::Fraction;
 
 bitflags! {
     pub struct Capabilities: u32 {

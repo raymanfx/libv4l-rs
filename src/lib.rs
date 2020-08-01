@@ -45,7 +45,7 @@
 //! Here is a very brief example of streaming I/O with memory mapped buffers:
 //!
 //! ```no_run
-//! use v4l::{Buffer, CaptureDevice, MappedBufferStream};
+//! use v4l::prelude::*;
 //!
 //! let mut dev = CaptureDevice::new(0)
 //!     .expect("Failed to open device")
@@ -55,7 +55,7 @@
 //!     .expect("Failed to set frame interval");
 //!
 //! let stream =
-//!     MappedBufferStream::with_buffers(&mut dev, 4).expect("Failed to create buffer stream");
+//!     MmapStream::with_buffers(&mut dev, 4).expect("Failed to create buffer stream");
 //!
 //! for frame in stream {
 //!     println!(
@@ -78,40 +78,31 @@ pub use v4l2_sys as v4l_sys;
 pub mod v4l2;
 
 pub mod buffer;
-pub use buffer::{Arena, Buffer, Stream};
+pub mod capability;
+pub mod capture;
+pub mod control;
+pub mod device;
+pub mod format;
+pub mod fourcc;
+pub mod fraction;
+pub mod frameinterval;
+pub mod framesize;
+pub mod memory;
+pub mod timestamp;
 
 pub mod io;
-pub use io::mmap::Stream as MappedBufferStream;
-pub use io::userptr::Stream as UserBufferStream;
 
-pub mod capability;
-pub use capability::Capabilities;
+pub use {
+    buffer::Buffer, capability::Capabilities, control::Control, format::Description,
+    fourcc::FourCC, fraction::Fraction, frameinterval::FrameInterval, framesize::FrameSize,
+    memory::Memory, timestamp::Timestamp,
+};
 
-pub mod capture;
-pub use capture::Device as CaptureDevice;
-
-pub mod control;
-
-pub mod device;
-pub use device::{Device, DeviceInfo, DeviceList, QueryDevice};
-
-pub mod fourcc;
-pub use fourcc::FourCC;
-
-pub mod format;
-pub use format::FormatDescription;
-
-pub mod fraction;
-pub use fraction::Fraction;
-
-pub mod frameinterval;
-pub use frameinterval::FrameInterval;
-
-pub mod framesize;
-pub use framesize::FrameSize;
-
-pub mod memory;
-pub use memory::Memory;
-
-pub mod timestamp;
-pub use timestamp::Timestamp;
+pub mod prelude {
+    pub use crate::io::{mmap::Stream as MmapStream, userptr::Stream as UserptrStream};
+    pub use crate::{
+        buffer::{Arena, Buffer, Stream},
+        capture::Device as CaptureDevice,
+        device::{Device, QueryDevice},
+    };
+}

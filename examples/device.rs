@@ -2,7 +2,7 @@ extern crate clap;
 extern crate v4l;
 
 use clap::{App, Arg};
-use v4l::CaptureDevice;
+use v4l::prelude::*;
 
 fn main() {
     let matches = App::new("v4l device")

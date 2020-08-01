@@ -3,7 +3,7 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use std::time::Instant;
-use v4l::{CaptureDevice, UserBufferStream};
+use v4l::prelude::*;
 
 fn main() {
     let matches = App::new("v4l userptr")
@@ -62,7 +62,7 @@ fn main() {
 
     // Setup a buffer stream and grab a frame, then print its data
     let mut stream =
-        UserBufferStream::with_buffers(&mut dev, buffers).expect("Failed to create buffer stream");
+        UserptrStream::with_buffers(&mut dev, buffers).expect("Failed to create buffer stream");
 
     // warmup
     stream.next().expect("Failed to capture buffer");

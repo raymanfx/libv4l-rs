@@ -9,7 +9,8 @@ use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
 use v4l::capture;
-use v4l::{CaptureDevice, FourCC, MappedBufferStream};
+use v4l::prelude::*;
+use v4l::FourCC;
 
 fn main() {
     let matches = App::new("v4l capture")
@@ -144,8 +145,8 @@ fn main() {
         let mut dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream = MappedBufferStream::with_buffers(&mut *dev, buffers)
-            .expect("Failed to create buffer stream");
+        let mut stream =
+            MmapStream::with_buffers(&mut *dev, buffers).expect("Failed to create buffer stream");
 
         loop {
             let buf = stream.next().expect("Failed to capture buffer");

@@ -1,10 +1,10 @@
 use std::{io, os};
 
 use crate::buffer::{Arena as ArenaTrait, Buffer, Stream as StreamTrait};
+use crate::device::Device;
 use crate::io::userptr::arena::Arena;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::Device;
 
 /// Stream of user buffers
 ///
@@ -26,10 +26,10 @@ impl<'a> Stream<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
+    /// use v4l::capture::Device;
     /// use v4l::io::userptr::Stream;
     ///
-    /// let dev = CaptureDevice::new(0);
+    /// let dev = Device::new(0);
     /// if let Ok(dev) = dev {
     ///     let stream = Stream::new(&dev);
     /// }

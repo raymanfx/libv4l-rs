@@ -17,7 +17,7 @@ impl FourCC {
     /// # Example
     ///
     /// ```
-    /// use v4l::FourCC;
+    /// use v4l::fourcc::FourCC;
     /// let fourcc = FourCC::new(b"YUYV");
     /// ```
     pub fn new(repr: &[u8; 4]) -> FourCC {
@@ -29,7 +29,7 @@ impl FourCC {
     /// # Example
     ///
     /// ```
-    /// use v4l::FourCC;
+    /// use v4l::fourcc::FourCC;
     /// let fourcc = FourCC::new(b"YUYV");
     /// let str = fourcc.str().unwrap();
     /// ```

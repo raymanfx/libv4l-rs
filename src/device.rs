@@ -5,7 +5,9 @@ use std::{fs, io, mem};
 use crate::control;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{Capabilities, FourCC, FrameInterval, FrameSize};
+use crate::{
+    capability::Capabilities, fourcc::FourCC, frameinterval::FrameInterval, framesize::FrameSize,
+};
 
 pub use crate::buffer::BufferType as Type;
 
@@ -200,12 +202,12 @@ impl<T: Device> QueryDevice for T {
 }
 
 /// Represents a video4linux device node
-pub struct DeviceInfo {
+pub struct Info {
     /// Device node path
     path: PathBuf,
 }
 
-impl DeviceInfo {
+impl Info {
     /// Returns a device node observer by path
     ///
     /// The device is opened in read only mode.
@@ -217,11 +219,11 @@ impl DeviceInfo {
     /// # Example
     ///
     /// ```
-    /// use v4l::DeviceInfo;
-    /// let node = DeviceInfo::new("/dev/video0");
+    /// use v4l::device::Info;
+    /// let node = Info::new("/dev/video0");
     /// ```
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        DeviceInfo {
+        Info {
             path: PathBuf::from(path.as_ref()),
         }
     }
@@ -272,27 +274,27 @@ impl DeviceInfo {
 
 /// Represents an iterable list of valid devices
 #[derive(Default)]
-pub struct DeviceList {
+pub struct List {
     /// Position in the list
     pos: usize,
     /// All paths representing potential video4linux devices
     paths: Vec<PathBuf>,
 }
 
-impl DeviceList {
+impl List {
     /// Returns a list of devices currently known to the system
     ///
     /// # Example
     ///
     /// ```
-    /// use v4l::DeviceList;
-    /// let list = DeviceList::new();
+    /// use v4l::device::List;
+    /// let list = List::new();
     /// for dev in list {
     ///     print!("{}{}", dev.index().unwrap(), dev.name().unwrap());
     /// }
     /// ```
     pub fn new() -> Self {
-        let mut list = DeviceList {
+        let mut list = List {
             pos: 0,
             paths: Vec::new(),
         };
@@ -318,16 +320,16 @@ impl DeviceList {
     }
 }
 
-impl Iterator for DeviceList {
-    type Item = DeviceInfo;
+impl Iterator for List {
+    type Item = Info;
 
-    fn next(&mut self) -> Option<DeviceInfo> {
+    fn next(&mut self) -> Option<Info> {
         let pos = self.pos;
         if pos == self.paths.len() {
             return None;
         }
 
         self.pos += 1;
-        Some(DeviceInfo::new(&self.paths[pos]))
+        Some(Info::new(&self.paths[pos]))
     }
 }

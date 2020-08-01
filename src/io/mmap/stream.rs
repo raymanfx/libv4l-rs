@@ -2,10 +2,10 @@ use std::{io, os};
 
 use crate::buffer::Buffer;
 use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait};
+use crate::device::Device;
 use crate::io::mmap::arena::Arena;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::Device;
 
 /// Stream of mapped buffers
 ///
@@ -27,10 +27,10 @@ impl<'a> Stream<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
+    /// use v4l::capture::Device;
     /// use v4l::io::mmap::Stream;
     ///
-    /// let dev = CaptureDevice::new(0);
+    /// let dev = Device::new(0);
     /// if let Ok(dev) = dev {
     ///     let stream = Stream::new(&dev);
     /// }

@@ -3,7 +3,7 @@ use std::{io, marker, mem, os, slice};
 use crate::buffer::{Arena as ArenaTrait, Buffer, Metadata};
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{Device, Memory};
+use crate::{device::Device, memory::Memory};
 
 /// Manage user allocated buffers
 ///
@@ -30,10 +30,10 @@ impl<'a> Arena<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::CaptureDevice;
+    /// use v4l::capture::Device;
     /// use v4l::io::userptr::Arena;
     ///
-    /// let dev = CaptureDevice::new(0);
+    /// let dev = Device::new(0);
     /// if let Ok(dev) = dev {
     ///     let mgr = Arena::new(&dev);
     /// }

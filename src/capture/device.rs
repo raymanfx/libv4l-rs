@@ -1,12 +1,9 @@
 use std::convert::TryFrom;
 use std::{io, mem, path::Path};
 
-use crate::capture::{Format, Parameters};
-use crate::control;
-use crate::device;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{DeviceInfo, FormatDescription, FourCC, Fraction};
+use crate::{capture, control::Control, device, format, fourcc::FourCC, fraction::Fraction};
 
 /// Linux capture device abstraction
 pub struct Device {
@@ -143,8 +140,8 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn enum_formats(&self) -> io::Result<Vec<FormatDescription>> {
-        let mut formats: Vec<FormatDescription> = Vec::new();
+    pub fn enum_formats(&self) -> io::Result<Vec<format::Description>> {
+        let mut formats: Vec<format::Description> = Vec::new();
         let mut v4l2_fmt: v4l2_fmtdesc;
 
         unsafe {
@@ -169,7 +166,7 @@ impl Device {
         }
 
         while ret.is_ok() {
-            formats.push(FormatDescription::from(v4l2_fmt));
+            formats.push(format::Description::from(v4l2_fmt));
             v4l2_fmt.index += 1;
 
             unsafe {
@@ -202,7 +199,7 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn get_format(&self) -> io::Result<Format> {
+    pub fn get_format(&self) -> io::Result<capture::Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -212,7 +209,7 @@ impl Device {
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(Format::from(v4l2_fmt.fmt.pix))
+            Ok(capture::Format::from(v4l2_fmt.fmt.pix))
         }
     }
 
@@ -247,7 +244,7 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn set_format(&mut self, fmt: &Format) -> io::Result<Format> {
+    pub fn set_format(&mut self, fmt: &capture::Format) -> io::Result<capture::Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -276,7 +273,7 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn get_params(&self) -> io::Result<Parameters> {
+    pub fn get_params(&self) -> io::Result<capture::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -286,7 +283,7 @@ impl Device {
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(Parameters::from(v4l2_params.parm.capture))
+            Ok(capture::Parameters::from(v4l2_params.parm.capture))
         }
     }
 
@@ -316,7 +313,7 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn set_params(&mut self, params: &Parameters) -> io::Result<Parameters> {
+    pub fn set_params(&mut self, params: &capture::Parameters) -> io::Result<capture::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -341,20 +338,20 @@ impl Device {
     ///
     /// ```
     /// use v4l::capture::Device;
-    /// use v4l::control;
+    /// use v4l::Control;
     /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
     ///
     /// if let Ok(dev) = Device::new(0) {
     ///     let ctrl = dev.get_control(V4L2_CID_BRIGHTNESS);
     ///     if let Ok(val) = ctrl {
     ///         match val {
-    ///             control::Control::Value(val) => { println!("Brightness: {}", val) }
+    ///             Control::Value(val) => { println!("Brightness: {}", val) }
     ///             _ => {}
     ///         }
     ///     }
     /// }
     /// ```
-    pub fn get_control(&self, id: u32) -> io::Result<control::Control> {
+    pub fn get_control(&self, id: u32) -> io::Result<Control> {
         unsafe {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;
@@ -364,7 +361,7 @@ impl Device {
                 &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(control::Control::Value(v4l2_ctrl.value))
+            Ok(Control::Value(v4l2_ctrl.value))
         }
     }
 
@@ -380,20 +377,20 @@ impl Device {
     ///
     /// ```
     /// use v4l::capture::Device;
-    /// use v4l::control;
+    /// use v4l::Control;
     /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
     ///
     /// if let Ok(mut dev) = Device::new(0) {
-    ///     dev.set_control(V4L2_CID_BRIGHTNESS, control::Control::Value(0))
+    ///     dev.set_control(V4L2_CID_BRIGHTNESS, Control::Value(0))
     ///         .expect("Failed to set brightness");
     /// }
     /// ```
-    pub fn set_control(&mut self, id: u32, val: control::Control) -> io::Result<()> {
+    pub fn set_control(&mut self, id: u32, val: Control) -> io::Result<()> {
         unsafe {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;
             match val {
-                control::Control::Value(val) => v4l2_ctrl.value = val,
+                Control::Value(val) => v4l2_ctrl.value = val,
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidInput,
@@ -422,8 +419,8 @@ impl device::Device for Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::Device;
     /// use v4l::capture::Device as CaptureDevice;
+    /// use v4l::device::Device;
     ///
     /// if let Ok(dev) = CaptureDevice::new(0) {
     ///     print!("Device file descriptor: {}", dev.fd());
@@ -454,10 +451,10 @@ impl io::Read for Device {
     }
 }
 
-impl TryFrom<DeviceInfo> for Device {
+impl TryFrom<device::Info> for Device {
     type Error = io::Error;
 
-    fn try_from(info: DeviceInfo) -> Result<Self, Self::Error> {
+    fn try_from(info: device::Info) -> Result<Self, Self::Error> {
         Device::with_path(info.path())
     }
 }

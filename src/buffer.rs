@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::{fmt, io, ops};
 
-use crate::Timestamp;
+use crate::timestamp::Timestamp;
 
 /// Buffer type
 ///
@@ -114,9 +114,9 @@ impl Metadata {
     /// # Example
     ///
     /// ```
-    /// use v4l::{buffer, Timestamp};
+    /// use v4l::{buffer, timestamp};
     ///
-    /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
+    /// let ts = timestamp::Timestamp::new(0 /* sec */, 0 /* usec */);
     /// let flags = buffer::Flags::from(0);
     /// let meta = buffer::Metadata::new(0, ts, flags);
     /// ```
@@ -149,10 +149,10 @@ impl<'a> Buffer<'a> {
     /// # Example
     ///
     /// ```
-    /// use v4l::{buffer, Timestamp};
+    /// use v4l::{buffer, timestamp};
     ///
     /// let data: Vec<u8> = Vec::new();
-    /// let ts = Timestamp::new(0 /* sec */, 0 /* usec */);
+    /// let ts = timestamp::Timestamp::new(0 /* sec */, 0 /* usec */);
     /// let flags = buffer::Flags::from(0);
     /// let meta = buffer::Metadata::new(0, ts, flags);
     /// let buf = buffer::Buffer::new(&data, meta);

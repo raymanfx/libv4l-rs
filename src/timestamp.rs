@@ -1,5 +1,6 @@
-use crate::v4l_sys::*;
 use std::{fmt, mem, time};
+
+use crate::v4l_sys::*;
 
 #[derive(Debug, Default, Clone, Copy)]
 /// Timestamp consisting of a seconds and a microseconds component
@@ -19,7 +20,7 @@ impl Timestamp {
     /// # Example
     ///
     /// ```
-    /// use v4l::Timestamp;
+    /// use v4l::timestamp::Timestamp;
     /// let ts = Timestamp::new(5, 5);
     /// ```
     pub fn new(sec: i64, usec: i64) -> Self {

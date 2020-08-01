@@ -1,7 +1,7 @@
 use std::{fmt, mem};
 
+use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
-use crate::FourCC;
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming format (single-planar)

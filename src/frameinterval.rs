@@ -1,8 +1,8 @@
 use std::convert::TryFrom;
 use std::fmt;
 
-use crate::FourCC;
-use crate::{v4l_sys, v4l_sys::*, Fraction};
+use crate::{fourcc::FourCC, fraction::Fraction};
+use crate::{v4l_sys, v4l_sys::*};
 
 #[derive(Debug)]
 /// Format description as returned by VIDIOC_ENUM_FRAMEINTERVALS

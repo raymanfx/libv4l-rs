@@ -1,8 +1,8 @@
 use bitflags::bitflags;
 use std::{fmt, str};
 
+use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
-use crate::FourCC;
 
 bitflags! {
     #[allow(clippy::unreadable_literal)]
@@ -34,7 +34,7 @@ impl fmt::Display for Flags {
 
 #[derive(Debug)]
 /// Format description as returned by VIDIOC_ENUM_FMT
-pub struct FormatDescription {
+pub struct Description {
     pub index: u32,
     pub typ: u32,
     pub flags: Flags,
@@ -42,7 +42,7 @@ pub struct FormatDescription {
     pub fourcc: FourCC,
 }
 
-impl fmt::Display for FormatDescription {
+impl fmt::Display for Description {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "index       : {}", self.index)?;
         writeln!(f, "type:       : {}", self.typ)?;
@@ -53,9 +53,9 @@ impl fmt::Display for FormatDescription {
     }
 }
 
-impl From<v4l2_fmtdesc> for FormatDescription {
+impl From<v4l2_fmtdesc> for Description {
     fn from(desc: v4l2_fmtdesc) -> Self {
-        FormatDescription {
+        Description {
             index: desc.index,
             typ: desc.type_,
             flags: Flags::from(desc.flags),

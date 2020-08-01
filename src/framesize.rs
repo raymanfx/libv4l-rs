@@ -1,9 +1,9 @@
 use std::convert::TryFrom;
 use std::fmt;
 
+use crate::fourcc::FourCC;
 use crate::v4l_sys;
 use crate::v4l_sys::*;
-use crate::FourCC;
 
 #[derive(Debug)]
 /// Format description as returned by VIDIOC_ENUM_FRAMESIZES

@@ -3,7 +3,7 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use std::time::Instant;
-use v4l::{CaptureDevice, MappedBufferStream};
+use v4l::prelude::*;
 
 fn main() {
     let matches = App::new("v4l mmap")
@@ -61,8 +61,8 @@ fn main() {
     println!("Active parameters:\n{}", params);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut stream = MappedBufferStream::with_buffers(&mut dev, buffers)
-        .expect("Failed to create buffer stream");
+    let mut stream =
+        MmapStream::with_buffers(&mut dev, buffers).expect("Failed to create buffer stream");
 
     // warmup
     stream.next().expect("Failed to capture buffer");
