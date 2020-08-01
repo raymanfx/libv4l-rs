@@ -14,6 +14,13 @@ jobs:
   fast_finish: true
   include:
     - {}
+    - stage: check
+      script:
+        - cargo check
+        - cargo check --no-default-features --features libv4l
+    - stage: test
+      script:
+        - cargo test
     - stage: fmt
       before_script:
         - rustup component add rustfmt
@@ -25,16 +32,9 @@ jobs:
         - rustup component add clippy
       script:
         - cargo clippy -- -D warnings
-    - stage: build
-      script:
-        - cargo build
-        - cargo build --no-default-features --features libv4l
-    - stage: test
-      script:
-        - cargo test
 
 stages:
-  - fmt
-  - build
+  - check
   - test
+  - fmt
   - clippy
