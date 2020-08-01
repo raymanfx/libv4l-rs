@@ -47,12 +47,7 @@
 //! ```no_run
 //! use v4l::prelude::*;
 //!
-//! let mut dev = CaptureDevice::new(0)
-//!     .expect("Failed to open device")
-//!     .format(640, 480, b"YUYV")
-//!     .expect("Failed to set format")
-//!     .fps(30)
-//!     .expect("Failed to set frame interval");
+//! let mut dev = CaptureDevice::new(0).expect("Failed to open device");
 //!
 //! let stream =
 //!     MmapStream::with_buffers(&mut dev, 4).expect("Failed to create buffer stream");

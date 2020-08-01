@@ -3,7 +3,7 @@ use std::{io, mem, path::Path};
 
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{capture, control::Control, device, format, fourcc::FourCC, fraction::Fraction};
+use crate::{capture, control::Control, device, format};
 
 /// Linux capture device abstraction
 pub struct Device {
@@ -36,65 +36,6 @@ impl Device {
         }
 
         Ok(Device { fd })
-    }
-
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    /// Builder: set the format with commonly used parameters
-    ///
-    /// # Arguments
-    ///
-    /// * `width` - Width in pixels
-    /// * `height` - Height in pixels
-    /// * `fourcc` - Four character code
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::mem;
-    /// use v4l::capture::Device;
-    ///
-    /// // ignore this, it is necessary to avoid CI failure
-    /// if let Ok(dev) = Device::new(0) {
-    ///     std::mem::drop(dev);
-    ///
-    ///     // this is the real example
-    ///     let dev = Device::new(0).unwrap().format(640, 480, b"RGB3");
-    /// }
-    /// ```
-    pub fn format(mut self, width: u32, height: u32, fourcc: &[u8; 4]) -> io::Result<Self> {
-        let mut fmt = self.get_format()?;
-        fmt.width = width;
-        fmt.height = height;
-        fmt.fourcc = FourCC::new(fourcc);
-        self.set_format(&fmt)?;
-        Ok(self)
-    }
-
-    /// Builder: set frame interval
-    ///
-    /// # Arguments
-    ///
-    /// * `fps` - Frames per second
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::mem;
-    /// use v4l::capture::Device;
-    ///
-    /// // ignore this, it is necessary to avoid CI failure
-    /// if let Ok(dev) = Device::new(0) {
-    ///     std::mem::drop(dev);
-    ///
-    ///     // this is the real example
-    ///     let dev = Device::new(0).unwrap().format(640, 480, b"RGB3").unwrap().fps(30);
-    /// }
-    /// ```
-    pub fn fps(mut self, fps: u32) -> io::Result<Self> {
-        let mut params = self.get_params()?;
-        params.interval = Fraction::new(1, fps);
-        self.set_params(&params)?;
-        Ok(self)
     }
 
     /// Returns a capture device by path
@@ -193,13 +134,13 @@ impl Device {
     /// use v4l::capture::Device;
     ///
     /// if let Ok(dev) = Device::new(0) {
-    ///     let fmt = dev.get_format();
+    ///     let fmt = dev.format();
     ///     if let Ok(fmt) = fmt {
     ///         print!("Active format:\n{}", fmt);
     ///     }
     /// }
     /// ```
-    pub fn get_format(&self) -> io::Result<capture::Format> {
+    pub fn format(&self) -> io::Result<capture::Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -230,7 +171,7 @@ impl Device {
     /// use v4l::capture::Device;
     ///
     /// if let Ok(mut dev) = Device::new(0) {
-    ///     let fmt = dev.get_format();
+    ///     let fmt = dev.format();
     ///     if let Ok(mut fmt) = fmt {
     ///         fmt.width = 640;
     ///         fmt.height = 480;
@@ -256,7 +197,7 @@ impl Device {
             )?;
         }
 
-        self.get_format()
+        self.format()
     }
 
     /// Returns the parameters currently in use
@@ -267,13 +208,13 @@ impl Device {
     /// use v4l::capture::Device;
     ///
     /// if let Ok(dev) = Device::new(0) {
-    ///     let params = dev.get_params();
+    ///     let params = dev.params();
     ///     if let Ok(params) = params {
     ///         print!("Active parameters:\n{}", params);
     ///     }
     /// }
     /// ```
-    pub fn get_params(&self) -> io::Result<capture::Parameters> {
+    pub fn params(&self) -> io::Result<capture::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -300,7 +241,7 @@ impl Device {
     /// use v4l::capture::{Device, Parameters};
     ///
     /// if let Ok(mut dev) = Device::new(0) {
-    ///     let params = dev.get_params();
+    ///     let params = dev.params();
     ///     if let Ok(mut params) = params {
     ///         params = Parameters::with_fps(30);
     ///         print!("Desired parameters:\n{}", params);
@@ -325,7 +266,7 @@ impl Device {
             )?;
         }
 
-        self.get_params()
+        self.params()
     }
 
     /// Returns the control value for an ID
@@ -342,7 +283,7 @@ impl Device {
     /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
     ///
     /// if let Ok(dev) = Device::new(0) {
-    ///     let ctrl = dev.get_control(V4L2_CID_BRIGHTNESS);
+    ///     let ctrl = dev.control(V4L2_CID_BRIGHTNESS);
     ///     if let Ok(val) = ctrl {
     ///         match val {
     ///             Control::Value(val) => { println!("Brightness: {}", val) }
@@ -351,7 +292,7 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn get_control(&self, id: u32) -> io::Result<Control> {
+    pub fn control(&self, id: u32) -> io::Result<Control> {
         unsafe {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;

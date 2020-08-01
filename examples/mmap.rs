@@ -55,8 +55,8 @@ fn main() {
     let buffers = buffers.parse::<u32>().unwrap();
 
     let mut dev = CaptureDevice::with_path(path).expect("Failed to open device");
-    let format = dev.get_format().expect("Failed to get format");
-    let params = dev.get_params().expect("Failed to get parameters");
+    let format = dev.format().expect("Failed to get format");
+    let params = dev.params().expect("Failed to get parameters");
     println!("Active format:\n{}", format);
     println!("Active parameters:\n{}", params);
 

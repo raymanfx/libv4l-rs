@@ -30,7 +30,7 @@ fn main() {
     println!("Using device: {}\n", path);
 
     let dev = CaptureDevice::with_path(path).expect("Failed to open device");
-    let format = dev.get_format().expect("Failed to get format");
+    let format = dev.format().expect("Failed to get format");
     let frameintervals = dev
         .enum_frameintervals(format.fourcc, format.width, format.height)
         .expect("Failed to enumerate frame intervals");

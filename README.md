@@ -38,20 +38,17 @@ Below you can find a quick example usage of this crate. It introduces the basics
 
 ```rust
 use v4l::prelude::*;
+use v4l::FourCC;
 
 fn main() {
     // Create a new capture device with a few extra parameters
-    let mut dev = CaptureDevice::new(0)
-        .expect("Failed to open device")
-        .format(640, 480, b"YUYV")
-        .expect("Failed to set format")
-        .fps(30)
-        .expect("Failed to set frame interval");
+    let mut dev = CaptureDevice::new(0).expect("Failed to open device");
 
     // Let's say we want to explicitly request another format
-    let mut fmt = dev.get_format().expect("Failed to read format");
+    let mut fmt = dev.format().expect("Failed to read format");
     fmt.width = 1280;
     fmt.height = 720;
+    fmt.fourcc = FourCC::new(b"YUYV");
     dev.set_format(&fmt).expect("Failed to write format");
 
     // The actual format chosen by the device driver may differ from what we
