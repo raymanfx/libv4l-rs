@@ -63,10 +63,6 @@ impl<'a> BufferStream for MappedBufferStream<'a> {
     }
 
     fn start(&mut self) -> io::Result<()> {
-        if self.active {
-            return Ok(());
-        }
-
         unsafe {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
@@ -80,10 +76,6 @@ impl<'a> BufferStream for MappedBufferStream<'a> {
     }
 
     fn stop(&mut self) -> io::Result<()> {
-        if !self.active {
-            return Ok(());
-        }
-
         unsafe {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
