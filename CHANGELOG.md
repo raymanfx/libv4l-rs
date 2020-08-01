@@ -5,6 +5,14 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+#### 0.8 (released)
+
+> * New prelude module
+> * Removed the 'get_' prefix on getters
+> * I/O module reorganization
+> * Renamed BufferManagers to Arenas
+> * Use a single Buffer struct for all I/O streams
+
 #### 0.7 (released)
 
 > * Device control get/set support
