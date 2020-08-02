@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
-use std::{fs, io, mem};
+use std::{fs, io, mem, sync::Arc};
 
 use crate::control;
 use crate::v4l2;
@@ -13,11 +13,31 @@ pub use crate::buffer::BufferType as Type;
 
 /// Manage buffers for a device
 pub trait Device {
-    /// Returns the raw fd of the device
-    fn fd(&self) -> std::os::raw::c_int;
+    /// Returns the raw device handle
+    fn handle(&self) -> Arc<Handle>;
 
     /// Type of the device (capture, overlay, output)
     fn typ(&self) -> Type;
+}
+
+/// Device handle for low-level access.
+///
+/// Acquiring a handle facilitates (possibly mutating) interactions with the device.
+pub struct Handle {
+    fd: std::os::raw::c_int,
+}
+
+impl Handle {
+    /// Returns the raw file descriptor
+    pub fn fd(&self) -> std::os::raw::c_int {
+        self.fd
+    }
+}
+
+impl From<std::os::raw::c_int> for Handle {
+    fn from(fd: std::os::raw::c_int) -> Self {
+        Handle { fd }
+    }
 }
 
 /// Query device properties such as supported formats and controls
@@ -59,7 +79,7 @@ impl<T: Device> QueryDevice for T {
         loop {
             let ret = unsafe {
                 v4l2::ioctl(
-                    self.fd(),
+                    self.handle().fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS,
                     &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
                 )
@@ -91,7 +111,7 @@ impl<T: Device> QueryDevice for T {
         loop {
             let ret = unsafe {
                 v4l2::ioctl(
-                    self.fd(),
+                    self.handle().fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES,
                     &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
                 )
@@ -117,7 +137,7 @@ impl<T: Device> QueryDevice for T {
         unsafe {
             let mut v4l2_caps: v4l2_capability = mem::zeroed();
             v4l2::ioctl(
-                self.fd(),
+                self.handle().fd(),
                 v4l2::vidioc::VIDIOC_QUERYCAP,
                 &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -135,7 +155,7 @@ impl<T: Device> QueryDevice for T {
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_COMPOUND;
                 match v4l2::ioctl(
-                    self.fd(),
+                    self.handle().fd(),
                     v4l2::vidioc::VIDIOC_QUERYCTRL,
                     &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
                 ) {
@@ -157,7 +177,7 @@ impl<T: Device> QueryDevice for T {
                             {
                                 v4l2_menu.index = i as u32;
                                 let res = v4l2::ioctl(
-                                    self.fd(),
+                                    self.handle().fd(),
                                     v4l2::vidioc::VIDIOC_QUERYMENU,
                                     &mut v4l2_menu as *mut _ as *mut std::os::raw::c_void,
                                 );

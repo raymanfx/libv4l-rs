@@ -1,5 +1,5 @@
 use std::convert::TryFrom;
-use std::{io, mem, path::Path};
+use std::{io, mem, path::Path, sync::Arc};
 
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -7,8 +7,8 @@ use crate::{capture, control::Control, device, format};
 
 /// Linux capture device abstraction
 pub struct Device {
-    /// Raw OS file descriptor
-    fd: std::os::raw::c_int,
+    /// Raw handle
+    handle: Arc<device::Handle>,
 }
 
 impl Device {
@@ -35,7 +35,9 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device { fd })
+        Ok(Device {
+            handle: Arc::new(device::Handle::from(fd)),
+        })
     }
 
     /// Returns a capture device by path
@@ -59,7 +61,9 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device { fd })
+        Ok(Device {
+            handle: Arc::new(device::Handle::from(fd)),
+        })
     }
 
     /// Returns a vector of valid formats for this device
@@ -96,7 +100,7 @@ impl Device {
 
         unsafe {
             ret = v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_ENUM_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             );
@@ -116,7 +120,7 @@ impl Device {
 
             unsafe {
                 ret = v4l2::ioctl(
-                    self.fd,
+                    self.handle.fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FMT,
                     &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
                 );
@@ -145,7 +149,7 @@ impl Device {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -191,7 +195,7 @@ impl Device {
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_fmt.fmt.pix = (*fmt).into();
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_S_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -219,7 +223,7 @@ impl Device {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -260,7 +264,7 @@ impl Device {
             v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_params.parm.capture = (*params).into();
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_S_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -297,7 +301,7 @@ impl Device {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_CTRL,
                 &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -340,7 +344,7 @@ impl Device {
                 }
             }
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_S_CTRL,
                 &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
             )
@@ -350,12 +354,12 @@ impl Device {
 
 impl Drop for Device {
     fn drop(&mut self) {
-        v4l2::close(self.fd).unwrap();
+        v4l2::close(self.handle.fd()).unwrap();
     }
 }
 
 impl device::Device for Device {
-    /// Returns the raw fd of the device
+    /// Returns the handle of the device
     ///
     /// # Example
     ///
@@ -364,11 +368,11 @@ impl device::Device for Device {
     /// use v4l::device::Device;
     ///
     /// if let Ok(dev) = CaptureDevice::new(0) {
-    ///     print!("Device file descriptor: {}", dev.fd());
+    ///     print!("Device file descriptor: {}", dev.handle().fd());
     /// }
     /// ```
-    fn fd(&self) -> std::os::raw::c_int {
-        self.fd
+    fn handle(&self) -> Arc<device::Handle> {
+        Arc::clone(&self.handle)
     }
 
     fn typ(&self) -> device::Type {
@@ -380,7 +384,7 @@ impl io::Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         unsafe {
             let ret = libc::read(
-                self.fd,
+                self.handle.fd(),
                 buf.as_mut_ptr() as *mut std::os::raw::c_void,
                 buf.len(),
             );

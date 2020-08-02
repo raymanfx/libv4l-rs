@@ -1,7 +1,7 @@
-use std::{io, os};
+use std::{io, sync::Arc};
 
 use crate::buffer::{Arena as ArenaTrait, Buffer, Stream as StreamTrait};
-use crate::device::Device;
+use crate::device;
 use crate::io::userptr::arena::Arena;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -10,7 +10,7 @@ use crate::v4l_sys::*;
 ///
 /// An arena instance is used internally for buffer handling.
 pub struct Stream<'a> {
-    fd: os::raw::c_int,
+    handle: Arc<device::Handle>,
     arena: Arena<'a>,
 
     active: bool,
@@ -34,16 +34,16 @@ impl<'a> Stream<'a> {
     ///     let stream = Stream::new(&dev);
     /// }
     /// ```
-    pub fn new(dev: &'a dyn Device) -> io::Result<Self> {
+    pub fn new(dev: &dyn device::Device) -> io::Result<Self> {
         Stream::with_buffers(dev, 4)
     }
 
-    pub fn with_buffers(dev: &'a dyn Device, count: u32) -> io::Result<Self> {
+    pub fn with_buffers(dev: &dyn device::Device, count: u32) -> io::Result<Self> {
         let mut arena = Arena::new(dev);
         arena.allocate(count)?;
 
         Ok(Stream {
-            fd: dev.fd(),
+            handle: dev.handle(),
             arena,
             active: false,
         })
@@ -67,7 +67,7 @@ impl<'a> StreamTrait for Stream<'a> {
         unsafe {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_STREAMON,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -80,7 +80,7 @@ impl<'a> StreamTrait for Stream<'a> {
         unsafe {
             let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_STREAMOFF,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;

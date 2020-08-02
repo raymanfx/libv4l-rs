@@ -1,15 +1,15 @@
-use std::{io, marker, mem, os, slice};
+use std::{io, marker, mem, slice, sync::Arc};
 
 use crate::buffer::{Arena as ArenaTrait, Buffer, Metadata};
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{device::Device, memory::Memory};
+use crate::{device, memory::Memory};
 
 /// Manage user allocated buffers
 ///
 /// All buffers are released in the Drop impl.
 pub struct Arena<'a> {
-    fd: os::raw::c_int,
+    handle: Arc<device::Handle>,
 
     bufs: Vec<Vec<u8>>,
     buf_index: usize,
@@ -38,9 +38,9 @@ impl<'a> Arena<'a> {
     ///     let mgr = Arena::new(&dev);
     /// }
     /// ```
-    pub fn new(dev: &'a dyn Device) -> Self {
+    pub fn new(dev: &dyn device::Device) -> Self {
         Arena {
-            fd: dev.fd(),
+            handle: dev.handle(),
             bufs: Vec::new(),
             buf_index: 0,
             phantom: marker::PhantomData,
@@ -64,7 +64,7 @@ impl<'a> ArenaTrait for Arena<'a> {
             v4l2_fmt = mem::zeroed();
             v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -84,7 +84,7 @@ impl<'a> ArenaTrait for Arena<'a> {
             v4l2_reqbufs.count = count;
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -107,7 +107,7 @@ impl<'a> ArenaTrait for Arena<'a> {
                 v4l2_buf.m.userptr = buf.as_ptr() as u64;
                 v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
                 v4l2::ioctl(
-                    self.fd,
+                    self.handle.fd(),
                     v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
@@ -126,7 +126,7 @@ impl<'a> ArenaTrait for Arena<'a> {
             v4l2_reqbufs.count = 0;
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )
@@ -148,7 +148,7 @@ impl<'a> ArenaTrait for Arena<'a> {
             v4l2_buf.m.userptr = buf.as_ptr() as u64;
             v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -173,7 +173,7 @@ impl<'a> ArenaTrait for Arena<'a> {
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
-                self.fd,
+                self.handle.fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
