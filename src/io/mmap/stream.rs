@@ -1,9 +1,10 @@
-use std::{io, sync::Arc};
+use std::{io, mem, sync::Arc};
 
-use crate::buffer::Buffer;
 use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait};
+use crate::buffer::{Buffer, Metadata};
 use crate::device;
 use crate::io::mmap::arena::Arena;
+use crate::memory::Memory;
 use crate::v4l2;
 use crate::v4l_sys::*;
 
@@ -13,8 +14,10 @@ use crate::v4l_sys::*;
 pub struct Stream {
     handle: Arc<device::Handle>,
     arena: Arena,
+    arena_index: usize,
 
     active: bool,
+    queued: bool,
 }
 
 impl Stream {
@@ -46,7 +49,10 @@ impl Stream {
         Ok(Stream {
             handle: dev.handle(),
             arena,
+            arena_index: 0,
             active: false,
+            // the arena queues up all buffers once during allocation
+            queued: true,
         })
     }
 }
@@ -58,7 +64,7 @@ impl Drop for Stream {
 }
 
 impl<'a> StreamTrait<'a> for Stream {
-    type Buffer = Buffer<'a>;
+    type Item = Buffer<'a>;
 
     fn start(&mut self) -> io::Result<()> {
         unsafe {
@@ -87,21 +93,69 @@ impl<'a> StreamTrait<'a> for Stream {
     }
 
     fn queue(&mut self) -> io::Result<()> {
-        self.arena.queue()
+        if self.queued {
+            return Ok(());
+        }
+
+        let mut v4l2_buf: v4l2_buffer;
+        unsafe {
+            v4l2_buf = mem::zeroed();
+            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_buf.memory = Memory::Mmap as u32;
+            v4l2_buf.index = self.arena_index as u32;
+            v4l2::ioctl(
+                self.handle.fd(),
+                v4l2::vidioc::VIDIOC_QBUF,
+                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        self.arena_index += 1;
+        if self.arena_index == self.arena.buffers().len() {
+            self.arena_index = 0;
+        }
+
+        Ok(())
     }
 
-    fn dequeue(&mut self) -> io::Result<Self::Buffer> {
-        self.arena.dequeue()
+    fn dequeue(&mut self) -> io::Result<Self::Item> {
+        let mut v4l2_buf: v4l2_buffer;
+        unsafe {
+            v4l2_buf = mem::zeroed();
+            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_buf.memory = Memory::Mmap as u32;
+            v4l2::ioctl(
+                self.handle.fd(),
+                v4l2::vidioc::VIDIOC_DQBUF,
+                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+        self.queued = false;
+
+        // The Rust compiler thinks we're returning a value (view) which references data owned by
+        // the local function. This is actually not the case since the data slice is memory mapped
+        // and thus the actual backing memory resides somewhere else (kernel, on-chip, etc).
+
+        let view = self.arena.buffers()[v4l2_buf.index as usize];
+        let view = unsafe { mem::transmute(view) };
+        let buf = Buffer::new(
+            view,
+            Metadata::new(
+                v4l2_buf.sequence,
+                v4l2_buf.timestamp.into(),
+                v4l2_buf.flags.into(),
+            ),
+        );
+
+        Ok(buf)
     }
 
-    fn next(&mut self) -> io::Result<Self::Buffer> {
+    fn next(&mut self) -> io::Result<Self::Item> {
         if !self.active {
             self.start()?;
         }
 
-        let buf = self.dequeue()?;
         self.queue()?;
-
-        Ok(buf)
+        self.dequeue()
     }
 }

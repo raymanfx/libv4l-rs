@@ -1,6 +1,6 @@
 use std::{io, mem, os, ptr, slice, sync::Arc};
 
-use crate::buffer::{Arena as ArenaTrait, Buffer, Metadata};
+use crate::buffer::Arena as ArenaTrait;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::{device, memory::Memory};
@@ -11,9 +11,7 @@ use crate::{device, memory::Memory};
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub struct Arena {
     handle: Arc<device::Handle>,
-
     bufs: Vec<(*mut os::raw::c_void, usize)>,
-    buf_index: usize,
 }
 
 impl Arena {
@@ -41,7 +39,15 @@ impl Arena {
         Arena {
             handle: dev.handle(),
             bufs: Vec::new(),
-            buf_index: 0,
+        }
+    }
+
+    pub(crate) fn buffers(&self) -> Vec<&[u8]> {
+        unsafe {
+            self.bufs
+                .iter()
+                .map(|(ptr, len)| slice::from_raw_parts::<u8>(*ptr as *mut u8, *len))
+                .collect()
         }
     }
 }
@@ -52,9 +58,7 @@ impl Drop for Arena {
     }
 }
 
-impl<'a> ArenaTrait<'a> for Arena {
-    type Buffer = Buffer<'a>;
-
+impl ArenaTrait for Arena {
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
@@ -127,65 +131,5 @@ impl<'a> ArenaTrait<'a> for Arena {
 
         self.bufs.clear();
         Ok(())
-    }
-
-    fn queue(&mut self) -> io::Result<()> {
-        if self.bufs.is_empty() {
-            return Err(io::Error::new(io::ErrorKind::Other, "no buffers allocated"));
-        }
-
-        let mut v4l2_buf: v4l2_buffer;
-        unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_buf.memory = Memory::Mmap as u32;
-            v4l2_buf.index = self.buf_index as u32;
-            v4l2::ioctl(
-                self.handle.fd(),
-                v4l2::vidioc::VIDIOC_QBUF,
-                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-            )?;
-        }
-
-        self.buf_index += 1;
-        if self.buf_index == self.bufs.len() {
-            self.buf_index = 0;
-        }
-
-        Ok(())
-    }
-
-    fn dequeue(&mut self) -> io::Result<Self::Buffer> {
-        if self.bufs.is_empty() {
-            return Err(io::Error::new(io::ErrorKind::Other, "no buffers allocated"));
-        }
-
-        let mut v4l2_buf: v4l2_buffer;
-        unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_buf.memory = Memory::Mmap as u32;
-            v4l2::ioctl(
-                self.handle.fd(),
-                v4l2::vidioc::VIDIOC_DQBUF,
-                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-            )?;
-        }
-
-        let ptr;
-        let view;
-        unsafe {
-            ptr = self.bufs[v4l2_buf.index as usize].0 as *mut u8;
-            view = slice::from_raw_parts::<u8>(ptr, v4l2_buf.bytesused as usize);
-        }
-
-        Ok(Buffer::new(
-            view,
-            Metadata::new(
-                v4l2_buf.sequence,
-                v4l2_buf.timestamp.into(),
-                v4l2_buf.flags.into(),
-            ),
-        ))
     }
 }

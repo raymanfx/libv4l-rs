@@ -184,10 +184,7 @@ impl<'a> ops::Deref for Buffer<'a> {
 }
 
 /// Manage buffers for a device
-pub trait Arena<'a> {
-    /// Type of the buffers (DMA, mmap, userptr)
-    type Buffer;
-
+pub trait Arena {
     /// Allocate buffers
     ///
     /// Returns the number of buffers as reported by the driver.
@@ -199,20 +196,11 @@ pub trait Arena<'a> {
 
     /// Release any allocated buffers
     fn release(&mut self) -> io::Result<()>;
-
-    /// Queue a new buffer on the device
-    ///
-    /// Queueing usually causes the camera hardware to take a picture.
-    /// Dequeuing then transfers it to application visible memory.
-    fn queue(&mut self) -> io::Result<()>;
-
-    /// Dequeue a buffer and return it to the application
-    fn dequeue(&mut self) -> io::Result<Self::Buffer>;
 }
 
 /// Streaming I/O
 pub trait Stream<'a> {
-    type Buffer;
+    type Item;
 
     /// Start streaming, takes exclusive ownership of a device
     fn start(&mut self) -> io::Result<()>;
@@ -224,9 +212,9 @@ pub trait Stream<'a> {
     fn queue(&mut self) -> io::Result<()>;
 
     /// Read a queued frame back to memory
-    fn dequeue(&mut self) -> io::Result<Self::Buffer>;
+    fn dequeue(&mut self) -> io::Result<Self::Item>;
 
     /// Fetch a new frame by first queueing and then dequeueing.
     /// First time initialization is performed if necessary.
-    fn next(&mut self) -> io::Result<Self::Buffer>;
+    fn next(&mut self) -> io::Result<Self::Item>;
 }

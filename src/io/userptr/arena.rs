@@ -1,6 +1,6 @@
-use std::{io, mem, slice, sync::Arc};
+use std::{io, mem, sync::Arc};
 
-use crate::buffer::{Arena as ArenaTrait, Buffer, Metadata};
+use crate::buffer::Arena as ArenaTrait;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::{device, memory::Memory};
@@ -10,9 +10,7 @@ use crate::{device, memory::Memory};
 /// All buffers are released in the Drop impl.
 pub struct Arena {
     handle: Arc<device::Handle>,
-
     bufs: Vec<Vec<u8>>,
-    buf_index: usize,
 }
 
 impl Arena {
@@ -40,8 +38,11 @@ impl Arena {
         Arena {
             handle: dev.handle(),
             bufs: Vec::new(),
-            buf_index: 0,
         }
+    }
+
+    pub(crate) fn buffers(&self) -> Vec<&[u8]> {
+        self.bufs.iter().map(|buf| &buf[..]).collect()
     }
 }
 
@@ -51,9 +52,7 @@ impl Drop for Arena {
     }
 }
 
-impl<'a> ArenaTrait<'a> for Arena {
-    type Buffer = Buffer<'a>;
-
+impl ArenaTrait for Arena {
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
         // we need to get the maximum buffer size from the format first
         let mut v4l2_fmt: v4l2_format;
@@ -128,92 +127,5 @@ impl<'a> ArenaTrait<'a> for Arena {
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )
         }
-    }
-
-    fn queue(&mut self) -> io::Result<()> {
-        if self.bufs.is_empty() {
-            return Err(io::Error::new(io::ErrorKind::Other, "no buffers allocated"));
-        }
-
-        let mut v4l2_buf: v4l2_buffer;
-        let buf = &mut self.bufs[self.buf_index as usize];
-        unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_buf.memory = Memory::UserPtr as u32;
-            v4l2_buf.index = self.buf_index as u32;
-            v4l2_buf.m.userptr = buf.as_ptr() as u64;
-            v4l2_buf.length = buf.len() as u32;
-            v4l2::ioctl(
-                self.handle.fd(),
-                v4l2::vidioc::VIDIOC_QBUF,
-                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-            )?;
-        }
-
-        self.buf_index += 1;
-        if self.buf_index == self.bufs.len() {
-            self.buf_index = 0;
-        }
-
-        Ok(())
-    }
-
-    fn dequeue(&mut self) -> io::Result<Self::Buffer> {
-        if self.bufs.is_empty() {
-            return Err(io::Error::new(io::ErrorKind::Other, "no buffers allocated"));
-        }
-
-        let mut v4l2_buf: v4l2_buffer;
-        unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_buf.memory = Memory::UserPtr as u32;
-            v4l2::ioctl(
-                self.handle.fd(),
-                v4l2::vidioc::VIDIOC_DQBUF,
-                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-            )?;
-        }
-
-        let mut index: Option<usize> = None;
-        for i in 0..self.bufs.len() {
-            let buf = &self.bufs[i];
-            unsafe {
-                if (buf.as_ptr()) == (v4l2_buf.m.userptr as *const u8) {
-                    index = Some(i);
-                    break;
-                }
-            }
-        }
-
-        if index.is_none() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "failed to find buffer",
-            ));
-        }
-
-        // The borrow checker prevents us from handing out slices to the internal buffer pool
-        // (self.bufs), so we work around this limitation by passing slices to the v4l2_buf
-        // instance instead, which holds a pointer itself.
-        // That pointer just points back to one of the buffers we allocated ourselves (self.bufs),
-        // which we ensured by checking for the index earlier.
-
-        let ptr;
-        let view;
-        unsafe {
-            ptr = v4l2_buf.m.userptr as *mut u8;
-            view = slice::from_raw_parts::<u8>(ptr, v4l2_buf.bytesused as usize);
-        }
-
-        Ok(Buffer::new(
-            view,
-            Metadata::new(
-                v4l2_buf.sequence,
-                v4l2_buf.timestamp.into(),
-                v4l2_buf.flags.into(),
-            ),
-        ))
     }
 }
