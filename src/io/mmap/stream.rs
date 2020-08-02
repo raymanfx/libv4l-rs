@@ -1,6 +1,6 @@
 use std::{io, mem, sync::Arc};
 
-use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait};
+use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait, StreamItem};
 use crate::buffer::{Buffer, Metadata};
 use crate::device;
 use crate::io::mmap::arena::Arena;
@@ -118,7 +118,7 @@ impl<'a> StreamTrait<'a> for Stream {
         Ok(())
     }
 
-    fn dequeue(&mut self) -> io::Result<Self::Item> {
+    fn dequeue<'b>(&'b mut self) -> io::Result<StreamItem<'b, Self::Item>> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -146,11 +146,10 @@ impl<'a> StreamTrait<'a> for Stream {
                 v4l2_buf.flags.into(),
             ),
         );
-
-        Ok(buf)
+        Ok(StreamItem::new(buf))
     }
 
-    fn next(&mut self) -> io::Result<Self::Item> {
+    fn next(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>> {
         if !self.active {
             self.start()?;
         }

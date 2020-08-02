@@ -1,6 +1,6 @@
-use std::{io, mem, slice, sync::Arc};
+use std::{io, mem, sync::Arc};
 
-use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait};
+use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait, StreamItem};
 use crate::buffer::{Buffer, Metadata};
 use crate::device;
 use crate::io::userptr::arena::Arena;
@@ -121,7 +121,7 @@ impl<'a> StreamTrait<'a> for Stream {
         Ok(())
     }
 
-    fn dequeue(&mut self) -> io::Result<Self::Item> {
+    fn dequeue(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -135,51 +135,33 @@ impl<'a> StreamTrait<'a> for Stream {
         }
         self.queued = false;
 
-        let buffers = self.arena.buffers();
-        let mut index: Option<usize> = None;
-        for i in 0..buffers.len() {
-            let buf = &buffers[i];
+        let mut buffer = None;
+        for buf in self.arena.buffers() {
             unsafe {
                 if (buf.as_ptr()) == (v4l2_buf.m.userptr as *const u8) {
-                    index = Some(i);
+                    buffer = Some(buf);
                     break;
                 }
             }
         }
 
-        if index.is_none() {
-            return Err(io::Error::new(
+        match buffer {
+            Some(buf) => Ok(StreamItem::new(Buffer::new(
+                buf,
+                Metadata::new(
+                    v4l2_buf.sequence,
+                    v4l2_buf.timestamp.into(),
+                    v4l2_buf.flags.into(),
+                ),
+            ))),
+            None => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "failed to find buffer",
-            ));
+            )),
         }
-
-        // The borrow checker prevents us from handing out slices to the internal buffer pool
-        // (self.bufs), so we work around this limitation by passing slices to the v4l2_buf
-        // instance instead, which holds a pointer itself.
-        // That pointer just points back to one of the buffers we allocated ourselves (self.bufs),
-        // which we ensured by checking for the index earlier.
-
-        let ptr;
-        let view;
-        unsafe {
-            ptr = v4l2_buf.m.userptr as *mut u8;
-            view = slice::from_raw_parts::<u8>(ptr, v4l2_buf.bytesused as usize);
-        }
-
-        let buf = Buffer::new(
-            view,
-            Metadata::new(
-                v4l2_buf.sequence,
-                v4l2_buf.timestamp.into(),
-                v4l2_buf.flags.into(),
-            ),
-        );
-
-        Ok(buf)
     }
 
-    fn next(&mut self) -> io::Result<Self::Item> {
+    fn next(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>> {
         if !self.active {
             self.start()?;
         }
