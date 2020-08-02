@@ -1,4 +1,4 @@
-use std::{io, marker, mem, os, ptr, slice, sync::Arc};
+use std::{io, mem, os, ptr, slice, sync::Arc};
 
 use crate::buffer::{Arena as ArenaTrait, Buffer, Metadata};
 use crate::v4l2;
@@ -9,16 +9,14 @@ use crate::{device, memory::Memory};
 ///
 /// All buffers are unmapped in the Drop impl.
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
-pub struct Arena<'a> {
+pub struct Arena {
     handle: Arc<device::Handle>,
 
     bufs: Vec<(*mut os::raw::c_void, usize)>,
     buf_index: usize,
-
-    phantom: marker::PhantomData<&'a ()>,
 }
 
-impl<'a> Arena<'a> {
+impl Arena {
     /// Returns a new buffer manager instance
     ///
     /// You usually do not need to use this directly.
@@ -44,18 +42,17 @@ impl<'a> Arena<'a> {
             handle: dev.handle(),
             bufs: Vec::new(),
             buf_index: 0,
-            phantom: marker::PhantomData,
         }
     }
 }
 
-impl<'a> Drop for Arena<'a> {
+impl Drop for Arena {
     fn drop(&mut self) {
         self.release().unwrap();
     }
 }
 
-impl<'a> ArenaTrait for Arena<'a> {
+impl<'a> ArenaTrait<'a> for Arena {
     type Buffer = Buffer<'a>;
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {

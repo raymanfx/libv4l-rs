@@ -184,7 +184,7 @@ impl<'a> ops::Deref for Buffer<'a> {
 }
 
 /// Manage buffers for a device
-pub trait Arena {
+pub trait Arena<'a> {
     /// Type of the buffers (DMA, mmap, userptr)
     type Buffer;
 
@@ -211,11 +211,8 @@ pub trait Arena {
 }
 
 /// Streaming I/O
-pub trait Stream: Iterator {
+pub trait Stream<'a> {
     type Buffer;
-
-    /// Whether the stream is currently active
-    fn active(&self) -> bool;
 
     /// Start streaming, takes exclusive ownership of a device
     fn start(&mut self) -> io::Result<()>;
@@ -228,41 +225,8 @@ pub trait Stream: Iterator {
 
     /// Read a queued frame back to memory
     fn dequeue(&mut self) -> io::Result<Self::Buffer>;
-}
 
-/// Iterate through a (possibly endless) stream of buffers
-///
-/// This works more like a generator rather than a classic iterator because frames are captured as
-/// they are requested (on the fly). Once an error condition occurs, None is returned so the caller
-/// can know about a broken stream.
-pub struct StreamIterator<'a, S: Stream> {
-    /// Mutable stream reference representing exclusive ownership
-    stream: &'a mut S,
-}
-
-impl<'a, S: Stream> StreamIterator<'a, S> {
-    pub fn new(stream: &'a mut S) -> Self {
-        StreamIterator { stream }
-    }
-}
-
-impl<'a, S: Stream> Iterator for StreamIterator<'a, S> {
-    type Item = S::Buffer;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if !self.stream.active() && self.stream.start().is_err() {
-            return None;
-        }
-
-        let buf = self.stream.dequeue();
-        if buf.is_err() {
-            return None;
-        }
-
-        if self.stream.queue().is_err() {
-            return None;
-        }
-
-        Some(buf.unwrap())
-    }
+    /// Fetch a new frame by first queueing and then dequeueing.
+    /// First time initialization is performed if necessary.
+    fn next(&mut self) -> io::Result<Self::Buffer>;
 }

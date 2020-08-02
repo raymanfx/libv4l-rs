@@ -69,14 +69,15 @@ fn main() {
 
     // Create the stream, which will internally 'allocate' (as in map) the
     // number of requested buffers for us.
-    let stream = MmapStream::with_buffers(&mut dev, 4)
+    let mut stream = MmapStream::with_buffers(&mut dev, 4)
         .expect("Failed to create buffer stream");
 
     // At this point, the stream is ready and all buffers are setup.
     // We can now read frames (represented as buffers) by iterating through
     // the stream. Once an error condition occurs, the iterator will return
     // None.
-    for frame in stream {
+    loop {
+        let frame = stream.next().unwrap();
         println!(
             "Buffer size: {}, seq: {}, timestamp: {}",
             frame.len(),

@@ -10,14 +10,14 @@ use crate::v4l_sys::*;
 /// Stream of mapped buffers
 ///
 /// An arena instance is used internally for buffer handling.
-pub struct Stream<'a> {
+pub struct Stream {
     handle: Arc<device::Handle>,
-    arena: Arena<'a>,
+    arena: Arena,
 
     active: bool,
 }
 
-impl<'a> Stream<'a> {
+impl Stream {
     /// Returns a stream for frame capturing
     ///
     /// # Arguments
@@ -51,18 +51,14 @@ impl<'a> Stream<'a> {
     }
 }
 
-impl<'a> Drop for Stream<'a> {
+impl Drop for Stream {
     fn drop(&mut self) {
         self.stop().unwrap();
     }
 }
 
-impl<'a> StreamTrait for Stream<'a> {
+impl<'a> StreamTrait<'a> for Stream {
     type Buffer = Buffer<'a>;
-
-    fn active(&self) -> bool {
-        self.active
-    }
 
     fn start(&mut self) -> io::Result<()> {
         unsafe {
@@ -97,26 +93,15 @@ impl<'a> StreamTrait for Stream<'a> {
     fn dequeue(&mut self) -> io::Result<Self::Buffer> {
         self.arena.dequeue()
     }
-}
 
-impl<'a> Iterator for Stream<'a> {
-    type Item = Buffer<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if !self.active && self.start().is_err() {
-            return None;
+    fn next(&mut self) -> io::Result<Self::Buffer> {
+        if !self.active {
+            self.start()?;
         }
 
-        let buf = self.dequeue();
-        if buf.is_err() {
-            return None;
-        }
+        let buf = self.dequeue()?;
+        self.queue()?;
 
-        let res = self.queue();
-        if res.is_err() {
-            return None;
-        }
-
-        Some(buf.unwrap())
+        Ok(buf)
     }
 }

@@ -49,10 +49,11 @@
 //!
 //! let mut dev = CaptureDevice::new(0).expect("Failed to open device");
 //!
-//! let stream =
+//! let mut stream =
 //!     MmapStream::with_buffers(&mut dev, 4).expect("Failed to create buffer stream");
 //!
-//! for frame in stream {
+//! loop {
+//!     let frame = stream.next().unwrap();
 //!     println!(
 //!         "Buffer size: {}, seq: {}, timestamp: {}",
 //!        frame.len(),
