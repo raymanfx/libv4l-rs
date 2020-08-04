@@ -1,6 +1,6 @@
 use std::{io, mem, sync::Arc};
 
-use crate::buffer::Arena as ArenaTrait;
+use crate::io::arena::Arena as ArenaTrait;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::{device, memory::Memory};
@@ -22,18 +22,6 @@ impl Arena {
     /// # Arguments
     ///
     /// * `dev` - Capture device ref to get its file descriptor
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::capture::Device;
-    /// use v4l::io::userptr::Arena;
-    ///
-    /// let dev = Device::new(0);
-    /// if let Ok(dev) = dev {
-    ///     let mgr = Arena::new(&dev);
-    /// }
-    /// ```
     pub fn new(dev: &dyn device::Device) -> Self {
         Arena {
             handle: dev.handle(),

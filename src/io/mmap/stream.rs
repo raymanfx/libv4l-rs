@@ -1,8 +1,9 @@
 use std::{io, mem, sync::Arc};
 
-use crate::buffer::{Arena as ArenaTrait, Stream as StreamTrait, StreamItem};
 use crate::buffer::{Buffer, Metadata};
+use crate::buffer::{Stream as StreamTrait, StreamItem};
 use crate::device;
+use crate::io::arena::Arena as ArenaTrait;
 use crate::io::mmap::arena::Arena;
 use crate::memory::Memory;
 use crate::v4l2;

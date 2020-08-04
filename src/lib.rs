@@ -97,7 +97,7 @@ pub use {
 pub mod prelude {
     pub use crate::io::{mmap::Stream as MmapStream, userptr::Stream as UserptrStream};
     pub use crate::{
-        buffer::{Arena, Buffer, Stream},
+        buffer::{Buffer, Stream},
         capture::Device as CaptureDevice,
         device::{Device, QueryDevice},
     };

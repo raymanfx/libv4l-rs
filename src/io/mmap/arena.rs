@@ -1,6 +1,6 @@
 use std::{io, mem, ptr, slice, sync::Arc};
 
-use crate::buffer::Arena as ArenaTrait;
+use crate::io::arena::Arena as ArenaTrait;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::{device, memory::Memory};
@@ -19,22 +19,6 @@ impl<'a> Arena<'a> {
     ///
     /// You usually do not need to use this directly.
     /// A MappedBufferStream creates its own manager instance by default.
-    ///
-    /// # Arguments
-    ///
-    /// * `dev` - Capture device ref to get its file descriptor
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::capture::Device;
-    /// use v4l::io::mmap::Arena;
-    ///
-    /// let dev = Device::new(0);
-    /// if let Ok(dev) = dev {
-    ///     let mgr = Arena::new(&dev);
-    /// }
-    /// ```
     pub fn new(dev: &dyn device::Device) -> Self {
         Arena {
             handle: dev.handle(),
