@@ -40,10 +40,6 @@ impl Arena {
             bufs: Vec::new(),
         }
     }
-
-    pub(crate) fn buffers(&self) -> Vec<&[u8]> {
-        self.bufs.iter().map(|buf| &buf[..]).collect()
-    }
 }
 
 impl Drop for Arena {
@@ -53,6 +49,8 @@ impl Drop for Arena {
 }
 
 impl ArenaTrait for Arena {
+    type Buffer = [u8];
+
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
         // we need to get the maximum buffer size from the format first
         let mut v4l2_fmt: v4l2_format;
@@ -127,5 +125,21 @@ impl ArenaTrait for Arena {
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )
         }
+    }
+
+    fn buffers(&self) -> Vec<&Self::Buffer> {
+        self.bufs.iter().map(|buf| &buf[..]).collect()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Buffer> {
+        if self.bufs.len() > index {
+            Some(&self.bufs[index])
+        } else {
+            None
+        }
+    }
+
+    fn get_unchecked(&self, index: usize) -> &Self::Buffer {
+        &self.bufs[index]
     }
 }

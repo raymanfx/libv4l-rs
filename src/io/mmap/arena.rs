@@ -1,4 +1,4 @@
-use std::{io, mem, os, ptr, slice, sync::Arc};
+use std::{io, mem, ptr, slice, sync::Arc};
 
 use crate::buffer::Arena as ArenaTrait;
 use crate::v4l2;
@@ -9,12 +9,12 @@ use crate::{device, memory::Memory};
 ///
 /// All buffers are unmapped in the Drop impl.
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
-pub struct Arena {
+pub struct Arena<'a> {
     handle: Arc<device::Handle>,
-    bufs: Vec<(*mut os::raw::c_void, usize)>,
+    bufs: Vec<&'a [u8]>,
 }
 
-impl Arena {
+impl<'a> Arena<'a> {
     /// Returns a new buffer manager instance
     ///
     /// You usually do not need to use this directly.
@@ -41,24 +41,17 @@ impl Arena {
             bufs: Vec::new(),
         }
     }
-
-    pub(crate) fn buffers(&self) -> Vec<&[u8]> {
-        unsafe {
-            self.bufs
-                .iter()
-                .map(|(ptr, len)| slice::from_raw_parts::<u8>(*ptr as *mut u8, *len))
-                .collect()
-        }
-    }
 }
 
-impl Drop for Arena {
+impl<'a> Drop for Arena<'a> {
     fn drop(&mut self) {
         self.release().unwrap();
     }
 }
 
-impl ArenaTrait for Arena {
+impl<'a> ArenaTrait for Arena<'a> {
+    type Buffer = [u8];
+
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
@@ -101,7 +94,8 @@ impl ArenaTrait for Arena {
                     v4l2_buf.m.offset as i64,
                 )?;
 
-                self.bufs.push((ptr, v4l2_buf.length as usize));
+                let slice = slice::from_raw_parts::<u8>(ptr as *mut u8, v4l2_buf.length as usize);
+                self.bufs.push(slice);
             }
         }
 
@@ -111,7 +105,7 @@ impl ArenaTrait for Arena {
     fn release(&mut self) -> io::Result<()> {
         for buf in &self.bufs {
             unsafe {
-                v4l2::munmap(buf.0, buf.1)?;
+                v4l2::munmap(buf.as_ptr() as *mut core::ffi::c_void, buf.len())?;
             }
         }
 
@@ -131,5 +125,21 @@ impl ArenaTrait for Arena {
 
         self.bufs.clear();
         Ok(())
+    }
+
+    fn buffers(&self) -> Vec<&Self::Buffer> {
+        self.bufs.iter().copied().collect()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Buffer> {
+        if self.bufs.len() > index {
+            Some(&self.bufs[index])
+        } else {
+            None
+        }
+    }
+
+    fn get_unchecked(&self, index: usize) -> &Self::Buffer {
+        &self.bufs[index]
     }
 }

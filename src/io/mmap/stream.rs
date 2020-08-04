@@ -11,16 +11,17 @@ use crate::v4l_sys::*;
 /// Stream of mapped buffers
 ///
 /// An arena instance is used internally for buffer handling.
-pub struct Stream {
+pub struct Stream<'a> {
     handle: Arc<device::Handle>,
-    arena: Arena,
+    arena: Arena<'a>,
     arena_index: usize,
+    arena_len: u32,
 
     active: bool,
     queued: bool,
 }
 
-impl Stream {
+impl<'a> Stream<'a> {
     /// Returns a stream for frame capturing
     ///
     /// # Arguments
@@ -50,6 +51,7 @@ impl Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
+            arena_len: count,
             active: false,
             // the arena queues up all buffers once during allocation
             queued: true,
@@ -57,14 +59,14 @@ impl Stream {
     }
 }
 
-impl Drop for Stream {
+impl<'a> Drop for Stream<'a> {
     fn drop(&mut self) {
         self.stop().unwrap();
     }
 }
 
-impl<'a> StreamTrait<'a> for Stream {
-    type Item = Buffer<'a>;
+impl<'a, 'b> StreamTrait<'b> for Stream<'a> {
+    type Item = Buffer<'b>;
 
     fn start(&mut self) -> io::Result<()> {
         unsafe {
@@ -110,15 +112,12 @@ impl<'a> StreamTrait<'a> for Stream {
             )?;
         }
 
-        self.arena_index += 1;
-        if self.arena_index == self.arena.buffers().len() {
-            self.arena_index = 0;
-        }
+        self.arena_index = (self.arena_index + 1) % self.arena_len as usize;
 
         Ok(())
     }
 
-    fn dequeue<'b>(&'b mut self) -> io::Result<StreamItem<'b, Self::Item>> {
+    fn dequeue(&'b mut self) -> io::Result<StreamItem<'b, Self::Item>> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -132,12 +131,7 @@ impl<'a> StreamTrait<'a> for Stream {
         }
         self.queued = false;
 
-        // The Rust compiler thinks we're returning a value (view) which references data owned by
-        // the local function. This is actually not the case since the data slice is memory mapped
-        // and thus the actual backing memory resides somewhere else (kernel, on-chip, etc).
-
-        let view = self.arena.buffers()[v4l2_buf.index as usize];
-        let view = unsafe { mem::transmute(view) };
+        let view = self.arena.get_unchecked(v4l2_buf.index as usize);
         let buf = Buffer::new(
             view,
             Metadata::new(
@@ -149,7 +143,7 @@ impl<'a> StreamTrait<'a> for Stream {
         Ok(StreamItem::new(buf))
     }
 
-    fn next(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>> {
+    fn next(&'b mut self) -> io::Result<StreamItem<'b, Self::Item>> {
         if !self.active {
             self.start()?;
         }

@@ -15,6 +15,7 @@ pub struct Stream {
     handle: Arc<device::Handle>,
     arena: Arena,
     arena_index: usize,
+    arena_len: u32,
 
     active: bool,
     queued: bool,
@@ -50,6 +51,7 @@ impl Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
+            arena_len: count,
             active: false,
             // the arena queues up all buffers once during allocation
             queued: true,
@@ -98,7 +100,7 @@ impl<'a> StreamTrait<'a> for Stream {
         }
 
         let mut v4l2_buf: v4l2_buffer;
-        let buf = &mut self.arena.buffers()[self.arena_index as usize];
+        let buf = &mut self.arena.get_unchecked(self.arena_index as usize);
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -113,10 +115,7 @@ impl<'a> StreamTrait<'a> for Stream {
             )?;
         }
 
-        self.arena_index += 1;
-        if self.arena_index == self.arena.buffers().len() {
-            self.arena_index = 0;
-        }
+        self.arena_index = (self.arena_index + 1) % self.arena_len as usize;
 
         Ok(())
     }
