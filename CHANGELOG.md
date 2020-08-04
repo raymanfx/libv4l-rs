@@ -5,6 +5,15 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+#### 0.9 (released)
+
+> * New Handle type for passing around device handles
+>   * You can now stream buffers while changing device controls at the same time! Handles are
+>     thread safe (Arc) by default.
+> * New StreamItem type introduced to better model stream semantics
+>   * An item only lives up to the point in time where you query the next item from the stream.
+> * Removed buffer arenas from public API
+
 #### 0.8 (released)
 
 > * New prelude module
