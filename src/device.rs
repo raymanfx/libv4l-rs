@@ -34,6 +34,12 @@ impl Handle {
     }
 }
 
+impl Drop for Handle {
+    fn drop(&mut self) {
+        v4l2::close(self.fd).unwrap();
+    }
+}
+
 impl From<std::os::raw::c_int> for Handle {
     fn from(fd: std::os::raw::c_int) -> Self {
         Handle { fd }

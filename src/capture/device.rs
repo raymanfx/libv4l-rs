@@ -352,12 +352,6 @@ impl Device {
     }
 }
 
-impl Drop for Device {
-    fn drop(&mut self) {
-        v4l2::close(self.handle.fd()).unwrap();
-    }
-}
-
 impl device::Device for Device {
     /// Returns the handle of the device
     ///
