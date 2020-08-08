@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, str};
+use std::{fmt, ffi::CStr};
 
 use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
@@ -59,10 +59,9 @@ impl From<v4l2_fmtdesc> for Description {
             index: desc.index,
             typ: desc.type_,
             flags: Flags::from(desc.flags),
-            description: str::from_utf8(&desc.description)
-                .unwrap()
-                .trim_matches(char::from(0))
-                .to_string(),
+            description: unsafe { CStr::from_ptr(desc.description.as_ptr() as *const _) }
+                .to_string_lossy()
+                .into_owned(),
             fourcc: FourCC::from(desc.pixelformat),
         }
     }
