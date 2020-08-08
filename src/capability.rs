@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, str};
+use std::{fmt, ffi::CStr};
 
 use crate::v4l_sys::*;
 
@@ -81,18 +81,15 @@ pub struct Capabilities {
 impl From<v4l2_capability> for Capabilities {
     fn from(cap: v4l2_capability) -> Self {
         let mut caps = Capabilities {
-            driver: str::from_utf8(&cap.driver)
-                .unwrap()
-                .trim_matches(char::from(0))
-                .to_string(),
-            card: str::from_utf8(&cap.card)
-                .unwrap()
-                .trim_matches(char::from(0))
-                .to_string(),
-            bus: str::from_utf8(&cap.bus_info)
-                .unwrap()
-                .trim_matches(char::from(0))
-                .to_string(),
+            driver: unsafe { CStr::from_ptr(cap.driver.as_ptr() as *const _) }
+                .to_string_lossy()
+                .into_owned(),
+            card: unsafe { CStr::from_ptr(cap.card.as_ptr() as *const _) }
+                .to_string_lossy()
+                .into_owned(),
+            bus: unsafe { CStr::from_ptr(cap.bus_info.as_ptr() as *const _) }
+                .to_string_lossy()
+                .into_owned(),
             version: (0, 0, 0),
             capabilities: Flags::from(cap.device_caps),
         };
