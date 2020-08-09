@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, ffi::CStr};
+use std::{ffi::CStr, fmt};
 
 use crate::v4l_sys::*;
 
