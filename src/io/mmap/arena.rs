@@ -29,7 +29,19 @@ impl<'a> Arena<'a> {
 
 impl<'a> Drop for Arena<'a> {
     fn drop(&mut self) {
-        self.release().unwrap();
+        if let Err(e) = self.release() {
+            if let Some(code) = e.raw_os_error() {
+                // ENODEV means the file descriptor wrapped in the handle became invalid, most
+                // likely because the device was unplugged or the connection (USB, PCI, ..)
+                // broke down. Handle this case gracefully by ignoring it.
+                if code == 19 {
+                    /* ignore */
+                    return;
+                }
+            }
+
+            panic!("{:?}", e)
+        }
     }
 }
 

@@ -62,7 +62,19 @@ impl Stream {
 
 impl Drop for Stream {
     fn drop(&mut self) {
-        self.stop().unwrap();
+        if let Err(e) = self.stop() {
+            if let Some(code) = e.raw_os_error() {
+                // ENODEV means the file descriptor wrapped in the handle became invalid, most
+                // likely because the device was unplugged or the connection (USB, PCI, ..)
+                // broke down. Handle this case gracefully by ignoring it.
+                if code == 19 {
+                    /* ignore */
+                    return;
+                }
+            }
+
+            panic!("{:?}", e)
+        }
     }
 }
 
