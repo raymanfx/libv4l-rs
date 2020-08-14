@@ -107,7 +107,9 @@ impl Device {
         }
 
         if ret.is_err() {
-            return Err(ret.err().unwrap());
+            // Enumerating the fist format (at index 0) failed, so there are no formats available
+            // for this device. Just return an empty vec in this case.
+            return Ok(Vec::new());
         }
 
         while ret.is_ok() {
