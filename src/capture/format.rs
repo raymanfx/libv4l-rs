@@ -5,6 +5,7 @@ use crate::colorspace::Colorspace;
 use crate::field_order::FieldOrder;
 use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
+use crate::Quantization;
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming format (single-planar)
@@ -17,12 +18,14 @@ pub struct Format {
     pub field_order: FieldOrder,
     /// pixelformat code
     pub fourcc: FourCC,
-
     /// bytes per line
     pub stride: u32,
     /// maximum number of bytes required to store an image
     pub size: u32,
+    /// colorspace of the pixels
     pub colorspace: Colorspace,
+    /// the way colors are mapped
+    pub quantization: Quantization,
 }
 
 impl Format {
@@ -50,19 +53,21 @@ impl Format {
             stride: 0,
             size: 0,
             colorspace: Colorspace::Default,
+            quantization: Quantization::Default,
         }
     }
 }
 
 impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "width      : {}", self.width)?;
-        writeln!(f, "height     : {}", self.height)?;
-        writeln!(f, "field      : {}", self.field_order)?;
-        writeln!(f, "fourcc     : {}", self.fourcc)?;
-        writeln!(f, "stride     : {}", self.stride)?;
-        writeln!(f, "size       : {}", self.size)?;
-        writeln!(f, "colorspace : {}", self.colorspace)?;
+        writeln!(f, "width        : {}", self.width)?;
+        writeln!(f, "height       : {}", self.height)?;
+        writeln!(f, "field        : {}", self.field_order)?;
+        writeln!(f, "fourcc       : {}", self.fourcc)?;
+        writeln!(f, "stride       : {}", self.stride)?;
+        writeln!(f, "size         : {}", self.size)?;
+        writeln!(f, "colorspace   : {}", self.colorspace)?;
+        writeln!(f, "quantization : {}", self.quantization)?;
         Ok(())
     }
 }
@@ -78,6 +83,7 @@ impl From<v4l2_pix_format> for Format {
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
             colorspace: Colorspace::try_from(fmt.colorspace).expect("Invalid colorspace"),
+            quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
         }
     }
 }
@@ -96,6 +102,7 @@ impl Into<v4l2_pix_format> for Format {
         fmt.bytesperline = self.stride;
         fmt.sizeimage = self.size;
         fmt.colorspace = self.colorspace as u32;
+        fmt.quantization = self.quantization as u32;
         fmt
     }
 }
