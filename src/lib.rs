@@ -78,6 +78,7 @@ pub mod capability;
 pub mod capture;
 pub mod control;
 pub mod device;
+pub mod field;
 pub mod format;
 pub mod fourcc;
 pub mod fraction;
@@ -89,9 +90,9 @@ pub mod timestamp;
 pub mod io;
 
 pub use {
-    buffer::Buffer, capability::Capabilities, control::Control, format::Description,
-    format::Format, fourcc::FourCC, fraction::Fraction, frameinterval::FrameInterval,
-    framesize::FrameSize, memory::Memory, timestamp::Timestamp,
+    buffer::Buffer, capability::Capabilities, control::Control, field::FieldOrder,
+    format::Description, format::Format, fourcc::FourCC, fraction::Fraction,
+    frameinterval::FrameInterval, framesize::FrameSize, memory::Memory, timestamp::Timestamp,
 };
 
 pub mod prelude {
