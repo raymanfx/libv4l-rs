@@ -88,6 +88,7 @@ pub mod framesize;
 pub mod memory;
 pub mod quantization;
 pub mod timestamp;
+pub mod transfer;
 
 pub mod io;
 
@@ -95,7 +96,7 @@ pub use {
     buffer::Buffer, capability::Capabilities, colorspace::Colorspace, control::Control,
     field::FieldOrder, format::Description, format::Format, fourcc::FourCC, fraction::Fraction,
     frameinterval::FrameInterval, framesize::FrameSize, memory::Memory, quantization::Quantization,
-    timestamp::Timestamp,
+    timestamp::Timestamp, transfer::TransferFunction,
 };
 
 pub mod prelude {
