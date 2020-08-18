@@ -1,5 +1,5 @@
-use std::fmt;
 use std::convert::TryFrom;
+use std::fmt;
 
 #[derive(Debug, Copy, Clone)]
 #[repr(u32)]
