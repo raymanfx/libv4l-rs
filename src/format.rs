@@ -5,6 +5,7 @@ use crate::colorspace::Colorspace;
 use crate::field::FieldOrder;
 use crate::fourcc::FourCC;
 use crate::quantization::Quantization;
+use crate::transfer::TransferFunction;
 use crate::v4l_sys::*;
 
 bitflags! {
@@ -92,6 +93,8 @@ pub struct Format {
     pub colorspace: Colorspace,
     /// the way colors are mapped
     pub quantization: Quantization,
+    /// the transfer function for the colorspace
+    pub transfer: TransferFunction,
 }
 
 impl Format {
@@ -119,6 +122,7 @@ impl Format {
             size: 0,
             colorspace: Colorspace::Default,
             quantization: Quantization::Default,
+            transfer: TransferFunction::Default,
         }
     }
 }
@@ -133,6 +137,7 @@ impl fmt::Display for Format {
         writeln!(f, "size           : {}", self.size)?;
         writeln!(f, "colorspace     : {}", self.colorspace)?;
         writeln!(f, "quantization   : {}", self.quantization)?;
+        writeln!(f, "transfer       : {}", self.transfer)?;
         Ok(())
     }
 }
@@ -148,6 +153,7 @@ impl From<v4l2_pix_format> for Format {
             size: fmt.sizeimage,
             colorspace: Colorspace::try_from(fmt.colorspace).expect("Invalid colorspace"),
             quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
+            transfer: TransferFunction::try_from(fmt.xfer_func).expect("Invalid transfer function"),
         }
     }
 }
@@ -167,6 +173,7 @@ impl Into<v4l2_pix_format> for Format {
         fmt.sizeimage = self.size;
         fmt.colorspace = self.colorspace as u32;
         fmt.quantization = self.quantization as u32;
+        fmt.xfer_func = self.transfer as u32;
         fmt
     }
 }
