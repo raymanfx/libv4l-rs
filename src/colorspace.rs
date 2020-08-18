@@ -3,7 +3,8 @@ use std::fmt;
 
 #[derive(Debug, Copy, Clone)]
 #[repr(u32)]
-/// Colorspace for pixels
+/// Colorspace for pixels. The driver decides this for capture streams and the user sets it for
+/// output streams.
 pub enum Colorspace {
     /// driver will pick default
     Default = 0,

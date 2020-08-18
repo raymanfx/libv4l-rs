@@ -2,10 +2,10 @@ use std::convert::TryFrom;
 use std::{fmt, mem};
 
 use crate::colorspace::Colorspace;
-use crate::field_order::FieldOrder;
+use crate::fieldorder::FieldOrder;
 use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
-use crate::Quantization;
+use crate::{Quantization, TransferFunction};
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming format (single-planar)
@@ -15,7 +15,7 @@ pub struct Format {
     /// height in pixels
     pub height: u32,
     /// order of fields
-    pub field_order: FieldOrder,
+    pub fieldorder: FieldOrder,
     /// pixelformat code
     pub fourcc: FourCC,
     /// bytes per line
@@ -24,8 +24,10 @@ pub struct Format {
     pub size: u32,
     /// colorspace of the pixels
     pub colorspace: Colorspace,
-    /// the way colors are mapped
+    /// the quantization for the colorspace
     pub quantization: Quantization,
+    /// the transfer function for the colorspace
+    pub transfer_function: TransferFunction,
 }
 
 impl Format {
@@ -48,26 +50,28 @@ impl Format {
         Format {
             width,
             height,
-            field_order: FieldOrder::Any,
+            fieldorder: FieldOrder::Any,
             fourcc,
             stride: 0,
             size: 0,
             colorspace: Colorspace::Default,
             quantization: Quantization::Default,
+            transfer_function: TransferFunction::Default,
         }
     }
 }
 
 impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "width        : {}", self.width)?;
-        writeln!(f, "height       : {}", self.height)?;
-        writeln!(f, "field        : {}", self.field_order)?;
-        writeln!(f, "fourcc       : {}", self.fourcc)?;
-        writeln!(f, "stride       : {}", self.stride)?;
-        writeln!(f, "size         : {}", self.size)?;
-        writeln!(f, "colorspace   : {}", self.colorspace)?;
-        writeln!(f, "quantization : {}", self.quantization)?;
+        writeln!(f, "width             : {}", self.width)?;
+        writeln!(f, "height            : {}", self.height)?;
+        writeln!(f, "field             : {}", self.fieldorder)?;
+        writeln!(f, "fourcc            : {}", self.fourcc)?;
+        writeln!(f, "stride            : {}", self.stride)?;
+        writeln!(f, "size              : {}", self.size)?;
+        writeln!(f, "colorspace        : {}", self.colorspace)?;
+        writeln!(f, "quantization      : {}", self.quantization)?;
+        writeln!(f, "transfer function : {}", self.transfer_function)?;
         Ok(())
     }
 }
@@ -78,12 +82,14 @@ impl From<v4l2_pix_format> for Format {
         Format {
             width: fmt.width,
             height: fmt.height,
-            field_order: FieldOrder::try_from(fmt.field).expect("Invalid field"),
+            fieldorder: FieldOrder::try_from(fmt.field).expect("Invalid field"),
             fourcc: FourCC::from(fmt.pixelformat),
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
             colorspace: Colorspace::try_from(fmt.colorspace).expect("Invalid colorspace"),
             quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
+            transfer_function: TransferFunction::try_from(fmt.xfer_func)
+                .expect("Invalid transfer function"),
         }
     }
 }
@@ -97,12 +103,13 @@ impl Into<v4l2_pix_format> for Format {
 
         fmt.width = self.width;
         fmt.height = self.height;
-        fmt.field = self.field_order as u32;
+        fmt.field = self.fieldorder as u32;
         fmt.pixelformat = self.fourcc.into();
         fmt.bytesperline = self.stride;
         fmt.sizeimage = self.size;
         fmt.colorspace = self.colorspace as u32;
         fmt.quantization = self.quantization as u32;
+        fmt.xfer_func = self.transfer_function as u32;
         fmt
     }
 }

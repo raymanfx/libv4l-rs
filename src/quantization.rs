@@ -3,7 +3,8 @@ use std::fmt;
 
 #[derive(Debug, Copy, Clone)]
 #[repr(u32)]
-/// How colors are mapped
+/// Quantization for the colorspace. The driver decides this for capture streams and the user sets
+/// it for output streams.
 pub enum Quantization {
     /// default for the colorspace
     Default = 0,
