@@ -4,6 +4,7 @@ use std::{convert::TryFrom, fmt, mem, str};
 use crate::colorspace::Colorspace;
 use crate::field::FieldOrder;
 use crate::fourcc::FourCC;
+use crate::quantization::Quantization;
 use crate::v4l_sys::*;
 
 bitflags! {
@@ -89,6 +90,8 @@ pub struct Format {
 
     /// supplements the pixelformat (fourcc) information
     pub colorspace: Colorspace,
+    /// the way colors are mapped
+    pub quantization: Quantization,
 }
 
 impl Format {
@@ -115,19 +118,21 @@ impl Format {
             stride: 0,
             size: 0,
             colorspace: Colorspace::Default,
+            quantization: Quantization::Default,
         }
     }
 }
 
 impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "width      : {}", self.width)?;
-        writeln!(f, "height     : {}", self.height)?;
-        writeln!(f, "fourcc     : {}", self.fourcc)?;
-        writeln!(f, "field      : {}", self.field_order)?;
-        writeln!(f, "stride     : {}", self.stride)?;
-        writeln!(f, "size       : {}", self.size)?;
-        writeln!(f, "colorspace : {}", self.colorspace)?;
+        writeln!(f, "width          : {}", self.width)?;
+        writeln!(f, "height         : {}", self.height)?;
+        writeln!(f, "fourcc         : {}", self.fourcc)?;
+        writeln!(f, "field          : {}", self.field_order)?;
+        writeln!(f, "stride         : {}", self.stride)?;
+        writeln!(f, "size           : {}", self.size)?;
+        writeln!(f, "colorspace     : {}", self.colorspace)?;
+        writeln!(f, "quantization   : {}", self.quantization)?;
         Ok(())
     }
 }
@@ -142,6 +147,7 @@ impl From<v4l2_pix_format> for Format {
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
             colorspace: Colorspace::try_from(fmt.colorspace).expect("Invalid colorspace"),
+            quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
         }
     }
 }
@@ -160,6 +166,7 @@ impl Into<v4l2_pix_format> for Format {
         fmt.bytesperline = self.stride;
         fmt.sizeimage = self.size;
         fmt.colorspace = self.colorspace as u32;
+        fmt.quantization = self.quantization as u32;
         fmt
     }
 }
