@@ -79,7 +79,7 @@ pub mod capture;
 pub mod colorspace;
 pub mod control;
 pub mod device;
-pub mod field;
+pub mod field_order;
 pub mod format;
 pub mod fourcc;
 pub mod fraction;
@@ -92,7 +92,7 @@ pub mod io;
 
 pub use {
     buffer::Buffer, capability::Capabilities, colorspace::Colorspace, control::Control,
-    field::Field, format::Description, fourcc::FourCC, fraction::Fraction,
+    field_order::FieldOrder, format::Description, fourcc::FourCC, fraction::Fraction,
     frameinterval::FrameInterval, framesize::FrameSize, memory::Memory, timestamp::Timestamp,
 };
 

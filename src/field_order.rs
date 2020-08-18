@@ -4,7 +4,7 @@ use std::fmt;
 #[derive(Debug, Copy, Clone)]
 #[repr(u32)]
 /// Represents how fields are interlaced (if they are)
-pub enum Field {
+pub enum FieldOrder {
     /// Progressive, Top, Bottom, or Interlaced is acceptable; driver will pick one
     Any = 0,
     /// progressive, not interlaced
@@ -27,7 +27,7 @@ pub enum Field {
     InterlacedBT = 9,
 }
 
-impl fmt::Display for Field {
+impl fmt::Display for FieldOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Any => write!(f, "any"),
@@ -44,7 +44,7 @@ impl fmt::Display for Field {
     }
 }
 
-impl TryFrom<u32> for Field {
+impl TryFrom<u32> for FieldOrder {
     type Error = ();
 
     fn try_from(field_code: u32) -> Result<Self, Self::Error> {

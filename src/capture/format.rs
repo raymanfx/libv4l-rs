@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::{fmt, mem};
 
 use crate::colorspace::Colorspace;
-use crate::field::Field;
+use crate::field_order::FieldOrder;
 use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
 
@@ -13,8 +13,8 @@ pub struct Format {
     pub width: u32,
     /// height in pixels
     pub height: u32,
-    /// representation of fields
-    pub field: Field,
+    /// order of fields
+    pub field_order: FieldOrder,
     /// pixelformat code
     pub fourcc: FourCC,
 
@@ -45,7 +45,7 @@ impl Format {
         Format {
             width,
             height,
-            field: Field::Any,
+            field_order: FieldOrder::Any,
             fourcc,
             stride: 0,
             size: 0,
@@ -58,7 +58,7 @@ impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "width      : {}", self.width)?;
         writeln!(f, "height     : {}", self.height)?;
-        writeln!(f, "field      : {}", self.field)?;
+        writeln!(f, "field      : {}", self.field_order)?;
         writeln!(f, "fourcc     : {}", self.fourcc)?;
         writeln!(f, "stride     : {}", self.stride)?;
         writeln!(f, "size       : {}", self.size)?;
@@ -69,11 +69,11 @@ impl fmt::Display for Format {
 
 impl From<v4l2_pix_format> for Format {
     fn from(fmt: v4l2_pix_format) -> Self {
+        // Assume that the given format is valid
         Format {
             width: fmt.width,
             height: fmt.height,
-            // Assume that the given format is valid
-            field: Field::try_from(fmt.field).expect("Invalid field"),
+            field_order: FieldOrder::try_from(fmt.field).expect("Invalid field"),
             fourcc: FourCC::from(fmt.pixelformat),
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
@@ -91,7 +91,7 @@ impl Into<v4l2_pix_format> for Format {
 
         fmt.width = self.width;
         fmt.height = self.height;
-        fmt.field = self.field as u32;
+        fmt.field = self.field_order as u32;
         fmt.pixelformat = self.fourcc.into();
         fmt.bytesperline = self.stride;
         fmt.sizeimage = self.size;
