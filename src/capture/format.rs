@@ -1,7 +1,9 @@
 use std::{fmt, mem};
 
+use crate::field::Field;
 use crate::fourcc::FourCC;
 use crate::v4l_sys::*;
+use std::convert::TryFrom;
 
 #[derive(Debug, Copy, Clone)]
 /// Streaming format (single-planar)
@@ -10,6 +12,8 @@ pub struct Format {
     pub width: u32,
     /// height in pixels
     pub height: u32,
+    /// representation of fields
+    pub field: Field,
     /// pixelformat code
     pub fourcc: FourCC,
 
@@ -39,6 +43,7 @@ impl Format {
         Format {
             width,
             height,
+            field: Field::Any,
             fourcc,
             stride: 0,
             size: 0,
@@ -62,6 +67,8 @@ impl From<v4l2_pix_format> for Format {
         Format {
             width: fmt.width,
             height: fmt.height,
+            // Assume that the given format is valid
+            field: Field::try_from(fmt.field).unwrap(),
             fourcc: FourCC::from(fmt.pixelformat),
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
@@ -78,6 +85,7 @@ impl Into<v4l2_pix_format> for Format {
 
         fmt.width = self.width;
         fmt.height = self.height;
+        fmt.field = self.field as u32;
         fmt.pixelformat = self.fourcc.into();
         fmt.bytesperline = self.stride;
         fmt.sizeimage = self.size;
