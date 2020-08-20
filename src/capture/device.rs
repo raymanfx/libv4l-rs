@@ -390,6 +390,29 @@ impl io::Read for Device {
     }
 }
 
+impl io::Write for Device {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unsafe {
+            let ret = libc::write(
+                self.handle.fd(),
+                buf.as_ptr() as *const std::os::raw::c_void,
+                buf.len(),
+            );
+
+            match ret {
+                -1 => Err(io::Error::last_os_error()),
+                ret => Ok(ret as usize),
+            }
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        // write doesn't use a buffer, so it effectively flushes with each call
+        // therefore, we don't have anything to flush later
+        Ok(())
+    }
+}
+
 impl TryFrom<device::Info> for Device {
     type Error = io::Error;
 
