@@ -72,6 +72,30 @@ impl From<v4l2_fmtdesc> for Description {
     }
 }
 
+bitflags! {
+    pub struct FormatFlags: u32 {
+        const PREMULTIPLY_ALPHA = 0x0001;
+    }
+}
+
+impl From<u32> for FormatFlags {
+    fn from(caps: u32) -> Self {
+        FormatFlags::from_bits_truncate(caps)
+    }
+}
+
+impl Into<u32> for FormatFlags {
+    fn into(self) -> u32 {
+        self.bits()
+    }
+}
+
+impl fmt::Display for FormatFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 /// Streaming format (single-planar)
 pub struct Format {
@@ -89,8 +113,8 @@ pub struct Format {
     pub size: u32,
     /// colorspace of the pixels
     pub colorspace: Colorspace,
-    /// premultiply alpha; ie. if the alpha channel is 50%, multiply all other channels by 50%
-    pub premultiply_alpha: bool,
+    /// flags for the format
+    pub flags: FormatFlags,
     /// the quantization for the colorspace
     pub quantization: Quantization,
     /// the transfer function for the colorspace
@@ -122,7 +146,7 @@ impl Format {
             stride: 0,
             size: 0,
             colorspace: Colorspace::Default,
-            premultiply_alpha: false,
+            flags: FormatFlags::from(0),
             quantization: Quantization::Default,
             transfer_function: TransferFunction::Default,
         }
@@ -138,7 +162,7 @@ impl fmt::Display for Format {
         writeln!(f, "stride            : {}", self.stride)?;
         writeln!(f, "size              : {}", self.size)?;
         writeln!(f, "colorspace        : {}", self.colorspace)?;
-        writeln!(f, "premultiply alpha : {}", self.premultiply_alpha)?;
+        writeln!(f, "flags             : {}", self.flags)?;
         writeln!(f, "quantization      : {}", self.quantization)?;
         writeln!(f, "transfer function : {}", self.transfer_function)?;
         Ok(())
@@ -156,7 +180,7 @@ impl From<v4l2_pix_format> for Format {
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
             colorspace: Colorspace::try_from(fmt.colorspace).expect("Invalid colorspace"),
-            premultiply_alpha: (fmt.flags & 0x1) == 0x1,
+            flags: FormatFlags::from(fmt.flags),
             quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
             transfer_function: TransferFunction::try_from(fmt.xfer_func)
                 .expect("Invalid transfer function"),
@@ -178,7 +202,7 @@ impl Into<v4l2_pix_format> for Format {
         fmt.bytesperline = self.stride;
         fmt.sizeimage = self.size;
         fmt.colorspace = self.colorspace as u32;
-        fmt.flags = if self.premultiply_alpha { 0x1 } else { 0x0 };
+        fmt.flags = self.flags.into();
         fmt.quantization = self.quantization as u32;
         fmt.xfer_func = self.transfer_function as u32;
         fmt
