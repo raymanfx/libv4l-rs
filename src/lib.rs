@@ -86,6 +86,8 @@ pub mod fraction;
 pub mod frameinterval;
 pub mod framesize;
 pub mod memory;
+pub mod output;
+pub mod parameters;
 pub mod quantization;
 pub mod timestamp;
 pub mod transfer_function;
@@ -105,5 +107,6 @@ pub mod prelude {
         buffer::{Buffer, Stream},
         capture::Device as CaptureDevice,
         device::{Device, QueryDevice},
+        output::Device as OutputDevice,
     };
 }

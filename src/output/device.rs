@@ -1,18 +1,18 @@
 use std::convert::TryFrom;
 use std::{io, mem, path::Path, sync::Arc};
 
-use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{capture, control::Control, device, format};
+use crate::{device, format};
+use crate::{output, v4l2, Control};
 
-/// Linux capture device abstraction
+/// Linux output device abstraction
 pub struct Device {
     /// Raw handle
     handle: Arc<device::Handle>,
 }
 
 impl Device {
-    /// Returns a capture device by index
+    /// Returns an output device by index
     ///
     /// Devices are usually enumerated by the system.
     /// An index of zero thus represents the first device the system got to know about.
@@ -24,7 +24,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     /// let dev = Device::new(0);
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
@@ -40,7 +40,7 @@ impl Device {
         })
     }
 
-    /// Returns a capture device by path
+    /// Returns an output device by path
     ///
     /// Linux device nodes are usually found in /dev/videoX or /sys/class/video4linux/videoX.
     ///
@@ -51,7 +51,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
@@ -74,7 +74,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     ///
     /// if let Ok(dev) = Device::new(0) {
     ///     let formats = dev.enum_formats();
@@ -94,7 +94,7 @@ impl Device {
         }
 
         v4l2_fmt.index = 0;
-        v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
 
         let mut ret: io::Result<()>;
 
@@ -135,7 +135,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     ///
     /// if let Ok(dev) = Device::new(0) {
     ///     let fmt = dev.format();
@@ -147,7 +147,7 @@ impl Device {
     pub fn format(&self) -> io::Result<format::Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
-            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
@@ -158,7 +158,7 @@ impl Device {
         }
     }
 
-    /// Modifies the capture format and returns the actual format
+    /// Modifies the output format and returns the actual format
     ///
     /// The driver tries to match the format parameters on a best effort basis.
     /// Thus, if the combination of format properties cannot be achieved, the closest possible
@@ -172,7 +172,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     ///
     /// if let Ok(mut dev) = Device::new(0) {
     ///     let fmt = dev.format();
@@ -192,7 +192,7 @@ impl Device {
     pub fn set_format(&mut self, fmt: &format::Format) -> io::Result<format::Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
-            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
             v4l2_fmt.fmt.pix = (*fmt).into();
             v4l2::ioctl(
                 self.handle.fd(),
@@ -209,7 +209,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     ///
     /// if let Ok(dev) = Device::new(0) {
     ///     let params = dev.params();
@@ -218,21 +218,21 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn params(&self) -> io::Result<capture::Parameters> {
+    pub fn params(&self) -> io::Result<output::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
-            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(capture::Parameters::from(v4l2_params.parm.capture))
+            Ok(output::Parameters::from(v4l2_params.parm.output))
         }
     }
 
-    /// Modifies the capture parameters and returns the actual parameters
+    /// Modifies the output parameters and returns the actual parameters
     ///
     ///
     /// # Arguments
@@ -242,7 +242,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::{Device, Parameters};
+    /// use v4l::output::{Device, Parameters};
     ///
     /// if let Ok(mut dev) = Device::new(0) {
     ///     let params = dev.params();
@@ -258,11 +258,11 @@ impl Device {
     ///     }
     /// }
     /// ```
-    pub fn set_params(&mut self, params: &capture::Parameters) -> io::Result<capture::Parameters> {
+    pub fn set_params(&mut self, params: &output::Parameters) -> io::Result<output::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
-            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            v4l2_params.parm.capture = (*params).into();
+            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
+            v4l2_params.parm.output = (*params).into();
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_S_PARM,
@@ -282,7 +282,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     /// use v4l::Control;
     /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
     ///
@@ -321,7 +321,7 @@ impl Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::output::Device;
     /// use v4l::Control;
     /// use v4l2_sys::V4L2_CID_BRIGHTNESS;
     ///
@@ -358,10 +358,10 @@ impl device::Device for Device {
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device as CaptureDevice;
+    /// use v4l::output::Device as OutputDevice;
     /// use v4l::device::Device;
     ///
-    /// if let Ok(dev) = CaptureDevice::new(0) {
+    /// if let Ok(dev) = OutputDevice::new(0) {
     ///     print!("Device file descriptor: {}", dev.handle().fd());
     /// }
     /// ```
@@ -370,23 +370,30 @@ impl device::Device for Device {
     }
 
     fn typ(&self) -> device::Type {
-        device::Type::VideoCapture
+        device::Type::VideoOutput
     }
 }
 
-impl io::Read for Device {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+impl io::Write for Device {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {
-            let ret = libc::read(
+            let ret = libc::write(
                 self.handle.fd(),
-                buf.as_mut_ptr() as *mut std::os::raw::c_void,
+                buf.as_ptr() as *const std::os::raw::c_void,
                 buf.len(),
             );
+
             match ret {
                 -1 => Err(io::Error::last_os_error()),
                 ret => Ok(ret as usize),
             }
         }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        // write doesn't use a buffer, so it effectively flushes with each call
+        // therefore, we don't have anything to flush later
+        Ok(())
     }
 }
 
