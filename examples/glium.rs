@@ -8,9 +8,9 @@ use glium::{implement_vertex, program, uniform};
 use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
-use v4l::capture;
 use v4l::prelude::*;
 use v4l::FourCC;
+use v4l::{capture, format};
 
 fn main() {
     let matches = App::new("v4l capture")
@@ -49,7 +49,7 @@ fn main() {
     let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
     let buffers = buffers.parse::<u32>().unwrap();
 
-    let mut format: capture::Format;
+    let mut format: format::Format;
     let params: capture::Parameters;
 
     let dev = RwLock::new(CaptureDevice::with_path(path.clone()).expect("Failed to open device"));
