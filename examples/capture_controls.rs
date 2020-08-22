@@ -7,14 +7,14 @@ use v4l::prelude::*;
 fn main() {
     let matches = App::new("v4l device")
         .version("0.2")
-        .author("Dmitry Samoylov <dmitry.samoylov@quantumsoft.ru>")
+        .author("Christopher N. Hesse <raymanfx@gmail.com>")
         .about("Video4Linux device example")
         .arg(
             Arg::with_name("device")
                 .short("d")
                 .long("device")
                 .value_name("INDEX or PATH")
-                .help("Device node path or index (default: 0)")
+                .help("Capture device node path or index (default: 0)")
                 .takes_value(true),
         )
         .get_matches();
@@ -29,16 +29,10 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = CaptureDevice::with_path(path).expect("Failed to open device");
-    let format = dev.format().expect("Failed to get format");
-    let frameintervals = dev
-        .enum_frameintervals(format.fourcc, format.width, format.height)
-        .expect("Failed to enumerate frame intervals");
+    let dev = CaptureDevice::with_path(path).expect("Failed to open capture device");
+    let controls = dev.query_controls().expect("Failed to query controls");
 
-    println!("Active format:\n{}", format);
-    println!("Active format frame intervals:");
-
-    for frameinterval in frameintervals {
-        println!("{}", frameinterval);
+    for control in controls {
+        println!("{}", control);
     }
 }
