@@ -14,7 +14,7 @@ fn main() {
                 .short("d")
                 .long("device")
                 .value_name("INDEX or PATH")
-                .help("Device node path or index (default: 0)")
+                .help("Output device node path or index (default: 1)")
                 .takes_value(true),
         )
         .get_matches();
@@ -22,16 +22,17 @@ fn main() {
     // Determine which device to use
     let mut path: String = matches
         .value_of("device")
-        .unwrap_or("/dev/video0")
+        .unwrap_or("/dev/video1")
         .to_string();
     if path.parse::<u64>().is_ok() {
         path = format!("/dev/video{}", path);
     }
     println!("Using device: {}\n", path);
 
-    let dev = CaptureDevice::with_path(path).expect("Failed to open device");
-    let format = dev.format().expect("Failed to get format");
-    let params = dev.params().expect("Failed to get parameters");
-    println!("Active format:\n{}", format);
-    println!("Active parameters:\n{}", params);
+    let dev = OutputDevice::with_path(path).expect("Failed to open output device");
+    let controls = dev.query_controls().expect("Failed to query controls");
+
+    for control in controls {
+        println!("{}", control);
+    }
 }
