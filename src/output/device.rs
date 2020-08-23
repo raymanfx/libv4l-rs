@@ -46,13 +46,13 @@ impl Device {
     ///
     /// # Arguments
     ///
-    /// * `path` - Path (e.g. "/dev/video0")
+    /// * `path` - Path (e.g. "/dev/video1")
     ///
     /// # Example
     ///
     /// ```
     /// use v4l::output::Device;
-    /// let dev = Device::with_path("/dev/video0");
+    /// let dev = Device::with_path("/dev/video1");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let fd = v4l2::open(&path, libc::O_RDWR)?;

@@ -74,6 +74,8 @@ impl From<v4l2_fmtdesc> for Description {
 
 bitflags! {
     pub struct FormatFlags: u32 {
+        /// Multiply color channels by the alpha chanel. For example, if the alpha channel is 50%,
+        /// multiply all other channels by 50%.
         const PREMULTIPLY_ALPHA = 0x0001;
     }
 }
