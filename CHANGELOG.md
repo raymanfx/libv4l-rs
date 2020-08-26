@@ -5,6 +5,12 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+#### 0.10 (released)
+
+> * Output device support!
+>   * Just the single-planar API for now.
+>   * Only write() I/O, no mmap or other buffer types.
+
 #### 0.9 (released)
 
 > * New Handle type for passing around device handles
