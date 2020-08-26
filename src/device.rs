@@ -6,7 +6,7 @@ use crate::control;
 use crate::v4l2;
 use crate::v4l_sys::*;
 use crate::{
-    capability::Capabilities, fourcc::FourCC, frameinterval::FrameInterval, framesize::FrameSize,
+    capability::Capabilities, format::FourCC, frameinterval::FrameInterval, framesize::FrameSize,
 };
 
 pub use crate::buffer::BufferType as Type;

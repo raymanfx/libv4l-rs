@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 
-use crate::fourcc::FourCC;
+use crate::format::FourCC;
 use crate::v4l_sys;
 use crate::v4l_sys::*;
 

@@ -1,76 +1,25 @@
 use bitflags::bitflags;
-use std::{convert::TryFrom, fmt, mem, str};
+use std::{convert::TryFrom, fmt, mem};
 
-use crate::colorspace::Colorspace;
-use crate::field::FieldOrder;
-use crate::fourcc::FourCC;
-use crate::quantization::Quantization;
-use crate::transfer::TransferFunction;
 use crate::v4l_sys::*;
 
-bitflags! {
-    #[allow(clippy::unreadable_literal)]
-    pub struct DescriptionFlags : u32 {
-        const COMPRESSED            = 0x0001;
-        const EMULATED              = 0x0002;
-        const CONTINUOUS_BITSTREAM  = 0x0004;
-        const DYN_RESOLUTION        = 0x0008;
-    }
-}
+pub mod colorspace;
+pub use colorspace::Colorspace;
 
-impl From<u32> for DescriptionFlags {
-    fn from(flags: u32) -> Self {
-        DescriptionFlags::from_bits_truncate(flags)
-    }
-}
+pub mod description;
+pub use description::Description;
 
-impl Into<u32> for DescriptionFlags {
-    fn into(self) -> u32 {
-        self.bits()
-    }
-}
+pub mod field;
+pub use field::FieldOrder;
 
-impl fmt::Display for DescriptionFlags {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
-}
+pub mod fourcc;
+pub use fourcc::FourCC;
 
-#[derive(Debug)]
-/// Format description as returned by VIDIOC_ENUM_FMT
-pub struct Description {
-    pub index: u32,
-    pub typ: u32,
-    pub flags: DescriptionFlags,
-    pub description: String,
-    pub fourcc: FourCC,
-}
+pub mod quantization;
+pub use quantization::Quantization;
 
-impl fmt::Display for Description {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "index       : {}", self.index)?;
-        writeln!(f, "type:       : {}", self.typ)?;
-        writeln!(f, "flags:      : {}", self.flags)?;
-        writeln!(f, "description : {}", self.description)?;
-        writeln!(f, "fourcc      : {}", self.fourcc)?;
-        Ok(())
-    }
-}
-
-impl From<v4l2_fmtdesc> for Description {
-    fn from(desc: v4l2_fmtdesc) -> Self {
-        Description {
-            index: desc.index,
-            typ: desc.type_,
-            flags: DescriptionFlags::from(desc.flags),
-            description: str::from_utf8(&desc.description)
-                .unwrap()
-                .trim_matches(char::from(0))
-                .to_string(),
-            fourcc: FourCC::from(desc.pixelformat),
-        }
-    }
-}
+pub mod transfer;
+pub use transfer::TransferFunction;
 
 bitflags! {
     #[allow(clippy::unreadable_literal)]

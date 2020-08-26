@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 
-use crate::{fourcc::FourCC, fraction::Fraction};
+use crate::{format::FourCC, fraction::Fraction};
 use crate::{v4l_sys, v4l_sys::*};
 
 #[derive(Debug)]

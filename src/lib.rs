@@ -76,29 +76,29 @@ pub mod v4l2;
 pub mod buffer;
 pub mod capability;
 pub mod capture;
-pub mod colorspace;
 pub mod control;
 pub mod device;
-pub mod field;
 pub mod format;
-pub mod fourcc;
 pub mod fraction;
 pub mod frameinterval;
 pub mod framesize;
 pub mod memory;
 pub mod output;
 pub mod parameters;
-pub mod quantization;
 pub mod timestamp;
-pub mod transfer;
 
 pub mod io;
 
 pub use {
-    buffer::Buffer, capability::Capabilities, colorspace::Colorspace, control::Control,
-    field::FieldOrder, format::Description, format::Format, fourcc::FourCC, fraction::Fraction,
-    frameinterval::FrameInterval, framesize::FrameSize, memory::Memory, quantization::Quantization,
-    timestamp::Timestamp, transfer::TransferFunction,
+    buffer::Buffer,
+    capability::Capabilities,
+    control::Control,
+    format::{Format, FourCC},
+    fraction::Fraction,
+    frameinterval::FrameInterval,
+    framesize::FrameSize,
+    memory::Memory,
+    timestamp::Timestamp,
 };
 
 pub mod prelude {
