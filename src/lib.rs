@@ -90,8 +90,8 @@ pub mod io;
 
 pub use {
     buffer::Buffer, capability::Capabilities, control::Control, format::Description,
-    fourcc::FourCC, fraction::Fraction, frameinterval::FrameInterval, framesize::FrameSize,
-    memory::Memory, timestamp::Timestamp,
+    format::Format, fourcc::FourCC, fraction::Fraction, frameinterval::FrameInterval,
+    framesize::FrameSize, memory::Memory, timestamp::Timestamp,
 };
 
 pub mod prelude {
