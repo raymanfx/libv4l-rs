@@ -46,7 +46,7 @@ impl Stream {
 
     pub fn with_buffers(dev: &dyn device::Device, count: u32) -> io::Result<Self> {
         let mut arena = Arena::new(dev);
-        arena.allocate(count)?;
+        let count = arena.allocate(count)?;
 
         Ok(Stream {
             handle: dev.handle(),
