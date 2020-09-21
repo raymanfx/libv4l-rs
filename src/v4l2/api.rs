@@ -60,7 +60,7 @@ mod detail {
         prot: std::os::raw::c_int,
         flags: std::os::raw::c_int,
         fd: std::os::raw::c_int,
-        offset: i64,
+        offset: libc::off_t,
     ) -> *mut std::os::raw::c_void {
         libc::mmap(start, length, prot, flags, fd, offset)
     }
@@ -234,7 +234,7 @@ pub unsafe fn mmap(
     prot: std::os::raw::c_int,
     flags: std::os::raw::c_int,
     fd: std::os::raw::c_int,
-    offset: i64,
+    offset: libc::off_t,
 ) -> io::Result<*mut std::os::raw::c_void> {
     let ret = detail::mmap(start, length, prot, flags, fd, offset);
     if ret as usize == std::usize::MAX {

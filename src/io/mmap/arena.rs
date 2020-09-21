@@ -87,7 +87,7 @@ impl<'a> ArenaTrait for Arena<'a> {
                     libc::PROT_READ | libc::PROT_WRITE,
                     libc::MAP_SHARED,
                     self.handle.fd(),
-                    v4l2_buf.m.offset as i64,
+                    v4l2_buf.m.offset as libc::off_t,
                 )?;
 
                 let slice = slice::from_raw_parts::<u8>(ptr as *mut u8, v4l2_buf.length as usize);

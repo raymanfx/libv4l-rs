@@ -98,7 +98,7 @@ impl ArenaTrait for Arena {
                 v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 v4l2_buf.memory = Memory::UserPtr as u32;
                 v4l2_buf.index = i;
-                v4l2_buf.m.userptr = buf.as_ptr() as u64;
+                v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
                 v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
                 v4l2::ioctl(
                     self.handle.fd(),

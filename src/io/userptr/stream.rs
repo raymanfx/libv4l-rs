@@ -119,7 +119,7 @@ impl<'a> StreamTrait<'a> for Stream {
             v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2_buf.index = self.arena_index as u32;
-            v4l2_buf.m.userptr = buf.as_ptr() as u64;
+            v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
             v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
                 self.handle.fd(),

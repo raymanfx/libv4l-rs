@@ -5,8 +5,8 @@ use crate::v4l_sys::*;
 #[derive(Debug, Default, Clone, Copy)]
 /// Timestamp consisting of a seconds and a microseconds component
 pub struct Timestamp {
-    pub sec: i64,
-    pub usec: i64,
+    pub sec: time_t,
+    pub usec: time_t,
 }
 
 impl Timestamp {
@@ -23,7 +23,7 @@ impl Timestamp {
     /// use v4l::timestamp::Timestamp;
     /// let ts = Timestamp::new(5, 5);
     /// ```
-    pub fn new(sec: i64, usec: i64) -> Self {
+    pub fn new(sec: time_t, usec: time_t) -> Self {
         Timestamp { sec, usec }
     }
 }
@@ -38,8 +38,8 @@ impl fmt::Display for Timestamp {
 impl From<timeval> for Timestamp {
     fn from(tv: timeval) -> Self {
         Timestamp {
-            sec: tv.tv_sec,
-            usec: tv.tv_usec,
+            sec: tv.tv_sec as time_t,
+            usec: tv.tv_usec as time_t,
         }
     }
 }
@@ -51,15 +51,15 @@ impl Into<timeval> for Timestamp {
             tv = mem::zeroed();
         }
 
-        tv.tv_sec = self.sec;
-        tv.tv_usec = self.usec;
+        tv.tv_sec = self.sec as time_t;
+        tv.tv_usec = self.usec as time_t;
         tv
     }
 }
 
 impl From<time::Duration> for Timestamp {
     fn from(duration: time::Duration) -> Self {
-        Timestamp::new(duration.as_secs() as i64, duration.as_micros() as i64)
+        Timestamp::new(duration.as_secs() as time_t, duration.as_micros() as time_t)
     }
 }
 
