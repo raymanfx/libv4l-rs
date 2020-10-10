@@ -4,12 +4,7 @@
 [![license](https://img.shields.io/github/license/raymanfx/libv4l-rs?style=for-the-badge)](https://github.com/raymanfx/libv4l-rs/blob/master/LICENSE.txt)
 [![Build Status](https://img.shields.io/travis/raymanfx/libv4l-rs/master.svg?style=for-the-badge&logo=travis)](https://travis-ci.org/raymanfx/libv4l-rs)
 
-This crate provides safe bindings to the libv4l* stack consisting of:
- * libv4l1
- * libv4l2
- * libv4lconvert
-
-Thus, it enables you to capture frames from camera devices on Linux using common formats such as RGB3, even if the camera does not support it natively.
+This crate provides safe bindings to the Video for Linux (V4L) stack. Modern device drivers will usually implement the `v4l2` API while older ones may depend on the legacy `v4l` API. Such legacy devices may be used with this crate by choosing the `libv4l` feature for this crate.
 
 ## Goals
 This crate shall provide the v4l-sys package to enable full (but unsafe) access to libv4l\*.
