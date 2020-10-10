@@ -85,7 +85,7 @@ fn main() {
         }
 
         println!("Buffer");
-        println!("  sequence  : {}", buf.meta().seq);
+        println!("  sequence  : {}", buf.meta().sequence);
         println!("  timestamp : {}", buf.meta().timestamp);
         println!("  flags     : {}", buf.meta().flags);
         println!("  length    : {}", buf.len());

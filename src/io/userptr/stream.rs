@@ -160,11 +160,12 @@ impl<'a> StreamTrait<'a> for Stream {
         match buffer {
             Some(buf) => Ok(StreamItem::new(Buffer::new(
                 buf,
-                Metadata::new(
-                    v4l2_buf.sequence,
-                    v4l2_buf.timestamp.into(),
-                    v4l2_buf.flags.into(),
-                ),
+                Metadata {
+                    bytesused: v4l2_buf.bytesused,
+                    flags: v4l2_buf.flags.into(),
+                    timestamp: v4l2_buf.timestamp.into(),
+                    sequence: v4l2_buf.sequence,
+                },
             ))),
             None => Err(io::Error::new(
                 io::ErrorKind::Other,

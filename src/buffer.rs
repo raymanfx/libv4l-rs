@@ -94,39 +94,14 @@ impl fmt::Display for Flags {
 /// Buffer metadata, mostly used not to convolute the main buffer structs
 #[derive(Copy, Clone)]
 pub struct Metadata {
-    /// Sequence number, counting the frames
-    pub seq: u32,
-    /// Time of capture (usually set by the driver)
-    pub timestamp: Timestamp,
+    /// Number of bytes occupied by the data in the buffer
+    pub bytesused: u32,
     /// Buffer flags
     pub flags: Flags,
-}
-
-impl Metadata {
-    /// Returns a buffer metadata description
-    ///
-    /// # Arguments
-    ///
-    /// * `seq` - Sequence number as counted by the driver
-    /// * `ts` - Timestamp as reported by the driver
-    /// * `flags` - Flags as set by the driver
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::{buffer, timestamp};
-    ///
-    /// let ts = timestamp::Timestamp::new(0 /* sec */, 0 /* usec */);
-    /// let flags = buffer::Flags::from(0);
-    /// let meta = buffer::Metadata::new(0, ts, flags);
-    /// ```
-    pub fn new(seq: u32, ts: Timestamp, flags: Flags) -> Self {
-        Metadata {
-            seq,
-            timestamp: ts,
-            flags,
-        }
-    }
+    /// Time of capture (usually set by the driver)
+    pub timestamp: Timestamp,
+    /// Sequence number, counting the frames
+    pub sequence: u32,
 }
 
 /// Represents a buffer view
@@ -154,7 +129,12 @@ impl<'a> Buffer<'a> {
     /// let data: Vec<u8> = Vec::new();
     /// let ts = timestamp::Timestamp::new(0 /* sec */, 0 /* usec */);
     /// let flags = buffer::Flags::from(0);
-    /// let meta = buffer::Metadata::new(0, ts, flags);
+    /// let meta = buffer::Metadata {
+    ///     bytesused: 0,
+    ///     flags,
+    ///     timestamp: ts,
+    ///     sequence: 0,
+    /// };
     /// let buf = buffer::Buffer::new(&data, meta);
     /// ```
     pub fn new(view: &'a [u8], meta: Metadata) -> Self {

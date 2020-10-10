@@ -147,11 +147,12 @@ impl<'a, 'b> StreamTrait<'b> for Stream<'a> {
         let view = self.arena.get_unchecked(v4l2_buf.index as usize);
         let buf = Buffer::new(
             view,
-            Metadata::new(
-                v4l2_buf.sequence,
-                v4l2_buf.timestamp.into(),
-                v4l2_buf.flags.into(),
-            ),
+            Metadata {
+                bytesused: v4l2_buf.bytesused,
+                flags: v4l2_buf.flags.into(),
+                timestamp: v4l2_buf.timestamp.into(),
+                sequence: v4l2_buf.sequence,
+            },
         );
         Ok(StreamItem::new(buf))
     }
