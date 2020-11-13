@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, io, marker, ops};
+use std::{fmt, io, ops};
 
 use crate::timestamp::Timestamp;
 
@@ -177,56 +177,9 @@ pub trait Stream<'a> {
     fn queue(&mut self) -> io::Result<()>;
 
     /// Read a queued frame back to memory
-    fn dequeue(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>>;
+    fn dequeue(&'a mut self) -> io::Result<Self::Item>;
 
     /// Fetch a new frame by first queueing and then dequeueing.
     /// First time initialization is performed if necessary.
-    fn next(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>>;
-}
-
-/// Stream item wrapper
-///
-/// The sole purpose of this wrapper struct is to attach a lifetime to values of type T.
-/// This is especially useful for volatile types such as views which provide access to some kind of
-/// underlying data.
-pub struct StreamItem<'a, T> {
-    /// The wrapped item
-    item: T,
-    // Used to augment the item with a lifetime to benefit from the borrow checker
-    _lifetime: marker::PhantomData<&'a mut ()>,
-}
-
-impl<'a, T> StreamItem<'a, T> {
-    /// Returns a wrapped stream item by moving it into the wrapper
-    ///
-    /// An explicit lifetime is attached automatically by inserting PhantomData.
-    ///
-    /// # Arguments
-    ///
-    /// * `item` - Item to be wrapped
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::ops::Deref;
-    /// use v4l::buffer::StreamItem;
-    ///
-    /// let item: u32 = 123;
-    /// let wrapper = StreamItem::new(item);
-    /// assert_eq!(*wrapper.deref(), item);
-    /// ```
-    pub fn new(item: T) -> Self {
-        StreamItem {
-            item,
-            _lifetime: marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, T> ops::Deref for StreamItem<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.item
-    }
+    fn next(&'a mut self) -> io::Result<Self::Item>;
 }

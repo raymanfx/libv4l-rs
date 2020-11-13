@@ -1,7 +1,7 @@
 use std::{io, mem, sync::Arc};
 
+use crate::buffer::Stream as StreamTrait;
 use crate::buffer::{Buffer, Metadata};
-use crate::buffer::{Stream as StreamTrait, StreamItem};
 use crate::device;
 use crate::io::arena::Arena as ArenaTrait;
 use crate::io::userptr::arena::Arena;
@@ -133,7 +133,7 @@ impl<'a> StreamTrait<'a> for Stream {
         Ok(())
     }
 
-    fn dequeue(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>> {
+    fn dequeue(&'a mut self) -> io::Result<Self::Item> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -158,7 +158,7 @@ impl<'a> StreamTrait<'a> for Stream {
         }
 
         match buffer {
-            Some(buf) => Ok(StreamItem::new(Buffer::new(
+            Some(buf) => Ok(Buffer::new(
                 buf,
                 Metadata {
                     bytesused: v4l2_buf.bytesused,
@@ -166,7 +166,7 @@ impl<'a> StreamTrait<'a> for Stream {
                     timestamp: v4l2_buf.timestamp.into(),
                     sequence: v4l2_buf.sequence,
                 },
-            ))),
+            )),
             None => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "failed to find buffer",
@@ -174,7 +174,7 @@ impl<'a> StreamTrait<'a> for Stream {
         }
     }
 
-    fn next(&'a mut self) -> io::Result<StreamItem<'a, Self::Item>> {
+    fn next(&'a mut self) -> io::Result<Self::Item> {
         if !self.active {
             self.start()?;
         }
