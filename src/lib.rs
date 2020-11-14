@@ -76,6 +76,7 @@ pub mod v4l2;
 pub mod buffer;
 pub mod capability;
 pub mod capture;
+pub mod context;
 pub mod control;
 pub mod device;
 pub mod format;

@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::{io, mem, path::Path, sync::Arc};
 
 use crate::v4l_sys::*;
@@ -178,13 +177,5 @@ impl io::Write for Device {
         // write doesn't use a buffer, so it effectively flushes with each call
         // therefore, we don't have anything to flush later
         Ok(())
-    }
-}
-
-impl TryFrom<device::Info> for Device {
-    type Error = io::Error;
-
-    fn try_from(info: device::Info) -> Result<Self, Self::Error> {
-        Device::with_path(info.path())
     }
 }

@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::{io, mem, path::Path, sync::Arc};
 
 use crate::v4l2;
@@ -171,13 +170,5 @@ impl io::Read for Device {
                 ret => Ok(ret as usize),
             }
         }
-    }
-}
-
-impl TryFrom<device::Info> for Device {
-    type Error = io::Error;
-
-    fn try_from(info: device::Info) -> Result<Self, Self::Error> {
-        Device::with_path(info.path())
     }
 }

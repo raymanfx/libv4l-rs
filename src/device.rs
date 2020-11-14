@@ -375,12 +375,12 @@ impl<T: Device> DeviceExt for T {
 }
 
 /// Represents a video4linux device node
-pub struct Info {
+pub struct Node {
     /// Device node path
     path: PathBuf,
 }
 
-impl Info {
+impl Node {
     /// Returns a device node observer by path
     ///
     /// The device is opened in read only mode.
@@ -392,11 +392,11 @@ impl Info {
     /// # Example
     ///
     /// ```
-    /// use v4l::device::Info;
-    /// let node = Info::new("/dev/video0");
+    /// use v4l::device::Node;
+    /// let node = Node::new("/dev/video0");
     /// ```
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        Info {
+        Node {
             path: PathBuf::from(path.as_ref()),
         }
     }
@@ -407,12 +407,13 @@ impl Info {
     }
 
     /// Returns the index of the device node
-    pub fn index(&self) -> Option<usize> {
-        let file_name = self.path.file_name()?;
+    pub fn index(&self) -> usize {
+        let file_name = self.path.file_name().unwrap();
 
         let mut index_str = String::new();
         for c in file_name
-            .to_str()?
+            .to_str()
+            .unwrap()
             .chars()
             .rev()
             .collect::<String>()
@@ -426,83 +427,17 @@ impl Info {
         }
 
         let index = index_str.parse::<usize>();
-        if index.is_err() {
-            return None;
-        }
-
-        Some(index.unwrap())
+        index.unwrap()
     }
 
     /// Returns name of the device by parsing its sysfs entry
     pub fn name(&self) -> Option<String> {
-        let index = self.index()?;
+        let index = self.index();
         let path = format!("{}{}{}", "/sys/class/video4linux/video", index, "/name");
         let name = fs::read_to_string(path);
         match name {
             Ok(name) => Some(name.trim().to_string()),
             Err(_) => None,
         }
-    }
-}
-
-/// Represents an iterable list of valid devices
-#[derive(Default)]
-pub struct List {
-    /// Position in the list
-    pos: usize,
-    /// All paths representing potential video4linux devices
-    paths: Vec<PathBuf>,
-}
-
-impl List {
-    /// Returns a list of devices currently known to the system
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::device::List;
-    /// let list = List::new();
-    /// for dev in list {
-    ///     print!("{}{}", dev.index().unwrap(), dev.name().unwrap());
-    /// }
-    /// ```
-    pub fn new() -> Self {
-        let mut list = List {
-            pos: 0,
-            paths: Vec::new(),
-        };
-
-        let nodes = fs::read_dir("/dev");
-        if let Ok(nodes) = nodes {
-            for node in nodes {
-                if node.is_err() {
-                    continue;
-                }
-                let node = node.unwrap();
-                let file_name = node.file_name();
-                let file_name = file_name.to_str().unwrap();
-
-                if file_name.starts_with("video") {
-                    list.paths.push(node.path());
-                }
-            }
-        }
-
-        list.paths.sort();
-        list
-    }
-}
-
-impl Iterator for List {
-    type Item = Info;
-
-    fn next(&mut self) -> Option<Info> {
-        let pos = self.pos;
-        if pos == self.paths.len() {
-            return None;
-        }
-
-        self.pos += 1;
-        Some(Info::new(&self.paths[pos]))
     }
 }
