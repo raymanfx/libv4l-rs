@@ -150,7 +150,7 @@ fn main() {
 
         loop {
             let buf = stream.next().expect("Failed to capture buffer");
-            let data = buf.data().to_vec();
+            let data = buf.to_vec();
             tx.send(data).unwrap();
         }
     });

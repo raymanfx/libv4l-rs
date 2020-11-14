@@ -63,6 +63,6 @@ fn main() {
         MmapStream::with_buffers(&capture_dev, 1).expect("Failed to create buffer stream");
     let buf = stream.next().expect("Failed to capture buffer");
     output_dev
-        .write_all(buf.data())
+        .write_all(&*buf)
         .expect("Failed to write to output device");
 }
