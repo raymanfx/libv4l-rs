@@ -126,19 +126,15 @@ impl<'a> ArenaTrait for Arena<'a> {
         Ok(())
     }
 
-    fn buffers(&self) -> Vec<&Self::Buffer> {
-        self.bufs.iter().copied().collect()
-    }
-
     fn get(&self, index: usize) -> Option<&Self::Buffer> {
-        if self.bufs.len() > index {
-            Some(&self.bufs[index])
-        } else {
-            None
-        }
+        Some(self.bufs.get(index)?)
     }
 
-    fn get_unchecked(&self, index: usize) -> &Self::Buffer {
-        &self.bufs[index]
+    unsafe fn get_unchecked(&self, index: usize) -> &Self::Buffer {
+        self.bufs.get_unchecked(index)
+    }
+
+    fn len(&self) -> usize {
+        self.bufs.len()
     }
 }

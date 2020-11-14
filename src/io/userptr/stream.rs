@@ -116,7 +116,7 @@ impl<'a> StreamTrait<'a> for Stream {
         }
 
         let mut v4l2_buf: v4l2_buffer;
-        let buf = &mut self.arena.get_unchecked(self.arena_index as usize);
+        let buf = unsafe { &mut self.arena.get_unchecked(self.arena_index as usize) };
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = self.buf_type as u32;
@@ -151,8 +151,9 @@ impl<'a> StreamTrait<'a> for Stream {
         self.queued = false;
 
         let mut buffer = None;
-        for buf in self.arena.buffers() {
+        for i in 0..self.arena.len() {
             unsafe {
+                let buf = self.arena.get_unchecked(i);
                 if (buf.as_ptr()) == (v4l2_buf.m.userptr as *const u8) {
                     buffer = Some(buf);
                     break;

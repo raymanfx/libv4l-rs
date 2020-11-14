@@ -16,12 +16,12 @@ pub trait Arena {
     /// Release any allocated buffers
     fn release(&mut self) -> io::Result<()>;
 
-    /// Access all buffers
-    fn buffers(&self) -> Vec<&Self::Buffer>;
-
     /// Access a single buffer
     fn get(&self, index: usize) -> Option<&Self::Buffer>;
 
     /// Access a single buffer without bounds checking
-    fn get_unchecked(&self, index: usize) -> &Self::Buffer;
+    unsafe fn get_unchecked(&self, index: usize) -> &Self::Buffer;
+
+    /// Number of buffers
+    fn len(&self) -> usize;
 }

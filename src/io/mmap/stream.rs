@@ -147,9 +147,9 @@ impl<'a, 'b> StreamTrait<'b> for Stream<'a> {
         }
         self.queued = false;
 
-        let view = self.arena.get_unchecked(v4l2_buf.index as usize);
+        let bytes = unsafe { self.arena.get_unchecked(v4l2_buf.index as usize) };
         let buf = Buffer::new(
-            view,
+            bytes,
             Metadata {
                 bytesused: v4l2_buf.bytesused,
                 flags: v4l2_buf.flags.into(),
