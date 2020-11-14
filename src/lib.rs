@@ -106,7 +106,7 @@ pub mod prelude {
     pub use crate::{
         buffer::{Buffer, Stream},
         capture::Device as CaptureDevice,
-        device::{Device, QueryDevice},
+        device::{Device, DeviceExt},
         output::Device as OutputDevice,
     };
 }

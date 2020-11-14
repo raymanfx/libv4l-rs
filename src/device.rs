@@ -4,9 +4,10 @@ use std::{fs, io, mem, sync::Arc};
 
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{buffer, control};
+use crate::{buffer, control, format};
 use crate::{
-    capability::Capabilities, format::FourCC, frameinterval::FrameInterval, framesize::FrameSize,
+    capability::Capabilities, control::Control, format::Format, format::FourCC,
+    frameinterval::FrameInterval, framesize::FrameSize,
 };
 
 /// Manage buffers for a device
@@ -45,7 +46,7 @@ impl From<std::os::raw::c_int> for Handle {
 }
 
 /// Query device properties such as supported formats and controls
-pub trait QueryDevice {
+pub trait DeviceExt {
     /// Returns a vector of all frame intervals that the device supports for the given pixel format
     /// and frame size
     fn enum_frameintervals(
@@ -63,9 +64,46 @@ pub trait QueryDevice {
 
     /// Returns the supported controls for a device such as gain, focus, white balance, etc.
     fn query_controls(&self) -> io::Result<Vec<control::Description>>;
+
+    /// Returns a vector of valid formats for this device
+    ///
+    /// The "emulated" field describes formats filled in by libv4lconvert.
+    /// There may be a conversion related performance penalty when using them.
+    fn enum_formats(&self) -> io::Result<Vec<format::Description>>;
+
+    /// Returns the format currently in use
+    fn format(&self) -> io::Result<Format>;
+
+    /// Modifies the capture format and returns the actual format
+    ///
+    /// The driver tries to match the format parameters on a best effort basis.
+    /// Thus, if the combination of format properties cannot be achieved, the closest possible
+    /// settings are used and reported back.
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `fmt` - Desired format
+    fn set_format(&mut self, fmt: &format::Format) -> io::Result<format::Format>;
+
+    /// Returns the control value for an ID
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Control identifier
+    fn control(&self, id: u32) -> io::Result<Control>;
+
+    /// Modifies the control value
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Control identifier
+    /// * `val` - New value
+    fn set_control(&mut self, id: u32, val: Control) -> io::Result<()>;
 }
 
-impl<T: Device> QueryDevice for T {
+impl<T: Device> DeviceExt for T {
     fn enum_frameintervals(
         &self,
         fourcc: FourCC,
@@ -222,6 +260,117 @@ impl<T: Device> QueryDevice for T {
         }
 
         Ok(controls)
+    }
+
+    fn enum_formats(&self) -> io::Result<Vec<format::Description>> {
+        let mut formats: Vec<format::Description> = Vec::new();
+        let mut v4l2_fmt: v4l2_fmtdesc;
+
+        unsafe {
+            v4l2_fmt = mem::zeroed();
+        }
+
+        v4l2_fmt.index = 0;
+        v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+        let mut ret: io::Result<()>;
+
+        unsafe {
+            ret = v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_ENUM_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            );
+        }
+
+        if ret.is_err() {
+            // Enumerating the fist format (at index 0) failed, so there are no formats available
+            // for this device. Just return an empty vec in this case.
+            return Ok(Vec::new());
+        }
+
+        while ret.is_ok() {
+            formats.push(format::Description::from(v4l2_fmt));
+            v4l2_fmt.index += 1;
+
+            unsafe {
+                v4l2_fmt.description = mem::zeroed();
+            }
+
+            unsafe {
+                ret = v4l2::ioctl(
+                    self.handle().fd(),
+                    v4l2::vidioc::VIDIOC_ENUM_FMT,
+                    &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+                );
+            }
+        }
+
+        Ok(formats)
+    }
+
+    fn format(&self) -> io::Result<Format> {
+        unsafe {
+            let mut v4l2_fmt: v4l2_format = mem::zeroed();
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_G_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            Ok(Format::from(v4l2_fmt.fmt.pix))
+        }
+    }
+
+    fn set_format(&mut self, fmt: &format::Format) -> io::Result<format::Format> {
+        unsafe {
+            let mut v4l2_fmt: v4l2_format = mem::zeroed();
+            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.fmt.pix = (*fmt).into();
+            v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_S_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        self.format()
+    }
+
+    fn control(&self, id: u32) -> io::Result<Control> {
+        unsafe {
+            let mut v4l2_ctrl: v4l2_control = mem::zeroed();
+            v4l2_ctrl.id = id;
+            v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_G_CTRL,
+                &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            Ok(Control::Value(v4l2_ctrl.value))
+        }
+    }
+
+    fn set_control(&mut self, id: u32, val: Control) -> io::Result<()> {
+        unsafe {
+            let mut v4l2_ctrl: v4l2_control = mem::zeroed();
+            v4l2_ctrl.id = id;
+            match val {
+                Control::Value(val) => v4l2_ctrl.value = val,
+                _ => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "only single value controls are supported at the moment",
+                    ))
+                }
+            }
+            v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_S_CTRL,
+                &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+            )
+        }
     }
 }
 
