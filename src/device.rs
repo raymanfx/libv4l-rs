@@ -271,7 +271,7 @@ impl<T: Device> DeviceExt for T {
         }
 
         v4l2_fmt.index = 0;
-        v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        v4l2_fmt.type_ = self.typ() as u32;
 
         let mut ret: io::Result<()>;
 
@@ -312,7 +312,7 @@ impl<T: Device> DeviceExt for T {
     fn format(&self) -> io::Result<Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
-            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.type_ = self.typ() as u32;
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
@@ -326,7 +326,7 @@ impl<T: Device> DeviceExt for T {
     fn set_format(&mut self, fmt: &format::Format) -> io::Result<format::Format> {
         unsafe {
             let mut v4l2_fmt: v4l2_format = mem::zeroed();
-            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.type_ = self.typ() as u32;
             v4l2_fmt.fmt.pix = (*fmt).into();
             v4l2::ioctl(
                 self.handle().fd(),

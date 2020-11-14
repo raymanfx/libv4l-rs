@@ -1,5 +1,6 @@
 use std::{io, mem, path::Path, sync::Arc};
 
+use crate::device::Device as DeviceTrait;
 use crate::v4l_sys::*;
 use crate::{buffer, device};
 use crate::{output, v4l2};
@@ -82,7 +83,7 @@ impl Device {
     pub fn params(&self) -> io::Result<output::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
-            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
+            v4l2_params.type_ = self.typ() as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_PARM,
@@ -122,7 +123,7 @@ impl Device {
     pub fn set_params(&mut self, params: &output::Parameters) -> io::Result<output::Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
-            v4l2_params.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT;
+            v4l2_params.type_ = self.typ() as u32;
             v4l2_params.parm.output = (*params).into();
             v4l2::ioctl(
                 self.handle.fd(),

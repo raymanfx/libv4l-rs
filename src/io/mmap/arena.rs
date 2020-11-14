@@ -1,5 +1,6 @@
 use std::{io, mem, ptr, slice, sync::Arc};
 
+use crate::buffer;
 use crate::io::arena::Arena as ArenaTrait;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -12,6 +13,7 @@ use crate::{device, memory::Memory};
 pub struct Arena<'a> {
     handle: Arc<device::Handle>,
     bufs: Vec<&'a [u8]>,
+    buf_type: buffer::Type,
 }
 
 impl<'a> Arena<'a> {
@@ -19,10 +21,11 @@ impl<'a> Arena<'a> {
     ///
     /// You usually do not need to use this directly.
     /// A MappedBufferStream creates its own manager instance by default.
-    pub fn new(dev: &dyn device::Device) -> Self {
+    pub fn new<T: device::Device>(dev: &T) -> Self {
         Arena {
             handle: dev.handle(),
             bufs: Vec::new(),
+            buf_type: dev.typ(),
         }
     }
 }
@@ -52,7 +55,7 @@ impl<'a> ArenaTrait for Arena<'a> {
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_reqbufs.type_ = self.buf_type as u32;
             v4l2_reqbufs.count = count;
             v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(
@@ -66,7 +69,7 @@ impl<'a> ArenaTrait for Arena<'a> {
             let mut v4l2_buf: v4l2_buffer;
             unsafe {
                 v4l2_buf = mem::zeroed();
-                v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                v4l2_buf.type_ = self.buf_type as u32;
                 v4l2_buf.memory = Memory::Mmap as u32;
                 v4l2_buf.index = i;
                 v4l2::ioctl(
@@ -109,7 +112,7 @@ impl<'a> ArenaTrait for Arena<'a> {
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_reqbufs.type_ = self.buf_type as u32;
             v4l2_reqbufs.count = 0;
             v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(

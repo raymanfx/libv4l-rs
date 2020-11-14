@@ -1,5 +1,6 @@
 use std::{io, mem, sync::Arc};
 
+use crate::buffer;
 use crate::io::arena::Arena as ArenaTrait;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -11,6 +12,7 @@ use crate::{device, memory::Memory};
 pub struct Arena {
     handle: Arc<device::Handle>,
     bufs: Vec<Vec<u8>>,
+    buf_type: buffer::Type,
 }
 
 impl Arena {
@@ -22,10 +24,11 @@ impl Arena {
     /// # Arguments
     ///
     /// * `dev` - Capture device ref to get its file descriptor
-    pub fn new(dev: &dyn device::Device) -> Self {
+    pub fn new<T: device::Device>(dev: &T) -> Self {
         Arena {
             handle: dev.handle(),
             bufs: Vec::new(),
+            buf_type: dev.typ(),
         }
     }
 }
@@ -56,7 +59,7 @@ impl ArenaTrait for Arena {
         let mut v4l2_fmt: v4l2_format;
         unsafe {
             v4l2_fmt = mem::zeroed();
-            v4l2_fmt.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_fmt.type_ = self.buf_type as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
@@ -74,7 +77,7 @@ impl ArenaTrait for Arena {
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_reqbufs.type_ = self.buf_type as u32;
             v4l2_reqbufs.count = count;
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
@@ -95,7 +98,7 @@ impl ArenaTrait for Arena {
             let mut v4l2_buf: v4l2_buffer;
             unsafe {
                 v4l2_buf = mem::zeroed();
-                v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                v4l2_buf.type_ = self.buf_type as u32;
                 v4l2_buf.memory = Memory::UserPtr as u32;
                 v4l2_buf.index = i;
                 v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
@@ -116,7 +119,7 @@ impl ArenaTrait for Arena {
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_reqbufs.type_ = self.buf_type as u32;
             v4l2_reqbufs.count = 0;
             v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(

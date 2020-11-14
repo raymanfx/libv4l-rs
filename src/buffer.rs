@@ -9,6 +9,7 @@ use crate::timestamp::Timestamp;
 #[allow(clippy::unreadable_literal)]
 #[rustfmt::skip]
 #[repr(u32)]
+#[derive(Debug, Clone, Copy)]
 pub enum Type {
     VideoCapture        = 1,
     VideoOutput         = 2,

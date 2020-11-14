@@ -1,5 +1,6 @@
 use std::{io, mem, sync::Arc};
 
+use crate::buffer;
 use crate::buffer::Stream as StreamTrait;
 use crate::buffer::{Buffer, Metadata};
 use crate::device;
@@ -17,6 +18,7 @@ pub struct Stream {
     arena: Arena,
     arena_index: usize,
     arena_len: u32,
+    buf_type: buffer::Type,
 
     active: bool,
     queued: bool,
@@ -40,11 +42,11 @@ impl Stream {
     ///     let stream = Stream::new(&dev);
     /// }
     /// ```
-    pub fn new(dev: &dyn device::Device) -> io::Result<Self> {
+    pub fn new<T: device::Device>(dev: &T) -> io::Result<Self> {
         Stream::with_buffers(dev, 4)
     }
 
-    pub fn with_buffers(dev: &dyn device::Device, count: u32) -> io::Result<Self> {
+    pub fn with_buffers<T: device::Device>(dev: &T, count: u32) -> io::Result<Self> {
         let mut arena = Arena::new(dev);
         let count = arena.allocate(count)?;
 
@@ -53,6 +55,7 @@ impl Stream {
             arena,
             arena_index: 0,
             arena_len: count,
+            buf_type: dev.typ(),
             active: false,
             // the arena queues up all buffers once during allocation
             queued: true,
@@ -83,7 +86,7 @@ impl<'a> StreamTrait<'a> for Stream {
 
     fn start(&mut self) -> io::Result<()> {
         unsafe {
-            let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            let mut typ = self.buf_type as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_STREAMON,
@@ -96,7 +99,7 @@ impl<'a> StreamTrait<'a> for Stream {
 
     fn stop(&mut self) -> io::Result<()> {
         unsafe {
-            let mut typ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            let mut typ = self.buf_type as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_STREAMOFF,
@@ -116,7 +119,7 @@ impl<'a> StreamTrait<'a> for Stream {
         let buf = &mut self.arena.get_unchecked(self.arena_index as usize);
         unsafe {
             v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_buf.type_ = self.buf_type as u32;
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2_buf.index = self.arena_index as u32;
             v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
@@ -137,7 +140,7 @@ impl<'a> StreamTrait<'a> for Stream {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            v4l2_buf.type_ = self.buf_type as u32;
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
                 self.handle.fd(),
