@@ -2,14 +2,12 @@ use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::{fs, io, mem, sync::Arc};
 
-use crate::control;
 use crate::v4l2;
 use crate::v4l_sys::*;
+use crate::{buffer, control};
 use crate::{
     capability::Capabilities, format::FourCC, frameinterval::FrameInterval, framesize::FrameSize,
 };
-
-pub use crate::buffer::BufferType as Type;
 
 /// Manage buffers for a device
 pub trait Device {
@@ -17,7 +15,7 @@ pub trait Device {
     fn handle(&self) -> Arc<Handle>;
 
     /// Type of the device (capture, overlay, output)
-    fn typ(&self) -> Type;
+    fn typ(&self) -> buffer::Type;
 }
 
 /// Device handle for low-level access.

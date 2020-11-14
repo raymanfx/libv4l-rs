@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::{io, mem, path::Path, sync::Arc};
 
 use crate::v4l_sys::*;
-use crate::{device, format};
+use crate::{buffer, device, format};
 use crate::{output, v4l2, Control};
 
 /// Linux output device abstraction
@@ -369,8 +369,8 @@ impl device::Device for Device {
         Arc::clone(&self.handle)
     }
 
-    fn typ(&self) -> device::Type {
-        device::Type::VideoOutput
+    fn typ(&self) -> buffer::Type {
+        buffer::Type::VideoOutput
     }
 }
 

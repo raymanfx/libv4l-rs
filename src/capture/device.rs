@@ -3,7 +3,7 @@ use std::{io, mem, path::Path, sync::Arc};
 
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{capture, control::Control, device, format, Format};
+use crate::{buffer, capture, control::Control, device, format, Format};
 
 /// Linux capture device abstraction
 pub struct Device {
@@ -371,8 +371,8 @@ impl device::Device for Device {
         Arc::clone(&self.handle)
     }
 
-    fn typ(&self) -> device::Type {
-        device::Type::VideoCapture
+    fn typ(&self) -> buffer::Type {
+        buffer::Type::VideoCapture
     }
 }
 
