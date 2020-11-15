@@ -149,9 +149,10 @@ impl<'a, 'b> Capture<'b> for Stream<'a> {
         }
         self.queued = false;
 
-        let bytes = unsafe { self.arena.get_unchecked(v4l2_buf.index as usize) };
+        let planes = unsafe { self.arena.get_unchecked(v4l2_buf.index as usize) };
+        let planes: Vec<&[u8]> = planes.into_iter().map(|plane| &**plane).collect();
         Ok(Buffer {
-            bytes,
+            planes: planes.clone(),
             meta: Metadata {
                 bytesused: v4l2_buf.bytesused,
                 flags: v4l2_buf.flags.into(),
@@ -191,8 +192,10 @@ impl<'a, 'b> Output<'b> for Stream<'a> {
             v4l2_buf.field = item.meta.field;
 
             // write the actual frame data
-            let bytes = self.arena.get_unchecked_mut(v4l2_buf.index as usize);
-            bytes.copy_from_slice(item.data());
+            let planes = self.arena.get_unchecked_mut(v4l2_buf.index as usize);
+            for i in 0..item.planes.len() {
+                planes[i].copy_from_slice(item.planes[i]);
+            }
 
             v4l2::ioctl(
                 self.handle.fd(),

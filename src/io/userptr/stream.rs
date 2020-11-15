@@ -117,15 +117,30 @@ impl<'a> Capture<'a> for Stream {
             return Ok(());
         }
 
+        let planes = unsafe { &mut self.arena.get_unchecked(self.arena_index as usize) };
+
         let mut v4l2_buf: v4l2_buffer;
-        let buf = unsafe { &mut self.arena.get_unchecked(self.arena_index as usize) };
+        let mut v4l2_planes: Vec<v4l2_plane> = Vec::new();
         unsafe {
+            v4l2_planes.resize(planes.len(), mem::zeroed());
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = self.buf_type as u32;
             v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2_buf.index = self.arena_index as u32;
-            v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
-            v4l2_buf.length = buf.len() as u32;
+
+            if planes.len() == 1 {
+                // emulate a single memory plane
+                v4l2_buf.length = planes[0].len() as u32;
+                v4l2_buf.m.userptr = planes[0].as_ptr() as std::os::raw::c_ulong;
+            } else {
+                v4l2_buf.length = planes.len() as u32;
+                v4l2_buf.m.planes = v4l2_planes.as_mut_ptr();
+                for j in 0..v4l2_planes.len() {
+                    v4l2_planes[j].length = planes[j].len() as u32;
+                    v4l2_planes[j].m.userptr = planes[j].as_ptr() as std::os::raw::c_ulong;
+                }
+            }
+
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
@@ -152,33 +167,17 @@ impl<'a> Capture<'a> for Stream {
         }
         self.queued = false;
 
-        let mut buffer = None;
-        for i in 0..self.arena.len() {
-            unsafe {
-                let buf = self.arena.get_unchecked(i);
-                if (buf.as_ptr()) == (v4l2_buf.m.userptr as *const u8) {
-                    buffer = Some(buf);
-                    break;
-                }
-            }
-        }
-
-        match buffer {
-            Some(bytes) => Ok(Buffer {
-                bytes,
-                meta: Metadata {
-                    bytesused: v4l2_buf.bytesused,
-                    flags: v4l2_buf.flags.into(),
-                    field: v4l2_buf.field,
-                    timestamp: v4l2_buf.timestamp.into(),
-                    sequence: v4l2_buf.sequence,
-                },
-            }),
-            None => Err(io::Error::new(
-                io::ErrorKind::Other,
-                "failed to find buffer",
-            )),
-        }
+        let planes = unsafe { self.arena.get_unchecked(v4l2_buf.index as usize) };
+        Ok(Buffer {
+            planes: planes.iter().map(|plane| plane.as_slice()).collect(),
+            meta: Metadata {
+                bytesused: v4l2_buf.bytesused,
+                flags: v4l2_buf.flags.into(),
+                field: v4l2_buf.field,
+                timestamp: v4l2_buf.timestamp.into(),
+                sequence: v4l2_buf.sequence,
+            },
+        })
     }
 
     fn next(&'a mut self) -> io::Result<Self::Item> {

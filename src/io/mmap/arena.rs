@@ -12,7 +12,7 @@ use crate::{device, memory::Memory};
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub struct Arena<'a> {
     handle: Arc<device::Handle>,
-    bufs: Vec<&'a mut [u8]>,
+    bufs: Vec<Vec<&'a mut [u8]>>,
     buf_type: buffer::Type,
 }
 
@@ -49,9 +49,27 @@ impl<'a> Drop for Arena<'a> {
 }
 
 impl<'a> ArenaTrait for Arena<'a> {
-    type Buffer = [u8];
+    type Buffer = Vec<&'a mut [u8]>;
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
+        let num_planes = if !self.buf_type.planar() {
+            1
+        } else {
+            // we need to get the number of image planes from the format
+            let mut v4l2_fmt: v4l2_format;
+            unsafe {
+                v4l2_fmt = mem::zeroed();
+                v4l2_fmt.type_ = self.buf_type as u32;
+                v4l2::ioctl(
+                    self.handle.fd(),
+                    v4l2::vidioc::VIDIOC_G_FMT,
+                    &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+                )?;
+
+                v4l2_fmt.fmt.pix_mp.num_planes as usize
+            }
+        };
+
         let mut v4l2_reqbufs: v4l2_requestbuffers;
         unsafe {
             v4l2_reqbufs = mem::zeroed();
@@ -67,35 +85,56 @@ impl<'a> ArenaTrait for Arena<'a> {
 
         for i in 0..v4l2_reqbufs.count {
             let mut v4l2_buf: v4l2_buffer;
+            let mut v4l2_planes: Vec<v4l2_plane> = Vec::new();
+
             unsafe {
+                v4l2_planes.resize(num_planes as usize, mem::zeroed());
                 v4l2_buf = mem::zeroed();
                 v4l2_buf.type_ = self.buf_type as u32;
                 v4l2_buf.memory = Memory::Mmap as u32;
                 v4l2_buf.index = i;
+                if num_planes > 1 {
+                    v4l2_buf.length = num_planes as u32;
+                    v4l2_buf.m.planes = v4l2_planes.as_mut_ptr();
+                }
+
                 v4l2::ioctl(
                     self.handle.fd(),
                     v4l2::vidioc::VIDIOC_QUERYBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
 
+                if num_planes == 1 {
+                    // emulate a single memory plane
+                    v4l2_planes[0].m.mem_offset = v4l2_buf.m.offset;
+                    v4l2_planes[0].length = v4l2_buf.length;
+                }
+
+                // each plane has to be mapped separately
+                let mut planes = Vec::new();
+                for plane in v4l2_planes {
+                    let ptr = v4l2::mmap(
+                        ptr::null_mut(),
+                        plane.length as usize,
+                        libc::PROT_READ | libc::PROT_WRITE,
+                        libc::MAP_SHARED,
+                        self.handle.fd(),
+                        plane.m.mem_offset as libc::off_t,
+                    )?;
+
+                    let slice =
+                        slice::from_raw_parts_mut::<u8>(ptr as *mut u8, plane.length as usize);
+                    planes.push(slice);
+                }
+
+                // finally, add the buffer (with all its planes) to the set
+                self.bufs.push(planes);
+
                 v4l2::ioctl(
                     self.handle.fd(),
                     v4l2::vidioc::VIDIOC_QBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
-
-                let ptr = v4l2::mmap(
-                    ptr::null_mut(),
-                    v4l2_buf.length as usize,
-                    libc::PROT_READ | libc::PROT_WRITE,
-                    libc::MAP_SHARED,
-                    self.handle.fd(),
-                    v4l2_buf.m.offset as libc::off_t,
-                )?;
-
-                let slice =
-                    slice::from_raw_parts_mut::<u8>(ptr as *mut u8, v4l2_buf.length as usize);
-                self.bufs.push(slice);
             }
         }
 
@@ -104,8 +143,10 @@ impl<'a> ArenaTrait for Arena<'a> {
 
     fn release(&mut self) -> io::Result<()> {
         for buf in &self.bufs {
-            unsafe {
-                v4l2::munmap(buf.as_ptr() as *mut core::ffi::c_void, buf.len())?;
+            for plane in buf {
+                unsafe {
+                    v4l2::munmap(plane.as_ptr() as *mut core::ffi::c_void, buf.len())?;
+                }
             }
         }
 

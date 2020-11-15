@@ -30,6 +30,15 @@ pub enum Type {
     Private             = 0x80,
 }
 
+impl Type {
+    pub fn planar(&self) -> bool {
+        match self {
+            Type::VideoCaptureMplane | Type::VideoOutputMplane => true,
+            _ => false,
+        }
+    }
+}
+
 bitflags! {
     #[allow(clippy::unreadable_literal)]
     pub struct Flags: u32 {
@@ -110,14 +119,14 @@ pub struct Metadata {
 /// Represents a buffer view
 #[derive(Clone)]
 pub struct Buffer<'a> {
-    pub bytes: &'a [u8],
+    pub planes: Vec<&'a [u8]>,
     pub meta: Metadata,
 }
 
 impl<'a> Buffer<'a> {
     /// Slice of read-only data
     pub fn data(&self) -> &[u8] {
-        self.bytes
+        self.planes[0]
     }
 
     /// Metadata such as allocation flags, timestamp and more
@@ -130,6 +139,6 @@ impl<'a> ops::Deref for Buffer<'a> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        self.bytes
+        self.planes[0]
     }
 }

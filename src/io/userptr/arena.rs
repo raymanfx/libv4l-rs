@@ -11,7 +11,7 @@ use crate::{device, memory::Memory};
 /// All buffers are released in the Drop impl.
 pub struct Arena {
     handle: Arc<device::Handle>,
-    bufs: Vec<Vec<u8>>,
+    bufs: Vec<Vec<Vec<u8>>>,
     buf_type: buffer::Type,
 }
 
@@ -52,7 +52,7 @@ impl Drop for Arena {
 }
 
 impl ArenaTrait for Arena {
-    type Buffer = [u8];
+    type Buffer = Vec<Vec<u8>>;
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
         // we need to get the maximum buffer size from the format first
@@ -66,6 +66,13 @@ impl ArenaTrait for Arena {
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
+
+        let num_planes = if !self.buf_type.planar() {
+            1
+        } else {
+            // we need to get the number of image planes from the format
+            unsafe { v4l2_fmt.fmt.pix_mp.num_planes as usize }
+        };
 
         #[cfg(feature = "v4l-sys")]
         eprintln!(
@@ -90,19 +97,42 @@ impl ArenaTrait for Arena {
         // allocate the new user buffers
         self.bufs.resize(v4l2_reqbufs.count as usize, Vec::new());
         for i in 0..v4l2_reqbufs.count {
-            let buf = &mut self.bufs[i as usize];
-            unsafe {
-                buf.resize(v4l2_fmt.fmt.pix.sizeimage as usize, 0);
+            // allocate some backing memory for the planes
+            let planes = &mut self.bufs[i as usize];
+            planes.resize(num_planes, Vec::new());
+            for j in 0..planes.len() {
+                let plane_size = if num_planes == 1 {
+                    unsafe { v4l2_fmt.fmt.pix.sizeimage }
+                } else {
+                    unsafe { v4l2_fmt.fmt.pix_mp.plane_fmt[j].sizeimage }
+                };
+                planes[j].resize(plane_size as usize, 0);
             }
 
+            // TODO: account for data_offset in v4l2_plane
+
             let mut v4l2_buf: v4l2_buffer;
+            let mut v4l2_planes: Vec<v4l2_plane> = Vec::new();
             unsafe {
+                v4l2_planes.resize(num_planes as usize, mem::zeroed());
                 v4l2_buf = mem::zeroed();
                 v4l2_buf.type_ = self.buf_type as u32;
                 v4l2_buf.memory = Memory::UserPtr as u32;
                 v4l2_buf.index = i;
-                v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
-                v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
+
+                if num_planes == 1 {
+                    // emulate a single memory plane
+                    v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
+                    v4l2_buf.m.userptr = planes[0].as_ptr() as std::os::raw::c_ulong;
+                } else {
+                    v4l2_buf.length = num_planes as u32;
+                    v4l2_buf.m.planes = v4l2_planes.as_mut_ptr();
+                    for j in 0..v4l2_planes.len() {
+                        v4l2_planes[j].length = planes[j].len() as u32;
+                        v4l2_planes[j].m.userptr = planes[j].as_ptr() as std::os::raw::c_ulong;
+                    }
+                }
+
                 v4l2::ioctl(
                     self.handle.fd(),
                     v4l2::vidioc::VIDIOC_QBUF,
