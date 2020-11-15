@@ -5,7 +5,7 @@ use crate::buffer::{Buffer, Metadata};
 use crate::device;
 use crate::io::arena::Arena as ArenaTrait;
 use crate::io::mmap::arena::Arena;
-use crate::io::stream::{Capture, Stream as StreamTrait};
+use crate::io::stream::{Capture, Output, Stream as StreamTrait};
 use crate::memory::Memory;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -155,6 +155,7 @@ impl<'a, 'b> Capture<'b> for Stream<'a> {
             meta: Metadata {
                 bytesused: v4l2_buf.bytesused,
                 flags: v4l2_buf.flags.into(),
+                field: v4l2_buf.field,
                 timestamp: v4l2_buf.timestamp.into(),
                 sequence: v4l2_buf.sequence,
             },
@@ -168,5 +169,68 @@ impl<'a, 'b> Capture<'b> for Stream<'a> {
 
         <Stream as Capture>::queue(self)?;
         <Stream as Capture>::dequeue(self)
+    }
+}
+
+impl<'a, 'b> Output<'b> for Stream<'a> {
+    type Item = Buffer<'b>;
+
+    fn queue(&mut self, item: Self::Item) -> io::Result<()> {
+        if self.queued {
+            return Ok(());
+        }
+
+        let mut v4l2_buf: v4l2_buffer;
+        unsafe {
+            v4l2_buf = mem::zeroed();
+            v4l2_buf.type_ = self.buf_type as u32;
+            v4l2_buf.memory = Memory::Mmap as u32;
+            v4l2_buf.index = self.arena_index as u32;
+            // output settings
+            v4l2_buf.bytesused = item.data().len() as u32;
+            v4l2_buf.field = item.meta.field;
+
+            // write the actual frame data
+            let bytes = self.arena.get_unchecked_mut(v4l2_buf.index as usize);
+            bytes.copy_from_slice(item.data());
+
+            v4l2::ioctl(
+                self.handle.fd(),
+                v4l2::vidioc::VIDIOC_QBUF,
+                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        self.arena_index = (self.arena_index + 1) % self.arena_len as usize;
+
+        Ok(())
+    }
+
+    fn dequeue(&mut self) -> io::Result<()> {
+        let mut v4l2_buf: v4l2_buffer;
+        unsafe {
+            v4l2_buf = mem::zeroed();
+            v4l2_buf.type_ = self.buf_type as u32;
+            v4l2_buf.memory = Memory::Mmap as u32;
+            v4l2::ioctl(
+                self.handle.fd(),
+                v4l2::vidioc::VIDIOC_DQBUF,
+                &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        self.arena_index = v4l2_buf.index as usize;
+        self.queued = false;
+
+        Ok(())
+    }
+
+    fn next(&mut self, item: Self::Item) -> io::Result<()> {
+        if !self.active {
+            self.start()?;
+        }
+
+        <Stream as Output>::queue(self, item)?;
+        <Stream as Output>::dequeue(self)
     }
 }

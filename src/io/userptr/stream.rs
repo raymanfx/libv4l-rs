@@ -169,6 +169,7 @@ impl<'a> Capture<'a> for Stream {
                 meta: Metadata {
                     bytesused: v4l2_buf.bytesused,
                     flags: v4l2_buf.flags.into(),
+                    field: v4l2_buf.field,
                     timestamp: v4l2_buf.timestamp.into(),
                     sequence: v4l2_buf.sequence,
                 },

@@ -99,6 +99,8 @@ pub struct Metadata {
     pub bytesused: u32,
     /// Buffer flags
     pub flags: Flags,
+    /// Indicates the field order of the image in the buffer.
+    pub field: u32,
     /// Time of capture (usually set by the driver)
     pub timestamp: Timestamp,
     /// Sequence number, counting the frames
