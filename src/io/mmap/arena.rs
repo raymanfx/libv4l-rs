@@ -12,7 +12,7 @@ use crate::{device, memory::Memory};
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub struct Arena<'a> {
     handle: Arc<device::Handle>,
-    bufs: Vec<&'a [u8]>,
+    bufs: Vec<&'a mut [u8]>,
     buf_type: buffer::Type,
 }
 
@@ -93,7 +93,8 @@ impl<'a> ArenaTrait for Arena<'a> {
                     v4l2_buf.m.offset as libc::off_t,
                 )?;
 
-                let slice = slice::from_raw_parts::<u8>(ptr as *mut u8, v4l2_buf.length as usize);
+                let slice =
+                    slice::from_raw_parts_mut::<u8>(ptr as *mut u8, v4l2_buf.length as usize);
                 self.bufs.push(slice);
             }
         }
@@ -130,8 +131,16 @@ impl<'a> ArenaTrait for Arena<'a> {
         Some(self.bufs.get(index)?)
     }
 
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Buffer> {
+        Some(self.bufs.get_mut(index)?)
+    }
+
     unsafe fn get_unchecked(&self, index: usize) -> &Self::Buffer {
         self.bufs.get_unchecked(index)
+    }
+
+    unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Buffer {
+        self.bufs.get_unchecked_mut(index)
     }
 
     fn len(&self) -> usize {

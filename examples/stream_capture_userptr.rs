@@ -3,6 +3,7 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use std::time::Instant;
+use v4l::io::stream::Capture;
 use v4l::prelude::*;
 
 fn main() {

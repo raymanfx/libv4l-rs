@@ -45,6 +45,7 @@
 //! Here is a very brief example of streaming I/O with memory mapped buffers:
 //!
 //! ```no_run
+//! use v4l::io::stream::Capture;
 //! use v4l::prelude::*;
 //!
 //! let mut dev = CaptureDevice::new(0).expect("Failed to open device");
@@ -105,7 +106,7 @@ pub use {
 pub mod prelude {
     pub use crate::io::{mmap::Stream as MmapStream, userptr::Stream as UserptrStream};
     pub use crate::{
-        buffer::{Buffer, Stream},
+        buffer::Buffer,
         capture::Device as CaptureDevice,
         device::{Device, DeviceExt},
         output::Device as OutputDevice,

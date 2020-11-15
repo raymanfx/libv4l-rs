@@ -1,10 +1,10 @@
 use std::{io, mem, sync::Arc};
 
 use crate::buffer;
-use crate::buffer::Stream as StreamTrait;
 use crate::buffer::{Buffer, Metadata};
 use crate::device;
 use crate::io::arena::Arena as ArenaTrait;
+use crate::io::stream::{Capture, Stream as StreamTrait};
 use crate::io::userptr::arena::Arena;
 use crate::memory::Memory;
 use crate::v4l2;
@@ -81,9 +81,7 @@ impl Drop for Stream {
     }
 }
 
-impl<'a> StreamTrait<'a> for Stream {
-    type Item = Buffer<'a>;
-
+impl StreamTrait for Stream {
     fn start(&mut self) -> io::Result<()> {
         unsafe {
             let mut typ = self.buf_type as u32;
@@ -109,6 +107,10 @@ impl<'a> StreamTrait<'a> for Stream {
 
         Ok(())
     }
+}
+
+impl<'a> Capture<'a> for Stream {
+    type Item = Buffer<'a>;
 
     fn queue(&mut self) -> io::Result<()> {
         if self.queued {

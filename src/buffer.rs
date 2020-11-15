@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, io, ops};
+use std::{fmt, ops};
 
 use crate::timestamp::Timestamp;
 
@@ -106,6 +106,7 @@ pub struct Metadata {
 }
 
 /// Represents a buffer view
+#[derive(Clone)]
 pub struct Buffer<'a> {
     view: &'a [u8],
     metadata: Metadata,
@@ -162,25 +163,4 @@ impl<'a> ops::Deref for Buffer<'a> {
     fn deref(&self) -> &Self::Target {
         self.view
     }
-}
-
-/// Streaming I/O
-pub trait Stream<'a> {
-    type Item;
-
-    /// Start streaming, takes exclusive ownership of a device
-    fn start(&mut self) -> io::Result<()>;
-
-    /// Stop streaming, frees all buffers
-    fn stop(&mut self) -> io::Result<()>;
-
-    /// Queue a new frame on the device
-    fn queue(&mut self) -> io::Result<()>;
-
-    /// Read a queued frame back to memory
-    fn dequeue(&'a mut self) -> io::Result<Self::Item>;
-
-    /// Fetch a new frame by first queueing and then dequeueing.
-    /// First time initialization is performed if necessary.
-    fn next(&'a mut self) -> io::Result<Self::Item>;
 }

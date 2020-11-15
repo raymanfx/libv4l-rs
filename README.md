@@ -32,6 +32,7 @@ Enable either the `libv4l` or the `v4l2` backend by choosing the it as feature f
 Below you can find a quick example usage of this crate. It introduces the basics necessary to do frame capturing from a streaming device (e.g. webcam).
 
 ```rust
+use v4l::io::stream::Capture;
 use v4l::prelude::*;
 use v4l::FourCC;
 

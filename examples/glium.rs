@@ -9,6 +9,7 @@ use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
 use v4l::capture;
+use v4l::io::stream::Capture;
 use v4l::prelude::*;
 use v4l::{Format, FourCC};
 

@@ -134,8 +134,16 @@ impl ArenaTrait for Arena {
         Some(self.bufs.get(index)?)
     }
 
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Buffer> {
+        Some(self.bufs.get_mut(index)?)
+    }
+
     unsafe fn get_unchecked(&self, index: usize) -> &Self::Buffer {
         self.bufs.get_unchecked(index)
+    }
+
+    unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Buffer {
+        self.bufs.get_unchecked_mut(index)
     }
 
     fn len(&self) -> usize {
