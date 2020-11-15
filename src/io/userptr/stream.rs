@@ -164,15 +164,15 @@ impl<'a> Capture<'a> for Stream {
         }
 
         match buffer {
-            Some(buf) => Ok(Buffer::new(
-                buf,
-                Metadata {
+            Some(bytes) => Ok(Buffer {
+                bytes,
+                meta: Metadata {
                     bytesused: v4l2_buf.bytesused,
                     flags: v4l2_buf.flags.into(),
                     timestamp: v4l2_buf.timestamp.into(),
                     sequence: v4l2_buf.sequence,
                 },
-            )),
+            }),
             None => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "failed to find buffer",

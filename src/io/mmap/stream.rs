@@ -150,17 +150,15 @@ impl<'a, 'b> Capture<'b> for Stream<'a> {
         self.queued = false;
 
         let bytes = unsafe { self.arena.get_unchecked(v4l2_buf.index as usize) };
-        let buf = Buffer::new(
+        Ok(Buffer {
             bytes,
-            Metadata {
+            meta: Metadata {
                 bytesused: v4l2_buf.bytesused,
                 flags: v4l2_buf.flags.into(),
                 timestamp: v4l2_buf.timestamp.into(),
                 sequence: v4l2_buf.sequence,
             },
-        );
-
-        Ok(buf)
+        })
     }
 
     fn next(&'b mut self) -> io::Result<Self::Item> {

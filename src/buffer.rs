@@ -108,52 +108,19 @@ pub struct Metadata {
 /// Represents a buffer view
 #[derive(Clone)]
 pub struct Buffer<'a> {
-    view: &'a [u8],
-    metadata: Metadata,
+    pub bytes: &'a [u8],
+    pub meta: Metadata,
 }
 
 impl<'a> Buffer<'a> {
-    /// Returns a memory region view
-    ///
-    /// Buffers created this way provide read-only access to the backing data, enforcing callers
-    /// to copy the data before mutating it.
-    ///
-    /// # Arguments
-    ///
-    /// * `view` - Slice of raw memory
-    /// * `meta` - Metadata, usually filled in by the driver
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use v4l::{buffer, timestamp};
-    ///
-    /// let data: Vec<u8> = Vec::new();
-    /// let ts = timestamp::Timestamp::new(0 /* sec */, 0 /* usec */);
-    /// let flags = buffer::Flags::from(0);
-    /// let meta = buffer::Metadata {
-    ///     bytesused: 0,
-    ///     flags,
-    ///     timestamp: ts,
-    ///     sequence: 0,
-    /// };
-    /// let buf = buffer::Buffer::new(&data, meta);
-    /// ```
-    pub fn new(view: &'a [u8], meta: Metadata) -> Self {
-        Buffer {
-            view,
-            metadata: meta,
-        }
-    }
-
     /// Slice of read-only data
     pub fn data(&self) -> &[u8] {
-        self.view
+        self.bytes
     }
 
     /// Metadata such as allocation flags, timestamp and more
     pub fn meta(&self) -> &Metadata {
-        &self.metadata
+        &self.meta
     }
 }
 
@@ -161,6 +128,6 @@ impl<'a> ops::Deref for Buffer<'a> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        self.view
+        self.bytes
     }
 }
