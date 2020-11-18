@@ -9,10 +9,10 @@ use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
 use v4l::buffer::Type;
-use v4l::io::stream::Capture;
+use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
 use v4l::video::capture::Parameters;
-use v4l::video::Capture as _;
+use v4l::video::Capture;
 use v4l::{Format, FourCC};
 
 fn main() {
@@ -152,7 +152,7 @@ fn main() {
             .expect("Failed to create buffer stream");
 
         loop {
-            let buf = stream.next().expect("Failed to capture buffer");
+            let (buf, _) = stream.next().expect("Failed to capture buffer");
             let data = buf.to_vec();
             tx.send(data).unwrap();
         }

@@ -74,6 +74,12 @@ bitflags! {
     }
 }
 
+impl Default for Flags {
+    fn default() -> Self {
+        Flags::from(0)
+    }
+}
+
 impl From<u32> for Flags {
     fn from(flags: u32) -> Flags {
         Flags::from_bits_truncate(flags)
@@ -93,7 +99,7 @@ impl fmt::Display for Flags {
 }
 
 /// Buffer metadata, mostly used not to convolute the main buffer structs
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Metadata {
     /// Number of bytes occupied by the data in the buffer
     pub bytesused: u32,
@@ -108,9 +114,9 @@ pub struct Metadata {
 }
 
 /// Represents a buffer view
-#[derive(Clone)]
+#[derive(Default)]
 pub struct Buffer<'a> {
-    pub bytes: &'a [u8],
+    pub bytes: &'a mut [u8],
     pub meta: Metadata,
 }
 

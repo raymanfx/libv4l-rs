@@ -4,9 +4,9 @@ extern crate v4l;
 use clap::{App, Arg};
 use std::io::Write;
 use v4l::buffer::Type;
-use v4l::io::stream::Capture;
+use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
-use v4l::video::Capture as _;
+use v4l::video::Capture;
 
 fn main() {
     let matches = App::new("v4l device")
@@ -64,9 +64,9 @@ fn main() {
         .expect("Failed to create buffer stream");
 
     loop {
-        let buf = stream.next().expect("Failed to capture buffer");
+        let (buf, _) = stream.next().expect("Failed to capture buffer");
         output_dev
-            .write_all(&*buf)
+            .write_all(buf)
             .expect("Failed to write to output device");
     }
 }

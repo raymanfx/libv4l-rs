@@ -84,12 +84,6 @@ impl<'a> ArenaTrait for Arena<'a> {
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
 
-                v4l2::ioctl(
-                    self.handle.fd(),
-                    v4l2::vidioc::VIDIOC_QBUF,
-                    &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-                )?;
-
                 let ptr = v4l2::mmap(
                     ptr::null_mut(),
                     v4l2_buf.length as usize,

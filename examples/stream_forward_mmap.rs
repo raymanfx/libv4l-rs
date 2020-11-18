@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use clap::{App, Arg};
 use v4l::buffer::Type;
-use v4l::io::stream::{Capture as CaptureStream, Output as OutputStream};
+use v4l::io::traits::{CaptureStream, OutputStream};
 use v4l::prelude::*;
 use v4l::video::{Capture, Output};
 
@@ -106,7 +106,6 @@ fn main() -> io::Result<()> {
 
     // Setup a buffer stream and grab a frame, then print its data
     let mut cap_stream = MmapStream::with_buffers(&mut cap, Type::VideoCapture, buffers)?;
-
     let mut out_stream = MmapStream::with_buffers(&mut out, Type::VideoOutput, buffers)?;
 
     // warmup
@@ -116,11 +115,13 @@ fn main() -> io::Result<()> {
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let buf = CaptureStream::next(&mut cap_stream)?;
-        OutputStream::next(&mut out_stream, buf.clone())?;
+        let (buf_in, buf_in_meta) = CaptureStream::next(&mut cap_stream)?;
+        let (buf_out, buf_out_meta) = OutputStream::next(&mut out_stream)?;
+        buf_out.copy_from_slice(buf_in);
+        buf_out_meta.field = 0;
         let duration_us = t0.elapsed().as_micros();
 
-        let cur = buf.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
+        let cur = buf_in.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
         if i == 0 {
             megabytes_ps = cur;
         } else {
@@ -131,10 +132,14 @@ fn main() -> io::Result<()> {
         }
 
         println!("Buffer");
-        println!("  sequence  : {}", buf.meta().sequence);
-        println!("  timestamp : {}", buf.meta().timestamp);
-        println!("  flags     : {}", buf.meta().flags);
-        println!("  length    : {}", buf.len());
+        println!("  sequence   [in] : {}", buf_in_meta.sequence);
+        println!("  sequence  [out] : {}", buf_out_meta.sequence);
+        println!("  timestamp  [in] : {}", buf_in_meta.timestamp);
+        println!("  timestamp [out] : {}", buf_out_meta.timestamp);
+        println!("  flags      [in] : {}", buf_in_meta.flags);
+        println!("  flags     [out] : {}", buf_out_meta.flags);
+        println!("  length     [in] : {}", buf_in.len());
+        println!("  length    [out] : {}", buf_out.len());
     }
 
     println!();

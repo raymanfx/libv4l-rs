@@ -46,7 +46,7 @@
 //!
 //! ```no_run
 //! use v4l::buffer::Type;
-//! use v4l::io::stream::Capture;
+//! use v4l::io::traits::CaptureStream;
 //! use v4l::prelude::*;
 //!
 //! let mut dev = Device::new(0).expect("Failed to open device");
@@ -55,12 +55,12 @@
 //!     MmapStream::with_buffers(&mut dev, Type::VideoCapture, 4).expect("Failed to create buffer stream");
 //!
 //! loop {
-//!     let frame = stream.next().unwrap();
+//!     let (buf, meta) = stream.next().unwrap();
 //!     println!(
 //!         "Buffer size: {}, seq: {}, timestamp: {}",
-//!        frame.len(),
-//!        frame.meta().sequence,
-//!        frame.meta().timestamp
+//!        buf.len(),
+//!        meta.sequence,
+//!        meta.timestamp
 //!    );
 //!}
 //!```

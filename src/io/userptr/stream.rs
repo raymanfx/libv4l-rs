@@ -1,10 +1,9 @@
 use std::{io, mem, sync::Arc};
 
-use crate::buffer;
-use crate::buffer::{Buffer, Metadata};
+use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
 use crate::io::arena::Arena as ArenaTrait;
-use crate::io::stream::{Capture, Stream as StreamTrait};
+use crate::io::traits::{CaptureStream, Stream as StreamTrait};
 use crate::io::userptr::arena::Arena;
 use crate::memory::Memory;
 use crate::v4l2;
@@ -17,11 +16,10 @@ pub struct Stream {
     handle: Arc<Handle>,
     arena: Arena,
     arena_index: usize,
-    arena_len: u32,
-    buf_type: buffer::Type,
+    buf_type: Type,
+    buf_meta: Vec<Metadata>,
 
     active: bool,
-    queued: bool,
 }
 
 impl Stream {
@@ -44,23 +42,23 @@ impl Stream {
     ///     let stream = Stream::new(&dev, Type::VideoCapture);
     /// }
     /// ```
-    pub fn new(dev: &Device, buf_type: buffer::Type) -> io::Result<Self> {
+    pub fn new(dev: &Device, buf_type: Type) -> io::Result<Self> {
         Stream::with_buffers(dev, buf_type, 4)
     }
 
-    pub fn with_buffers(dev: &Device, buf_type: buffer::Type, buf_count: u32) -> io::Result<Self> {
+    pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
         let mut arena = Arena::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
+        let mut buf_meta = Vec::new();
+        buf_meta.resize(count as usize, Metadata::default());
 
         Ok(Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
-            arena_len: count,
             buf_type,
+            buf_meta,
             active: false,
-            // the arena queues up all buffers once during allocation
-            queued: true,
         })
     }
 }
@@ -84,6 +82,8 @@ impl Drop for Stream {
 }
 
 impl StreamTrait for Stream {
+    type Item = [u8];
+
     fn start(&mut self) -> io::Result<()> {
         unsafe {
             let mut typ = self.buf_type as u32;
@@ -111,21 +111,15 @@ impl StreamTrait for Stream {
     }
 }
 
-impl<'a> Capture<'a> for Stream {
-    type Item = Buffer<'a>;
-
-    fn queue(&mut self) -> io::Result<()> {
-        if self.queued {
-            return Ok(());
-        }
-
+impl<'a> CaptureStream<'a> for Stream {
+    fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf: v4l2_buffer;
         let buf = unsafe { &mut self.arena.get_unchecked(self.arena_index as usize) };
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = self.buf_type as u32;
             v4l2_buf.memory = Memory::UserPtr as u32;
-            v4l2_buf.index = self.arena_index as u32;
+            v4l2_buf.index = index as u32;
             v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
             v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
@@ -135,12 +129,10 @@ impl<'a> Capture<'a> for Stream {
             )?;
         }
 
-        self.arena_index = (self.arena_index + 1) % self.arena_len as usize;
-
         Ok(())
     }
 
-    fn dequeue(&'a mut self) -> io::Result<Self::Item> {
+    fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -152,43 +144,41 @@ impl<'a> Capture<'a> for Stream {
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
-        self.queued = false;
+        self.arena_index = v4l2_buf.index as usize;
 
-        let mut buffer = None;
-        for i in 0..self.arena.len() {
-            unsafe {
-                let buf = self.arena.get_unchecked(i);
-                if (buf.as_ptr()) == (v4l2_buf.m.userptr as *const u8) {
-                    buffer = Some(buf);
-                    break;
-                }
-            }
-        }
+        self.buf_meta[self.arena_index] = Metadata {
+            bytesused: v4l2_buf.bytesused,
+            flags: v4l2_buf.flags.into(),
+            field: v4l2_buf.field,
+            timestamp: v4l2_buf.timestamp.into(),
+            sequence: v4l2_buf.sequence,
+        };
 
-        match buffer {
-            Some(bytes) => Ok(Buffer {
-                bytes,
-                meta: Metadata {
-                    bytesused: v4l2_buf.bytesused,
-                    flags: v4l2_buf.flags.into(),
-                    field: v4l2_buf.field,
-                    timestamp: v4l2_buf.timestamp.into(),
-                    sequence: v4l2_buf.sequence,
-                },
-            }),
-            None => Err(io::Error::new(
-                io::ErrorKind::Other,
-                "failed to find buffer",
-            )),
-        }
+        Ok(self.arena_index)
     }
 
-    fn next(&'a mut self) -> io::Result<Self::Item> {
+    fn get(&self, index: usize) -> Option<&Self::Item> {
+        self.arena.get(index)
+    }
+
+    fn get_meta(&self, index: usize) -> Option<&Metadata> {
+        self.buf_meta.get(index)
+    }
+
+    fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
             self.start()?;
         }
 
-        self.queue()?;
-        self.dequeue()
+        self.queue(self.arena_index)?;
+        self.arena_index = self.dequeue()?;
+
+        // The index used to access the buffer elements is given to us by v4l2, so we assume it
+        // will always be valid.
+        unsafe {
+            let bytes = self.arena.get_unchecked(self.arena_index);
+            let meta = self.buf_meta.get_unchecked(self.arena_index);
+            Ok((bytes, meta))
+        }
     }
 }

@@ -33,7 +33,7 @@ Below you can find a quick example usage of this crate. It introduces the basics
 
 ```rust
 use v4l::buffer::Type;
-use v4l::io::stream::Capture;
+use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
 use v4l::FourCC;
 
@@ -74,12 +74,12 @@ fn main() {
     // the stream. Once an error condition occurs, the iterator will return
     // None.
     loop {
-        let frame = stream.next().unwrap();
+        let (buf, meta) = stream.next().unwrap();
         println!(
             "Buffer size: {}, seq: {}, timestamp: {}",
-            frame.len(),
-            frame.meta().sequence,
-            frame.meta().timestamp
+            buf.len(),
+            meta.sequence,
+            meta.timestamp
         );
 
         // To process the captured data, you can pass it somewhere else.

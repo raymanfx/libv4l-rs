@@ -96,21 +96,6 @@ impl ArenaTrait for Arena {
             unsafe {
                 buf.resize(v4l2_fmt.fmt.pix.sizeimage as usize, 0);
             }
-
-            let mut v4l2_buf: v4l2_buffer;
-            unsafe {
-                v4l2_buf = mem::zeroed();
-                v4l2_buf.type_ = self.buf_type as u32;
-                v4l2_buf.memory = Memory::UserPtr as u32;
-                v4l2_buf.index = i;
-                v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
-                v4l2_buf.length = v4l2_fmt.fmt.pix.sizeimage;
-                v4l2::ioctl(
-                    self.handle.fd(),
-                    v4l2::vidioc::VIDIOC_QBUF,
-                    &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-                )?;
-            }
         }
 
         Ok(v4l2_reqbufs.count)

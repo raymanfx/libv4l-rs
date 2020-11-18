@@ -4,7 +4,7 @@ extern crate v4l;
 use clap::{App, Arg};
 use std::time::Instant;
 use v4l::buffer::Type;
-use v4l::io::stream::Capture;
+use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
 use v4l::video::Capture as _;
 
@@ -74,7 +74,7 @@ fn main() {
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let buf = stream.next().expect("Failed to capture buffer");
+        let (buf, meta) = stream.next().expect("Failed to capture buffer");
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
@@ -88,9 +88,9 @@ fn main() {
         }
 
         println!("Buffer");
-        println!("  sequence  : {}", buf.meta().sequence);
-        println!("  timestamp : {}", buf.meta().timestamp);
-        println!("  flags     : {}", buf.meta().flags);
+        println!("  sequence  : {}", meta.sequence);
+        println!("  timestamp : {}", meta.timestamp);
+        println!("  flags     : {}", meta.flags);
         println!("  length    : {}", buf.len());
     }
 

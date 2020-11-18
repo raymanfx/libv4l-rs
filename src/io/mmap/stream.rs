@@ -1,11 +1,10 @@
 use std::{io, mem, sync::Arc};
 
-use crate::buffer;
-use crate::buffer::{Buffer, Metadata};
+use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
 use crate::io::arena::Arena as ArenaTrait;
 use crate::io::mmap::arena::Arena;
-use crate::io::stream::{Capture, Output, Stream as StreamTrait};
+use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::Memory;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -17,11 +16,10 @@ pub struct Stream<'a> {
     handle: Arc<Handle>,
     arena: Arena<'a>,
     arena_index: usize,
-    arena_len: u32,
-    buf_type: buffer::Type,
+    buf_type: Type,
+    buf_meta: Vec<Metadata>,
 
     active: bool,
-    queued: bool,
 }
 
 impl<'a> Stream<'a> {
@@ -44,23 +42,23 @@ impl<'a> Stream<'a> {
     ///     let stream = Stream::new(&dev, Type::VideoCapture);
     /// }
     /// ```
-    pub fn new(dev: &Device, buf_type: buffer::Type) -> io::Result<Self> {
+    pub fn new(dev: &Device, buf_type: Type) -> io::Result<Self> {
         Stream::with_buffers(dev, buf_type, 4)
     }
 
-    pub fn with_buffers(dev: &Device, buf_type: buffer::Type, buf_count: u32) -> io::Result<Self> {
+    pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
         let mut arena = Arena::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
+        let mut buf_meta = Vec::new();
+        buf_meta.resize(count as usize, Metadata::default());
 
         Ok(Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
-            arena_len: count,
             buf_type,
+            buf_meta,
             active: false,
-            // the arena queues up all buffers once during allocation
-            queued: true,
         })
     }
 }
@@ -84,6 +82,8 @@ impl<'a> Drop for Stream<'a> {
 }
 
 impl<'a> StreamTrait for Stream<'a> {
+    type Item = [u8];
+
     fn start(&mut self) -> io::Result<()> {
         unsafe {
             let mut typ = self.buf_type as u32;
@@ -111,20 +111,14 @@ impl<'a> StreamTrait for Stream<'a> {
     }
 }
 
-impl<'a, 'b> Capture<'b> for Stream<'a> {
-    type Item = Buffer<'b>;
-
-    fn queue(&mut self) -> io::Result<()> {
-        if self.queued {
-            return Ok(());
-        }
-
+impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
+    fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = self.buf_type as u32;
             v4l2_buf.memory = Memory::Mmap as u32;
-            v4l2_buf.index = self.arena_index as u32;
+            v4l2_buf.index = index as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
@@ -132,12 +126,10 @@ impl<'a, 'b> Capture<'b> for Stream<'a> {
             )?;
         }
 
-        self.arena_index = (self.arena_index + 1) % self.arena_len as usize;
-
         Ok(())
     }
 
-    fn dequeue(&'b mut self) -> io::Result<Self::Item> {
+    fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -149,66 +141,67 @@ impl<'a, 'b> Capture<'b> for Stream<'a> {
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
-        self.queued = false;
+        self.arena_index = v4l2_buf.index as usize;
 
-        let bytes = unsafe { self.arena.get_unchecked(v4l2_buf.index as usize) };
-        Ok(Buffer {
-            bytes,
-            meta: Metadata {
-                bytesused: v4l2_buf.bytesused,
-                flags: v4l2_buf.flags.into(),
-                field: v4l2_buf.field,
-                timestamp: v4l2_buf.timestamp.into(),
-                sequence: v4l2_buf.sequence,
-            },
-        })
+        self.buf_meta[self.arena_index] = Metadata {
+            bytesused: v4l2_buf.bytesused,
+            flags: v4l2_buf.flags.into(),
+            field: v4l2_buf.field,
+            timestamp: v4l2_buf.timestamp.into(),
+            sequence: v4l2_buf.sequence,
+        };
+
+        Ok(self.arena_index)
     }
 
-    fn next(&'b mut self) -> io::Result<Self::Item> {
+    fn get(&self, index: usize) -> Option<&Self::Item> {
+        self.arena.get(index)
+    }
+
+    fn get_meta(&self, index: usize) -> Option<&Metadata> {
+        self.buf_meta.get(index)
+    }
+
+    fn next(&'b mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
             self.start()?;
         }
 
-        <Stream as Capture>::queue(self)?;
-        <Stream as Capture>::dequeue(self)
+        CaptureStream::queue(self, self.arena_index)?;
+        self.arena_index = CaptureStream::dequeue(self)?;
+
+        // The index used to access the buffer elements is given to us by v4l2, so we assume it
+        // will always be valid.
+        unsafe {
+            let bytes = self.arena.get_unchecked(self.arena_index);
+            let meta = self.buf_meta.get_unchecked(self.arena_index);
+            Ok((bytes, meta))
+        }
     }
 }
 
-impl<'a, 'b> Output<'b> for Stream<'a> {
-    type Item = Buffer<'b>;
-
-    fn queue(&mut self, item: Self::Item) -> io::Result<()> {
-        if self.queued {
-            return Ok(());
-        }
-
+impl<'a, 'b> OutputStream<'b> for Stream<'a> {
+    fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = self.buf_type as u32;
             v4l2_buf.memory = Memory::Mmap as u32;
-            v4l2_buf.index = self.arena_index as u32;
+            v4l2_buf.index = index as u32;
             // output settings
-            v4l2_buf.bytesused = item.data().len() as u32;
-            v4l2_buf.field = item.meta.field;
-
-            // write the actual frame data
-            let bytes = self.arena.get_unchecked_mut(v4l2_buf.index as usize);
-            bytes.copy_from_slice(item.data());
+            let bytes = self.arena.get_unchecked_mut(index);
+            v4l2_buf.bytesused = bytes.len() as u32;
+            v4l2_buf.field = self.buf_meta[index].field;
 
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
-            )?;
+            )
         }
-
-        self.arena_index = (self.arena_index + 1) % self.arena_len as usize;
-
-        Ok(())
     }
 
-    fn dequeue(&mut self) -> io::Result<()> {
+    fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf: v4l2_buffer;
         unsafe {
             v4l2_buf = mem::zeroed();
@@ -221,18 +214,45 @@ impl<'a, 'b> Output<'b> for Stream<'a> {
             )?;
         }
 
-        self.arena_index = v4l2_buf.index as usize;
-        self.queued = false;
+        self.buf_meta[self.arena_index] = Metadata {
+            bytesused: v4l2_buf.bytesused,
+            flags: v4l2_buf.flags.into(),
+            field: v4l2_buf.field,
+            timestamp: v4l2_buf.timestamp.into(),
+            sequence: v4l2_buf.sequence,
+        };
 
-        Ok(())
+        Ok(self.arena_index)
     }
 
-    fn next(&mut self, item: Self::Item) -> io::Result<()> {
+    fn get(&mut self, index: usize) -> Option<&mut Self::Item> {
+        self.arena.get_mut(index)
+    }
+
+    fn get_meta(&mut self, index: usize) -> Option<&mut Metadata> {
+        self.buf_meta.get_mut(index)
+    }
+
+    fn next(&'b mut self) -> io::Result<(&mut Self::Item, &mut Metadata)> {
+        let init = !self.active;
         if !self.active {
             self.start()?;
         }
 
-        <Stream as Output>::queue(self, item)?;
-        <Stream as Output>::dequeue(self)
+        // Only queue and dequeue once the buffer has been filled at the call site. The initial
+        // call to this function from the call site will happen just after the buffers have been
+        // allocated, meaning we need to return the empty buffer initially so it can be filled.
+        if !init {
+            OutputStream::queue(self, self.arena_index)?;
+            self.arena_index = OutputStream::dequeue(self)?;
+        }
+
+        // The index used to access the buffer elements is given to us by v4l2, so we assume it
+        // will always be valid.
+        unsafe {
+            let bytes = self.arena.get_unchecked_mut(self.arena_index);
+            let meta = self.buf_meta.get_unchecked_mut(self.arena_index);
+            Ok((bytes, meta))
+        }
     }
 }
