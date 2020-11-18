@@ -3,6 +3,7 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use v4l::prelude::*;
+use v4l::video::Capture;
 
 fn main() {
     let matches = App::new("v4l device")
@@ -29,7 +30,7 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = CaptureDevice::with_path(path).expect("Failed to open capture device");
+    let dev = Device::with_path(path).expect("Failed to open capture device");
     let format = dev.format().expect("Failed to get format");
     let frameintervals = dev
         .enum_frameintervals(format.fourcc, format.width, format.height)

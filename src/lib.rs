@@ -45,13 +45,14 @@
 //! Here is a very brief example of streaming I/O with memory mapped buffers:
 //!
 //! ```no_run
+//! use v4l::buffer::Type;
 //! use v4l::io::stream::Capture;
 //! use v4l::prelude::*;
 //!
-//! let mut dev = CaptureDevice::new(0).expect("Failed to open device");
+//! let mut dev = Device::new(0).expect("Failed to open device");
 //!
 //! let mut stream =
-//!     MmapStream::with_buffers(&mut dev, 4).expect("Failed to create buffer stream");
+//!     MmapStream::with_buffers(&mut dev, Type::VideoCapture, 4).expect("Failed to create buffer stream");
 //!
 //! loop {
 //!     let frame = stream.next().unwrap();
@@ -76,7 +77,6 @@ pub mod v4l2;
 
 pub mod buffer;
 pub mod capability;
-pub mod capture;
 pub mod context;
 pub mod control;
 pub mod device;
@@ -85,9 +85,9 @@ pub mod fraction;
 pub mod frameinterval;
 pub mod framesize;
 pub mod memory;
-pub mod output;
 pub mod parameters;
 pub mod timestamp;
+pub mod video;
 
 pub mod io;
 
@@ -95,6 +95,7 @@ pub use {
     buffer::Buffer,
     capability::Capabilities,
     control::Control,
+    device::Device,
     format::{Format, FourCC},
     fraction::Fraction,
     frameinterval::FrameInterval,
@@ -105,10 +106,5 @@ pub use {
 
 pub mod prelude {
     pub use crate::io::{mmap::Stream as MmapStream, userptr::Stream as UserptrStream};
-    pub use crate::{
-        buffer::Buffer,
-        capture::Device as CaptureDevice,
-        device::{Device, DeviceExt},
-        output::Device as OutputDevice,
-    };
+    pub use crate::{buffer::Buffer, device::Device};
 }

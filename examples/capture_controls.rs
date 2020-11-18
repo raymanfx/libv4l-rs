@@ -29,7 +29,7 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = CaptureDevice::with_path(path).expect("Failed to open capture device");
+    let dev = Device::with_path(path).expect("Failed to open capture device");
     let controls = dev.query_controls().expect("Failed to query controls");
 
     for control in controls {

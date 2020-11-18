@@ -3,8 +3,10 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use std::io::Write;
+use v4l::buffer::Type;
 use v4l::io::stream::Capture;
 use v4l::prelude::*;
+use v4l::video::Capture as _;
 
 fn main() {
     let matches = App::new("v4l device")
@@ -38,8 +40,7 @@ fn main() {
         capture_path = format!("/dev/video{}", capture_path);
     }
     println!("Using capture device: {}", capture_path);
-    let capture_dev =
-        CaptureDevice::with_path(capture_path).expect("Failed to open capture device");
+    let capture_dev = Device::with_path(capture_path).expect("Failed to open capture device");
 
     // Determine which output device to use
     let mut output_path: String = matches
@@ -50,8 +51,7 @@ fn main() {
         output_path = format!("/dev/video{}", output_path);
     }
     println!("Using output device: {}", output_path);
-    let mut output_dev =
-        OutputDevice::with_path(output_path).expect("Failed to open output device");
+    let mut output_dev = Device::with_path(output_path).expect("Failed to open output device");
 
     // Set the output's format to the same as the capture's
     let format = capture_dev.format().unwrap();
@@ -60,8 +60,8 @@ fn main() {
         .expect("Failed to set format of output device");
 
     // Setup a buffer stream, grab a frame, and write it to the output
-    let mut stream =
-        MmapStream::with_buffers(&capture_dev, 1).expect("Failed to create buffer stream");
+    let mut stream = MmapStream::with_buffers(&capture_dev, Type::VideoCapture, 1)
+        .expect("Failed to create buffer stream");
     let buf = stream.next().expect("Failed to capture buffer");
     output_dev
         .write_all(&*buf)

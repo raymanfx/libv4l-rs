@@ -3,8 +3,10 @@ extern crate v4l;
 
 use clap::{App, Arg};
 use std::time::Instant;
+use v4l::buffer::Type;
 use v4l::io::stream::Capture;
 use v4l::prelude::*;
+use v4l::video::Capture as _;
 
 fn main() {
     let matches = App::new("v4l mmap")
@@ -55,15 +57,15 @@ fn main() {
     let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
     let buffers = buffers.parse::<u32>().unwrap();
 
-    let mut dev = CaptureDevice::with_path(path).expect("Failed to open device");
+    let mut dev = Device::with_path(path).expect("Failed to open device");
     let format = dev.format().expect("Failed to get format");
     let params = dev.params().expect("Failed to get parameters");
     println!("Active format:\n{}", format);
     println!("Active parameters:\n{}", params);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut stream =
-        MmapStream::with_buffers(&mut dev, buffers).expect("Failed to create buffer stream");
+    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, buffers)
+        .expect("Failed to create buffer stream");
 
     // warmup
     stream.next().expect("Failed to capture buffer");

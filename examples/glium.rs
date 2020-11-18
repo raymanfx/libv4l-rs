@@ -8,9 +8,11 @@ use glium::{implement_vertex, program, uniform};
 use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
-use v4l::capture;
+use v4l::buffer::Type;
 use v4l::io::stream::Capture;
 use v4l::prelude::*;
+use v4l::video::capture::Parameters;
+use v4l::video::Capture as _;
 use v4l::{Format, FourCC};
 
 fn main() {
@@ -51,9 +53,9 @@ fn main() {
     let buffers = buffers.parse::<u32>().unwrap();
 
     let mut format: Format;
-    let params: capture::Parameters;
+    let params: Parameters;
 
-    let dev = RwLock::new(CaptureDevice::with_path(path.clone()).expect("Failed to open device"));
+    let dev = RwLock::new(Device::with_path(path.clone()).expect("Failed to open device"));
     {
         let mut dev = dev.write().unwrap();
         format = dev.format().expect("Failed to get format");
@@ -146,8 +148,8 @@ fn main() {
         let mut dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream =
-            MmapStream::with_buffers(&mut *dev, buffers).expect("Failed to create buffer stream");
+        let mut stream = MmapStream::with_buffers(&mut *dev, Type::VideoCapture, buffers)
+            .expect("Failed to create buffer stream");
 
         loop {
             let buf = stream.next().expect("Failed to capture buffer");

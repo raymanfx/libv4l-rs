@@ -2,7 +2,7 @@ use std::{io, mem, sync::Arc};
 
 use crate::buffer;
 use crate::buffer::{Buffer, Metadata};
-use crate::device;
+use crate::device::{Device, Handle};
 use crate::io::arena::Arena as ArenaTrait;
 use crate::io::mmap::arena::Arena;
 use crate::io::stream::{Capture, Output, Stream as StreamTrait};
@@ -14,7 +14,7 @@ use crate::v4l_sys::*;
 ///
 /// An arena instance is used internally for buffer handling.
 pub struct Stream<'a> {
-    handle: Arc<device::Handle>,
+    handle: Arc<Handle>,
     arena: Arena<'a>,
     arena_index: usize,
     arena_len: u32,
@@ -30,32 +30,34 @@ impl<'a> Stream<'a> {
     /// # Arguments
     ///
     /// * `dev` - Capture device ref to get its file descriptor
+    /// * `buf_type` - Type of the buffers
     ///
     /// # Example
     ///
     /// ```
-    /// use v4l::capture::Device;
+    /// use v4l::buffer::Type;
+    /// use v4l::device::Device;
     /// use v4l::io::mmap::Stream;
     ///
     /// let dev = Device::new(0);
     /// if let Ok(dev) = dev {
-    ///     let stream = Stream::new(&dev);
+    ///     let stream = Stream::new(&dev, Type::VideoCapture);
     /// }
     /// ```
-    pub fn new<T: device::Device>(dev: &T) -> io::Result<Self> {
-        Stream::with_buffers(dev, 4)
+    pub fn new(dev: &Device, buf_type: buffer::Type) -> io::Result<Self> {
+        Stream::with_buffers(dev, buf_type, 4)
     }
 
-    pub fn with_buffers<T: device::Device>(dev: &T, count: u32) -> io::Result<Self> {
-        let mut arena = Arena::new(dev);
-        let count = arena.allocate(count)?;
+    pub fn with_buffers(dev: &Device, buf_type: buffer::Type, buf_count: u32) -> io::Result<Self> {
+        let mut arena = Arena::new(dev.handle(), buf_type);
+        let count = arena.allocate(buf_count)?;
 
         Ok(Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
             arena_len: count,
-            buf_type: dev.typ(),
+            buf_type,
             active: false,
             // the arena queues up all buffers once during allocation
             queued: true,

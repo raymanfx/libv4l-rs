@@ -1,16 +1,17 @@
 use std::{io, mem, sync::Arc};
 
 use crate::buffer;
+use crate::device::Handle;
 use crate::io::arena::Arena as ArenaTrait;
+use crate::memory::Memory;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{device, memory::Memory};
 
 /// Manage user allocated buffers
 ///
 /// All buffers are released in the Drop impl.
 pub struct Arena {
-    handle: Arc<device::Handle>,
+    handle: Arc<Handle>,
     bufs: Vec<Vec<u8>>,
     buf_type: buffer::Type,
 }
@@ -23,12 +24,13 @@ impl Arena {
     ///
     /// # Arguments
     ///
-    /// * `dev` - Capture device ref to get its file descriptor
-    pub fn new<T: device::Device>(dev: &T) -> Self {
+    /// * `dev` - Device handle to get its file descriptor
+    /// * `buf_type` - Type of the buffers
+    pub fn new(handle: Arc<Handle>, buf_type: buffer::Type) -> Self {
         Arena {
-            handle: dev.handle(),
+            handle,
             bufs: Vec::new(),
-            buf_type: dev.typ(),
+            buf_type,
         }
     }
 }

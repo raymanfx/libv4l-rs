@@ -1,17 +1,18 @@
 use std::{io, mem, ptr, slice, sync::Arc};
 
 use crate::buffer;
+use crate::device::Handle;
 use crate::io::arena::Arena as ArenaTrait;
+use crate::memory::Memory;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::{device, memory::Memory};
 
 /// Manage mapped buffers
 ///
 /// All buffers are unmapped in the Drop impl.
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub struct Arena<'a> {
-    handle: Arc<device::Handle>,
+    handle: Arc<Handle>,
     bufs: Vec<&'a mut [u8]>,
     buf_type: buffer::Type,
 }
@@ -21,11 +22,16 @@ impl<'a> Arena<'a> {
     ///
     /// You usually do not need to use this directly.
     /// A MappedBufferStream creates its own manager instance by default.
-    pub fn new<T: device::Device>(dev: &T) -> Self {
+    ///
+    /// # Arguments
+    ///
+    /// * `handle` - Device handle to get its file descriptor
+    /// * `buf_type` - Type of the buffers
+    pub fn new(handle: Arc<Handle>, buf_type: buffer::Type) -> Self {
         Arena {
-            handle: dev.handle(),
+            handle,
             bufs: Vec::new(),
-            buf_type: dev.typ(),
+            buf_type,
         }
     }
 }

@@ -32,6 +32,7 @@ Enable either the `libv4l` or the `v4l2` backend by choosing the it as feature f
 Below you can find a quick example usage of this crate. It introduces the basics necessary to do frame capturing from a streaming device (e.g. webcam).
 
 ```rust
+use v4l::buffer::Type;
 use v4l::io::stream::Capture;
 use v4l::prelude::*;
 use v4l::FourCC;
@@ -65,7 +66,7 @@ fn main() {
 
     // Create the stream, which will internally 'allocate' (as in map) the
     // number of requested buffers for us.
-    let mut stream = MmapStream::with_buffers(&mut dev, 4)
+    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 4)
         .expect("Failed to create buffer stream");
 
     // At this point, the stream is ready and all buffers are setup.

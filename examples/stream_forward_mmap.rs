@@ -5,8 +5,10 @@ use std::io;
 use std::time::Instant;
 
 use clap::{App, Arg};
-use v4l::io::stream::{Capture, Output};
+use v4l::buffer::Type;
+use v4l::io::stream::{Capture as CaptureStream, Output as OutputStream};
 use v4l::prelude::*;
+use v4l::video::{Capture, Output};
 
 fn main() -> io::Result<()> {
     let matches = App::new("v4l mmap")
@@ -75,22 +77,22 @@ fn main() -> io::Result<()> {
     let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
     let buffers = buffers.parse::<u32>().unwrap();
 
-    let mut cap = CaptureDevice::with_path(source)?;
+    let mut cap = Device::with_path(source)?;
     println!("Active cap capabilities:\n{}", cap.query_caps()?);
-    println!("Active cap format:\n{}", cap.format()?);
-    println!("Active cap parameters:\n{}", cap.params()?);
+    println!("Active cap format:\n{}", Capture::format(&cap)?);
+    println!("Active cap parameters:\n{}", Capture::params(&cap)?);
 
-    let mut out = OutputDevice::with_path(sink)?;
+    let mut out = Device::with_path(sink)?;
     println!("Active out capabilities:\n{}", out.query_caps()?);
-    println!("Active out format:\n{}", out.format()?);
-    println!("Active out parameters:\n{}", out.params()?);
+    println!("Active out format:\n{}", Output::format(&out)?);
+    println!("Active out parameters:\n{}", Output::params(&out)?);
 
     // BEWARE OF DRAGONS
     // Buggy drivers (such as v4l2loopback) only set the v4l2 buffer size (length field) once
     // a format is set, even though a valid format appears to be available when doing VIDIOC_G_FMT!
     // In our case, we just (try to) enforce the source format on the sink device.
-    let source_fmt = cap.format()?;
-    let sink_fmt = out.set_format(&source_fmt)?;
+    let source_fmt = Capture::format(&cap)?;
+    let sink_fmt = Output::set_format(&mut out, &source_fmt)?;
     if source_fmt.width != sink_fmt.width
         || source_fmt.height != sink_fmt.height
         || source_fmt.fourcc != sink_fmt.fourcc
@@ -100,22 +102,22 @@ fn main() -> io::Result<()> {
             "failed to enforce source format on sink device",
         ));
     }
-    println!("New out format:\n{}", out.format()?);
+    println!("New out format:\n{}", Output::format(&out)?);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut cap_stream = MmapStream::with_buffers(&mut cap, buffers)?;
+    let mut cap_stream = MmapStream::with_buffers(&mut cap, Type::VideoCapture, buffers)?;
 
-    let mut out_stream = MmapStream::with_buffers(&mut out, buffers)?;
+    let mut out_stream = MmapStream::with_buffers(&mut out, Type::VideoOutput, buffers)?;
 
     // warmup
-    Capture::next(&mut cap_stream)?;
+    CaptureStream::next(&mut cap_stream)?;
 
     let start = Instant::now();
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let buf = Capture::next(&mut cap_stream)?;
-        Output::next(&mut out_stream, buf.clone())?;
+        let buf = CaptureStream::next(&mut cap_stream)?;
+        OutputStream::next(&mut out_stream, buf.clone())?;
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
