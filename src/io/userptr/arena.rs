@@ -37,6 +37,11 @@ impl Arena {
 
 impl Drop for Arena {
     fn drop(&mut self) {
+        if self.bufs.is_empty() {
+            // nothing to do
+            return;
+        }
+
         if let Err(e) = self.release() {
             if let Some(code) = e.raw_os_error() {
                 // ENODEV means the file descriptor wrapped in the handle became invalid, most
