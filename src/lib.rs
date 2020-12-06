@@ -92,7 +92,6 @@ pub mod video;
 pub mod io;
 
 pub use {
-    buffer::Buffer,
     capability::Capabilities,
     control::Control,
     device::Device,
@@ -105,6 +104,6 @@ pub use {
 };
 
 pub mod prelude {
+    pub use crate::device::Device;
     pub use crate::io::{mmap::Stream as MmapStream, userptr::Stream as UserptrStream};
-    pub use crate::{buffer::Buffer, device::Device};
 }

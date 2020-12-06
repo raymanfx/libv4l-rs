@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use std::{fmt, ops};
+use std::fmt;
 
 use crate::timestamp::Timestamp;
 
@@ -111,31 +111,4 @@ pub struct Metadata {
     pub timestamp: Timestamp,
     /// Sequence number, counting the frames
     pub sequence: u32,
-}
-
-/// Represents a buffer view
-#[derive(Default)]
-pub struct Buffer<'a> {
-    pub bytes: &'a mut [u8],
-    pub meta: Metadata,
-}
-
-impl<'a> Buffer<'a> {
-    /// Slice of read-only data
-    pub fn data(&self) -> &[u8] {
-        self.bytes
-    }
-
-    /// Metadata such as allocation flags, timestamp and more
-    pub fn meta(&self) -> &Metadata {
-        &self.meta
-    }
-}
-
-impl<'a> ops::Deref for Buffer<'a> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.bytes
-    }
 }
