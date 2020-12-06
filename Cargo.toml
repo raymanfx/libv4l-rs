@@ -17,6 +17,8 @@ v4l2-sys = { path = "v4l2-sys", version = "0.1.0", package="v4l2-sys-mit", optio
 [dev-dependencies]
 clap = "^2.33.0"
 glium = "0.27.0"
+minifb = "0.19.1"
+byteorder = "1.3.4"
 
 [features]
 default = ["v4l2"]
