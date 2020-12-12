@@ -15,6 +15,7 @@ before_cache:
 
 before_install:
   - sudo apt-get install libv4l-dev
+  - sudo apt-get install libxkbcommon-dev
 
 jobs:
   allow_failures:
