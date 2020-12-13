@@ -89,7 +89,7 @@ impl Format {
     /// use v4l::{Format, FourCC};
     /// let fmt = Format::new(640, 480, FourCC::new(b"YUYV"));
     /// ```
-    pub fn new(width: u32, height: u32, fourcc: FourCC) -> Self {
+    pub const fn new(width: u32, height: u32, fourcc: FourCC) -> Self {
         Format {
             width,
             height,
@@ -97,7 +97,7 @@ impl Format {
             field_order: FieldOrder::Any,
             stride: 0,
             size: 0,
-            flags: Flags::from(0),
+            flags: Flags::empty(),
             colorspace: Colorspace::Default,
             quantization: Quantization::Default,
             transfer: TransferFunction::Default,
