@@ -6,7 +6,7 @@ use std::io::Write;
 use v4l::buffer::Type;
 use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
-use v4l::video::Capture;
+use v4l::video::{Capture, Output};
 
 fn main() {
     let matches = App::new("v4l device")
@@ -54,10 +54,9 @@ fn main() {
     let mut output_dev = Device::with_path(output_path).expect("Failed to open output device");
 
     // Set the output's format to the same as the capture's
-    let format = capture_dev.format().unwrap();
-    output_dev
-        .set_format(&format)
-        .expect("Failed to set format of output device");
+    let format = Capture::format(&capture_dev).unwrap();
+
+    Output::set_format(&mut output_dev, &format).expect("Failed to set format for output device");
 
     // Setup a buffer stream, grab a frame, and write it to the output
     let mut stream = MmapStream::with_buffers(&capture_dev, Type::VideoCapture, 1)
