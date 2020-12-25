@@ -14,7 +14,7 @@ fn main() {
         .author("Nathan Varner <nathanmvarner@protonmail.com>")
         .about("Video4Linux device example")
         .arg(
-            Arg::with_name("capture_device")
+            Arg::with_name("capture-device")
                 .short("c")
                 .long("capture-device")
                 .value_name("INDEX or PATH")
