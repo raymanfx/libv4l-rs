@@ -33,13 +33,15 @@ Below you can find a quick example usage of this crate. It introduces the basics
 
 ```rust
 use v4l::buffer::Type;
+use v4l::io::mmap::Stream;
 use v4l::io::traits::CaptureStream;
-use v4l::prelude::*;
+use v4l::video::Capture;
+use v4l::Device;
 use v4l::FourCC;
 
 fn main() {
     // Create a new capture device with a few extra parameters
-    let mut dev = CaptureDevice::new(0).expect("Failed to open device");
+    let mut dev = Device::new(0).expect("Failed to open device");
 
     // Let's say we want to explicitly request another format
     let mut fmt = dev.format().expect("Failed to read format");
@@ -66,7 +68,7 @@ fn main() {
 
     // Create the stream, which will internally 'allocate' (as in map) the
     // number of requested buffers for us.
-    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 4)
+    let mut stream = Stream::with_buffers(&mut dev, Type::VideoCapture, 4)
         .expect("Failed to create buffer stream");
 
     // At this point, the stream is ready and all buffers are setup.
