@@ -148,7 +148,7 @@ macro_rules! impl_format {
 
 macro_rules! impl_set_format {
     ($typ:expr) => {
-        fn set_format(&mut self, fmt: &Format) -> io::Result<Format> {
+        fn set_format(&self, fmt: &Format) -> io::Result<Format> {
             unsafe {
                 let mut v4l2_fmt: v4l2_format = mem::zeroed();
                 v4l2_fmt.type_ = $typ as u32;

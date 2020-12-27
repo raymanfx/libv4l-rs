@@ -35,7 +35,7 @@ impl Capture for Device {
         }
     }
 
-    fn set_params(&mut self, params: &Parameters) -> io::Result<Parameters> {
+    fn set_params(&self, params: &Parameters) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params: v4l2_streamparm = mem::zeroed();
             v4l2_params.type_ = Type::VideoCapture as u32;

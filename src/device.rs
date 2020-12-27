@@ -188,7 +188,7 @@ impl Device {
     ///
     /// * `id` - Control identifier
     /// * `val` - New value
-    pub fn set_control(&mut self, id: u32, val: Control) -> io::Result<()> {
+    pub fn set_control(&self, id: u32, val: Control) -> io::Result<()> {
         unsafe {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;

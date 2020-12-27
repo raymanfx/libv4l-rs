@@ -40,7 +40,7 @@ pub trait Capture {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&mut self, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
 
     /// Returns the parameters currently in use
     fn params(&self) -> io::Result<CaptureParameters>;
@@ -50,7 +50,7 @@ pub trait Capture {
     /// # Arguments
     ///
     /// * `params` - Desired parameters
-    fn set_params(&mut self, params: &CaptureParameters) -> io::Result<CaptureParameters>;
+    fn set_params(&self, params: &CaptureParameters) -> io::Result<CaptureParameters>;
 }
 
 /// Output device protocol
@@ -85,7 +85,7 @@ pub trait Output {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&mut self, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
 
     /// Returns the parameters currently in use
     fn params(&self) -> io::Result<OutputParameters>;
@@ -95,5 +95,5 @@ pub trait Output {
     /// # Arguments
     ///
     /// * `params` - Desired parameters
-    fn set_params(&mut self, params: &OutputParameters) -> io::Result<OutputParameters>;
+    fn set_params(&self, params: &OutputParameters) -> io::Result<OutputParameters>;
 }

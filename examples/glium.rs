@@ -57,7 +57,7 @@ fn main() {
 
     let dev = RwLock::new(Device::with_path(path.clone()).expect("Failed to open device"));
     {
-        let mut dev = dev.write().unwrap();
+        let dev = dev.write().unwrap();
         format = dev.format().expect("Failed to get format");
         params = dev.params().expect("Failed to get parameters");
 
