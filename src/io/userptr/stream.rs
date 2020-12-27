@@ -94,6 +94,7 @@ impl StreamTrait for Stream {
             )?;
         }
 
+        self.active = true;
         Ok(())
     }
 
@@ -107,6 +108,7 @@ impl StreamTrait for Stream {
             )?;
         }
 
+        self.active = false;
         Ok(())
     }
 }
