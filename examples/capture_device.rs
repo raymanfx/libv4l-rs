@@ -18,6 +18,12 @@ fn main() {
                 .help("Capture device node path or index (default: 0)")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .help("Whether to output verbose framesize and frameinterval information"),
+        )
         .get_matches();
 
     // Determine which device to use
@@ -34,5 +40,30 @@ fn main() {
     let format = dev.format().expect("Failed to get format");
     let params = dev.params().expect("Failed to get parameters");
     println!("Active format:\n{}", format);
+
+    if matches.is_present("verbose") {
+        for available_format in dev.enum_formats().expect("Failed to enumerate formats") {
+            println!("Available format:\n{}", available_format);
+            for available_framesize in dev
+                .enum_framesizes(available_format.fourcc)
+                .expect("Failed to enumerate framesizes")
+            {
+                println!("Available framesize:\n{}", available_framesize);
+                for available_discrete_framesize in available_framesize.size.discrete_framesizes() {
+                    for available_frameinterval in dev
+                        .enum_frameintervals(
+                            available_framesize.fourcc,
+                            available_discrete_framesize.width,
+                            available_discrete_framesize.height,
+                        )
+                        .expect("Failed to enumerate frameintervals")
+                    {
+                        println!("Available frameinterval:\n{}", available_frameinterval);
+                    }
+                }
+            }
+        }
+    }
+
     println!("Active parameters:\n{}", params);
 }

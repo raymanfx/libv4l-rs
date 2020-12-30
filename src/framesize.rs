@@ -5,7 +5,7 @@ use crate::format::FourCC;
 use crate::v4l_sys;
 use crate::v4l_sys::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Format description as returned by VIDIOC_ENUM_FRAMESIZES
 pub struct FrameSize {
     pub index: u32,
@@ -24,10 +24,37 @@ impl fmt::Display for FrameSize {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FrameSizeEnum {
     Discrete(Discrete),
     Stepwise(Stepwise),
+}
+
+impl FrameSizeEnum {
+    pub fn discrete_framesizes(&self) -> Vec<Discrete> {
+        match self {
+            Self::Discrete(discrete) => {
+                vec![(*discrete).clone()]
+            }
+            Self::Stepwise(stepwise) => {
+                let mut return_vec = Vec::new();
+                for width in
+                    (stepwise.min_width..=stepwise.max_width).step_by(stepwise.step_width as usize)
+                {
+                    for height in (stepwise.min_height..=stepwise.max_height)
+                        .step_by(stepwise.step_height as usize)
+                    {
+                        let discrete = Discrete {
+                            width: width,
+                            height: height,
+                        };
+                        return_vec.push(discrete);
+                    }
+                }
+                return_vec
+            }
+        }
+    }
 }
 
 impl fmt::Display for FrameSizeEnum {
@@ -71,7 +98,7 @@ impl TryFrom<v4l2_frmsizeenum> for FrameSizeEnum {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Discrete {
     /// Width of the frame [pixel].
     pub width: u32,
@@ -86,7 +113,7 @@ impl fmt::Display for Discrete {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Stepwise {
     /// Minimum frame width [pixel].
     pub min_width: u32,
