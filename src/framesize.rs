@@ -30,6 +30,32 @@ pub enum FrameSizeEnum {
     Stepwise(Stepwise),
 }
 
+impl FrameSizeEnum {
+    pub fn to_discrete(self) -> impl IntoIterator<Item = Discrete> {
+        match self {
+            Self::Discrete(discrete) => vec![discrete],
+            Self::Stepwise(stepwise) => {
+                let mut discrete = Vec::new();
+
+                for width in
+                    (stepwise.min_width..=stepwise.max_width).step_by(stepwise.step_width as usize)
+                {
+                    for height in (stepwise.min_height..=stepwise.max_height)
+                        .step_by(stepwise.step_height as usize)
+                    {
+                        discrete.push(Discrete {
+                            width: width,
+                            height: height,
+                        });
+                    }
+                }
+
+                discrete
+            }
+        }
+    }
+}
+
 impl fmt::Display for FrameSizeEnum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
