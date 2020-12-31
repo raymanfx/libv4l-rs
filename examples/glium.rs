@@ -64,6 +64,11 @@ fn main() {
         // enforce RGB3
         format.fourcc = FourCC::new(b"RGB3");
         format = dev.set_format(&format).unwrap();
+
+        if format.fourcc != FourCC::new(b"RGB3") {
+            println!("RGB3 not supported by the device, but required by this example!");
+            return;
+        }
     }
 
     println!("Active format:\n{}", format);
