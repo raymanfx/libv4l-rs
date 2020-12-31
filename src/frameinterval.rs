@@ -17,13 +17,7 @@ pub struct FrameInterval {
 
 impl fmt::Display for FrameInterval {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "index    : {}", self.index)?;
-        writeln!(f, "fourcc   : {}", self.fourcc)?;
-        writeln!(f, "width    : {}", self.width)?;
-        writeln!(f, "height   : {}", self.height)?;
-        writeln!(f, "type     : {}", self.typ)?;
-        writeln!(f, "interval : {}", self.interval)?;
-        Ok(())
+        self.interval.fmt(f)
     }
 }
 

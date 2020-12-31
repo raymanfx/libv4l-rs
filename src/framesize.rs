@@ -16,11 +16,7 @@ pub struct FrameSize {
 
 impl fmt::Display for FrameSize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "index  : {}", self.index)?;
-        writeln!(f, "type   : {}", self.typ)?;
-        writeln!(f, "fourcc : {}", self.fourcc)?;
-        writeln!(f, "size   : {}", self.size)?;
-        Ok(())
+        self.size.fmt(f)
     }
 }
 

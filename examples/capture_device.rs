@@ -53,13 +53,13 @@ fn main() {
                 .expect("Failed to enumerate framesizes")
             {
                 for discrete in framesize.size.to_discrete() {
-                    println!("    Size: {}x{}", discrete.width, discrete.height);
+                    println!("    Size: {}", discrete);
 
                     for frameinterval in dev
                         .enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
                         .expect("Failed to enumerate frameintervals")
                     {
-                        println!("      Interval:  {}", frameinterval.interval);
+                        println!("      Interval:  {}", frameinterval);
                     }
                 }
             }
