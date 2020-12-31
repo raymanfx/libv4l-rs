@@ -35,29 +35,26 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = Device::with_path(path).expect("Failed to open capture device");
+    let dev = Device::with_path(path).unwrap();
 
-    let format = dev.format().expect("Failed to get format");
+    let format = dev.format().unwrap();
     println!("Active format:\n{}", format);
 
-    let params = dev.params().expect("Failed to get parameters");
+    let params = dev.params().unwrap();
     println!("Active parameters:\n{}", params);
 
     if matches.is_present("list-formats") {
         println!("Available formats:");
-        for format in dev.enum_formats().expect("Failed to enumerate formats") {
+        for format in dev.enum_formats().unwrap() {
             println!("  {} ({})", format.fourcc, format.description);
 
-            for framesize in dev
-                .enum_framesizes(format.fourcc)
-                .expect("Failed to enumerate framesizes")
-            {
+            for framesize in dev.enum_framesizes(format.fourcc).unwrap() {
                 for discrete in framesize.size.to_discrete() {
                     println!("    Size: {}", discrete);
 
                     for frameinterval in dev
                         .enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
-                        .expect("Failed to enumerate frameintervals")
+                        .unwrap()
                     {
                         println!("      Interval:  {}", frameinterval);
                     }

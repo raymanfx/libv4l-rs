@@ -30,9 +30,9 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = Device::with_path(path).expect("Failed to open output device");
-    let format = dev.format().expect("Failed to get format");
-    let params = dev.params().expect("Failed to get parameters");
+    let dev = Device::with_path(path).unwrap();
+    let format = dev.format().unwrap();
+    let params = dev.params().unwrap();
     println!("Active format:\n{}", format);
     println!("Active parameters:\n{}", params);
 }

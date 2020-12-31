@@ -55,15 +55,15 @@ fn main() {
     let mut format: Format;
     let params: Parameters;
 
-    let dev = RwLock::new(Device::with_path(path.clone()).expect("Failed to open device"));
+    let dev = RwLock::new(Device::with_path(path.clone()).unwrap());
     {
         let dev = dev.write().unwrap();
-        format = dev.format().expect("Failed to get format");
-        params = dev.params().expect("Failed to get parameters");
+        format = dev.format().unwrap();
+        params = dev.params().unwrap();
 
         // enforce RGB3
         format.fourcc = FourCC::new(b"RGB3");
-        format = dev.set_format(&format).expect("Failed to set format");
+        format = dev.set_format(&format).unwrap();
     }
 
     println!("Active format:\n{}", format);
@@ -148,11 +148,10 @@ fn main() {
         let mut dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream = MmapStream::with_buffers(&mut *dev, Type::VideoCapture, buffers)
-            .expect("Failed to create buffer stream");
+        let mut stream = MmapStream::with_buffers(&mut *dev, Type::VideoCapture, buffers).unwrap();
 
         loop {
-            let (buf, _) = stream.next().expect("Failed to capture buffer");
+            let (buf, _) = stream.next().unwrap();
             let data = buf.to_vec();
             tx.send(data).unwrap();
         }

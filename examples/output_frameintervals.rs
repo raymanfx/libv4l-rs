@@ -30,11 +30,11 @@ fn main() {
     }
     println!("Using device: {}\n", path);
 
-    let dev = Device::with_path(path).expect("Failed to open output device");
-    let format = dev.format().expect("Failed to get format");
+    let dev = Device::with_path(path).unwrap();
+    let format = dev.format().unwrap();
     let frameintervals = dev
         .enum_frameintervals(format.fourcc, format.width, format.height)
-        .expect("Failed to enumerate frame intervals");
+        .unwrap();
 
     println!("Active format:\n{}", format);
     println!("Active format frame intervals:");

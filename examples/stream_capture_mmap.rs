@@ -57,24 +57,23 @@ fn main() {
     let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
     let buffers = buffers.parse::<u32>().unwrap();
 
-    let mut dev = Device::with_path(path).expect("Failed to open device");
-    let format = dev.format().expect("Failed to get format");
-    let params = dev.params().expect("Failed to get parameters");
+    let mut dev = Device::with_path(path).unwrap();
+    let format = dev.format().unwrap();
+    let params = dev.params().unwrap();
     println!("Active format:\n{}", format);
     println!("Active parameters:\n{}", params);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, buffers)
-        .expect("Failed to create buffer stream");
+    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, buffers).unwrap();
 
     // warmup
-    stream.next().expect("Failed to capture buffer");
+    stream.next().unwrap();
 
     let start = Instant::now();
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let (buf, meta) = stream.next().expect("Failed to capture buffer");
+        let (buf, meta) = stream.next().unwrap();
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
