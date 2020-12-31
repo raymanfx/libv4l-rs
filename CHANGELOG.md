@@ -8,6 +8,16 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+## [0.10] - 2020-12-31
+### Added
+- Global context struct
+  - Used to enumerate devices
+- Single, unified device struct
+  - Implement Capture / Output capabilities as traits
+- MMAP support for output streams (see `stream_forward_mmap` example)
+### Changed
+- Fine grained buffer access and handling for streams
+
 ## [0.10] - 2020-08-26
 ### Added
 - Output device support!
