@@ -8,7 +8,11 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
-## [0.10] - 2020-12-31
+## [0.12] - 2020-01-07
+### Changed
+- Depend on `0.2.0` sys packages to ship bindgen 0.56.0
+
+## [0.11] - 2020-12-31
 ### Added
 - Global context struct
   - Used to enumerate devices
