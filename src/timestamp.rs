@@ -59,12 +59,15 @@ impl Into<timeval> for Timestamp {
 
 impl From<time::Duration> for Timestamp {
     fn from(duration: time::Duration) -> Self {
-        Timestamp::new(duration.as_secs() as time_t, duration.as_micros() as time_t)
+        Timestamp::new(
+            duration.as_secs() as time_t,
+            duration.subsec_micros() as time_t,
+        )
     }
 }
 
 impl From<Timestamp> for time::Duration {
     fn from(ts: Timestamp) -> Self {
-        time::Duration::new(ts.sec as u64, (ts.usec / 1000) as u32)
+        time::Duration::new(ts.sec as u64, (ts.usec * 1000) as u32)
     }
 }
