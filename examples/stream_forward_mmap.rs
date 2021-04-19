@@ -117,6 +117,13 @@ fn main() -> io::Result<()> {
         let t0 = Instant::now();
         let (buf_in, buf_in_meta) = CaptureStream::next(&mut cap_stream)?;
         let (buf_out, buf_out_meta) = OutputStream::next(&mut out_stream)?;
+
+        // Output devices generally cannot know the exact size of the output buffers for
+        // compressed formats (e.g. MJPG). They will however allocate a size that is always
+        // large enough to hold images of the format in question. We know how big a buffer we need
+        // since we control the input buffer - so just enforce that size on the output buffer.
+        let buf_out = &mut buf_out[0..buf_in.len()];
+
         buf_out.copy_from_slice(buf_in);
         buf_out_meta.field = 0;
         let duration_us = t0.elapsed().as_micros();
