@@ -191,7 +191,7 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
             v4l2_buf.memory = Memory::Mmap as u32;
             v4l2_buf.index = index as u32;
             // output settings
-            v4l2_buf.bytesused = self.buf_meta[index].bytesused; 
+            v4l2_buf.bytesused = self.buf_meta[index].bytesused;
             v4l2_buf.field = self.buf_meta[index].field;
 
             v4l2::ioctl(
