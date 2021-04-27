@@ -215,6 +215,7 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
         }
+        self.arena_index = v4l2_buf.index as usize;
 
         self.buf_meta[self.arena_index] = Metadata {
             bytesused: v4l2_buf.bytesused,
