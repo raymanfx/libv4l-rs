@@ -191,8 +191,11 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
             v4l2_buf.memory = Memory::Mmap as u32;
             v4l2_buf.index = index as u32;
             // output settings
-            let bytes = self.arena.get_unchecked_mut(index);
-            v4l2_buf.bytesused = bytes.len() as u32;
+            //
+            // MetaData.bytesused is initialized to 0. For an output device, when bytesused is
+            // set to 0 v4l2 will set it to the size of the plane:
+            // https://www.kernel.org/doc/html/v4.15/media/uapi/v4l/buffer.html#struct-v4l2-plane
+            v4l2_buf.bytesused = self.buf_meta[index].bytesused;
             v4l2_buf.field = self.buf_meta[index].field;
 
             v4l2::ioctl(
