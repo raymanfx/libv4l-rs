@@ -126,6 +126,7 @@ fn main() -> io::Result<()> {
 
         buf_out.copy_from_slice(buf_in);
         buf_out_meta.field = 0;
+        buf_out_meta.bytesused = buf_in_meta.bytesused;
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf_in.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
