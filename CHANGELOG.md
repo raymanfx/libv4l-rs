@@ -8,7 +8,12 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
-## [0.12] - 2020-01-07
+## [0.12.1] - 2020-05-01
+### Fixed
+- Update the buffer index for output streams
+- Honor the bytesused field for compressed frames in output streams
+
+## [0.12.0] - 2020-01-07
 ### Changed
 - Depend on `0.2.0` sys packages to ship bindgen 0.56.0
 
