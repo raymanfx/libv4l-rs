@@ -52,7 +52,14 @@ mod detail {
         request: vidioc::_IOC_TYPE,
         argp: *mut std::os::raw::c_void,
     ) -> std::os::raw::c_int {
-        libc::ioctl(fd, request, argp)
+        /*
+         * It turns out the libc crate (and libc itself!) defines ioctl() with
+         * different, incompatible argument types on different platforms. To
+         * hack around this without conditional compilation, use syscall()
+         * instead as a drop-in replacement. Details:
+         * https://github.com/rust-lang/libc/issues/1036
+         */
+        libc::syscall(libc::SYS_ioctl, fd, request, argp) as std::os::raw::c_int
     }
     pub unsafe fn mmap(
         start: *mut std::os::raw::c_void,
