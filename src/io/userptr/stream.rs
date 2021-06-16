@@ -85,6 +85,11 @@ impl StreamTrait for Stream {
     type Item = [u8];
 
     fn start(&mut self) -> io::Result<()> {
+        /* Give all buffers to v4l2 */
+        for index in 0..self.arena.len() {
+            self.queue(index)?;
+        }
+
         unsafe {
             let mut typ = self.buf_type as u32;
             v4l2::ioctl(
@@ -170,9 +175,9 @@ impl<'a> CaptureStream<'a> for Stream {
     fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
             self.start()?;
+        } else {
+            self.queue(self.arena_index)?;
         }
-
-        self.queue(self.arena_index)?;
         self.arena_index = self.dequeue()?;
 
         // The index used to access the buffer elements is given to us by v4l2, so we assume it
