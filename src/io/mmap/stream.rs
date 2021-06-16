@@ -166,10 +166,16 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
 
     fn next(&'b mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
+            // Enqueue all buffers once on stream start
+            for index in 0..self.arena.len() {
+                CaptureStream::queue(self, index)?;
+            }
+
             self.start()?;
+        } else {
+            CaptureStream::queue(self, self.arena_index)?;
         }
 
-        CaptureStream::queue(self, self.arena_index)?;
         self.arena_index = CaptureStream::dequeue(self)?;
 
         // The index used to access the buffer elements is given to us by v4l2, so we assume it
