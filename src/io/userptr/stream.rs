@@ -116,7 +116,7 @@ impl StreamTrait for Stream {
 impl<'a> CaptureStream<'a> for Stream {
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf: v4l2_buffer;
-        let buf = unsafe { &mut self.arena.get_unchecked(self.arena_index as usize) };
+        let buf = unsafe { &mut self.arena.get_unchecked(index) };
         unsafe {
             v4l2_buf = mem::zeroed();
             v4l2_buf.type_ = self.buf_type as u32;
