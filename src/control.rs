@@ -21,8 +21,7 @@ pub enum Type {
     IntegerMenu     = 9,
 
     /* Compound types are >= 0x0100 */
-    CompoundTypes   = 0x0100,
-    U8              = 0x1000,
+    U8              = 0x0100,
     U16             = 0x0101,
     U32             = 0x0102,
     Area            = 0x0106,
