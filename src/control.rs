@@ -211,6 +211,9 @@ pub enum Control {
     Value(i32),
     Value64(i64),
     String(String),
+    CompoundU8(Vec<u8>),
+    CompoundU16(Vec<u16>),
+    CompoundU32(Vec<u32>),
 }
 
 impl From<v4l2_control> for Control {

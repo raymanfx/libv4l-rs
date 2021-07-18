@@ -189,23 +189,76 @@ impl Device {
     /// * `id` - Control identifier
     /// * `val` - New value
     pub fn set_control(&self, id: u32, val: Control) -> io::Result<()> {
+        match val {
+            Control::Value(val) => self.set_base_control(id, val),
+            _ => self.set_ext_control(id, val),
+        }
+    }
+
+    fn set_base_control(&self, id: u32, val: i32) -> io::Result<()> {
         unsafe {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;
-            match val {
-                Control::Value(val) => v4l2_ctrl.value = val,
-                _ => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidInput,
-                        "only single value controls are supported at the moment",
-                    ))
-                }
-            }
+            v4l2_ctrl.value = val;
+
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_S_CTRL,
                 &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
             )
+        }
+    }
+
+    fn set_ext_control(&self, id: u32, ctrl: Control) -> io::Result<()> {
+        unsafe {
+            let mut controls: v4l2_ext_controls = mem::zeroed();
+            let mut control: v4l2_ext_control = mem::zeroed();
+
+            controls.__bindgen_anon_1.ctrl_class = id & 0xFFFF0000;
+            controls.count = 1;
+
+            control.id = id;
+
+            controls.controls = &mut control as *mut _ as *mut v4l2_ext_control;
+
+            match ctrl {
+                Control::CompoundU8(mut val) => {
+                    control.__bindgen_anon_1.p_u8 = val.as_mut_ptr();
+                    control.size = val.len() as u32;
+
+                    v4l2::ioctl(
+                        self.handle().fd(),
+                        v4l2::vidioc::VIDIOC_S_EXT_CTRLS,
+                        &mut controls as *mut _ as *mut std::os::raw::c_void,
+                    )
+                },
+                Control::CompoundU16(mut val) => {
+                    control.__bindgen_anon_1.p_u16 = val.as_mut_ptr();
+                    control.size = val.len() as u32 * 2;
+
+                    v4l2::ioctl(
+                        self.handle().fd(),
+                        v4l2::vidioc::VIDIOC_S_EXT_CTRLS,
+                        &mut controls as *mut _ as *mut std::os::raw::c_void,
+                    )
+                },
+                Control::CompoundU32(mut val) => {
+                    control.__bindgen_anon_1.p_u32 = val.as_mut_ptr();
+                    control.size = val.len() as u32 * 4;
+
+                    v4l2::ioctl(
+                        self.handle().fd(),
+                        v4l2::vidioc::VIDIOC_S_EXT_CTRLS,
+                        &mut controls as *mut _ as *mut std::os::raw::c_void,
+                    )
+                },
+                _ => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "only u8, u16 and u32 compound controls are supported at the moment",
+                    ))
+                }
+            }
         }
     }
 }
