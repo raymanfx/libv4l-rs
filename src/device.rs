@@ -170,6 +170,18 @@ impl Device {
     /// * `id` - Control identifier
     pub fn control(&self, id: u32) -> io::Result<Control> {
         unsafe {
+            let mut queryctrl: v4l2_queryctrl = mem::zeroed();
+            queryctrl.id = id;
+            v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_QUERYCTRL,
+                &mut queryctrl as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            // determine the control type
+            let description = control::Description::from(queryctrl);
+
+            // query the actual control value
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;
             v4l2::ioctl(
@@ -178,7 +190,16 @@ impl Device {
                 &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            Ok(Control::Value(v4l2_ctrl.value))
+            match description.typ {
+                control::Type::Integer | control::Type::Integer64 => {
+                    Ok(Control::Integer(v4l2_ctrl.value as i64))
+                }
+                control::Type::Boolean => Ok(Control::Boolean(v4l2_ctrl.value == 1)),
+                _ => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "cannot handle control type",
+                )),
+            }
         }
     }
 
@@ -193,7 +214,9 @@ impl Device {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
             v4l2_ctrl.id = id;
             match val {
-                Control::Value(val) => v4l2_ctrl.value = val,
+                Control::Integer(val) => v4l2_ctrl.value = val as i32,
+                Control::Boolean(val) => v4l2_ctrl.value = val as i32,
+                Control::Button => {}
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidInput,

@@ -209,15 +209,10 @@ impl fmt::Display for Description {
 /// Device control value
 pub enum Control {
     /* single values */
-    Value(i32),
-    Value64(i64),
+    Integer(i64),
+    Boolean(bool),
+    Button,
     String(String),
-}
-
-impl From<v4l2_control> for Control {
-    fn from(ctrl: v4l2_control) -> Self {
-        Control::Value(ctrl.value)
-    }
 }
 
 impl TryInto<v4l2_control> for Control {
@@ -227,10 +222,15 @@ impl TryInto<v4l2_control> for Control {
         unsafe {
             let mut ctrl: v4l2_control = mem::zeroed();
             match self {
-                Control::Value(val) => {
-                    ctrl.value = val;
+                Control::Integer(val) => {
+                    ctrl.value = val as i32;
                     Ok(ctrl)
                 }
+                Control::Boolean(val) => {
+                    ctrl.value = val as i32;
+                    Ok(ctrl)
+                }
+                Control::Button => Ok(ctrl),
                 _ => Err(()),
             }
         }
