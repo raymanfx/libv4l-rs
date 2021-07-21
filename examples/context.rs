@@ -1,5 +1,3 @@
-extern crate v4l;
-
 use v4l::context;
 
 fn main() {

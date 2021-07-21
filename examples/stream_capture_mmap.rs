@@ -1,79 +1,38 @@
-extern crate clap;
-extern crate v4l;
-
-use clap::{App, Arg};
+use std::io;
 use std::time::Instant;
+
 use v4l::buffer::Type;
 use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
 use v4l::video::Capture;
 
-fn main() {
-    let matches = App::new("v4l mmap")
-        .version("0.2")
-        .author("Christopher N. Hesse <raymanfx@gmail.com>")
-        .about("Video4Linux device example")
-        .arg(
-            Arg::with_name("device")
-                .short("d")
-                .long("device")
-                .value_name("INDEX or PATH")
-                .help("Device node path or index (default: 0)")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("count")
-                .short("c")
-                .long("count")
-                .value_name("INT")
-                .help("Number of frames to capture (default: 4)")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("buffers")
-                .short("b")
-                .long("buffers")
-                .value_name("INT")
-                .help("Number of buffers to allocate (default: 4)")
-                .takes_value(true),
-        )
-        .get_matches();
-
-    // Determine which device to use
-    let mut path: String = matches
-        .value_of("device")
-        .unwrap_or("/dev/video0")
-        .to_string();
-    if path.parse::<u64>().is_ok() {
-        path = format!("/dev/video{}", path);
-    }
+fn main() -> io::Result<()> {
+    let path = "/dev/video0";
     println!("Using device: {}\n", path);
 
     // Capture 4 frames by default
-    let count = matches.value_of("count").unwrap_or("4").to_string();
-    let count = count.parse::<u32>().unwrap();
+    let count = 4;
 
     // Allocate 4 buffers by default
-    let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
-    let buffers = buffers.parse::<u32>().unwrap();
+    let buffer_count = 4;
 
-    let mut dev = Device::with_path(path).unwrap();
-    let format = dev.format().unwrap();
-    let params = dev.params().unwrap();
+    let mut dev = Device::with_path(path)?;
+    let format = dev.format()?;
+    let params = dev.params()?;
     println!("Active format:\n{}", format);
     println!("Active parameters:\n{}", params);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, buffers).unwrap();
+    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, buffer_count)?;
 
     // warmup
-    stream.next().unwrap();
+    stream.next()?;
 
     let start = Instant::now();
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let (buf, meta) = stream.next().unwrap();
+        let (buf, meta) = stream.next()?;
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
@@ -96,4 +55,6 @@ fn main() {
     println!();
     println!("FPS: {}", count as f64 / start.elapsed().as_secs_f64());
     println!("MB/s: {}", megabytes_ps);
+
+    Ok(())
 }

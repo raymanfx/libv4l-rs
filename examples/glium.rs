@@ -1,13 +1,11 @@
-extern crate clap;
-extern crate v4l;
-
-use clap::{App, Arg};
-use glium::index::PrimitiveType;
-use glium::{glutin, Surface};
-use glium::{implement_vertex, program, uniform};
+use std::io;
 use std::sync::{mpsc, RwLock};
 use std::thread;
 use std::time::Instant;
+
+use glium::index::PrimitiveType;
+use glium::{glutin, Surface};
+use glium::{implement_vertex, program, uniform};
 use v4l::buffer::Type;
 use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
@@ -15,59 +13,31 @@ use v4l::video::capture::Parameters;
 use v4l::video::Capture;
 use v4l::{Format, FourCC};
 
-fn main() {
-    let matches = App::new("v4l capture")
-        .version("0.2")
-        .author("Christopher N. Hesse <raymanfx@gmail.com>")
-        .about("Video4Linux device example")
-        .arg(
-            Arg::with_name("device")
-                .short("d")
-                .long("device")
-                .value_name("INDEX or PATH")
-                .help("Device node path or index (default: 0)")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("buffers")
-                .short("b")
-                .long("buffers")
-                .value_name("INT")
-                .help("Number of buffers to allocate (default: 4)")
-                .takes_value(true),
-        )
-        .get_matches();
-
-    // Determine which device to use
-    let mut path: String = matches
-        .value_of("device")
-        .unwrap_or("/dev/video0")
-        .to_string();
-    if path.parse::<u64>().is_ok() {
-        path = format!("/dev/video{}", path);
-    }
+fn main() -> io::Result<()> {
+    let path = "/dev/video0";
     println!("Using device: {}\n", path);
 
     // Allocate 4 buffers by default
-    let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
-    let buffers = buffers.parse::<u32>().unwrap();
+    let buffer_count = 4;
 
     let mut format: Format;
     let params: Parameters;
 
-    let dev = RwLock::new(Device::with_path(path.clone()).unwrap());
+    let dev = RwLock::new(Device::with_path(path.clone())?);
     {
         let dev = dev.write().unwrap();
-        format = dev.format().unwrap();
-        params = dev.params().unwrap();
+        format = dev.format()?;
+        params = dev.params()?;
 
         // enforce RGB3
         format.fourcc = FourCC::new(b"RGB3");
-        format = dev.set_format(&format).unwrap();
+        format = dev.set_format(&format)?;
 
         if format.fourcc != FourCC::new(b"RGB3") {
-            println!("RGB3 not supported by the device, but required by this example!");
-            return;
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "RGB3 not supported by the device, but required by this example!",
+            ));
         }
     }
 
@@ -153,7 +123,8 @@ fn main() {
         let mut dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream = MmapStream::with_buffers(&mut *dev, Type::VideoCapture, buffers).unwrap();
+        let mut stream =
+            MmapStream::with_buffers(&mut *dev, Type::VideoCapture, buffer_count).unwrap();
 
         loop {
             let (buf, _) = stream.next().unwrap();

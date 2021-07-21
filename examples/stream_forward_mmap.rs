@@ -1,81 +1,24 @@
-extern crate clap;
-extern crate v4l;
-
 use std::io;
 use std::time::Instant;
 
-use clap::{App, Arg};
 use v4l::buffer::Type;
 use v4l::io::traits::{CaptureStream, OutputStream};
 use v4l::prelude::*;
 use v4l::video::{Capture, Output};
 
 fn main() -> io::Result<()> {
-    let matches = App::new("v4l mmap")
-        .version("0.2")
-        .author("Christopher N. Hesse <raymanfx@gmail.com>")
-        .about("Video4Linux forwarding example")
-        .arg(
-            Arg::with_name("device")
-                .short("d")
-                .long("device")
-                .value_name("INDEX or PATH")
-                .help("Device node path or index (default: 0)")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("output")
-                .short("o")
-                .long("output")
-                .value_name("INDEX or PATH")
-                .help("Device node path or index (default: 1)")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("count")
-                .short("c")
-                .long("count")
-                .value_name("INT")
-                .help("Number of frames to capture (default: 4)")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("buffers")
-                .short("b")
-                .long("buffers")
-                .value_name("INT")
-                .help("Number of buffers to allocate (default: 4)")
-                .takes_value(true),
-        )
-        .get_matches();
+    let source = "/dev/video0";
+    println!("Using source device: {}\n", source);
 
     // Determine which device to use
-    let mut source: String = matches
-        .value_of("device")
-        .unwrap_or("/dev/video0")
-        .to_string();
-    if source.parse::<u64>().is_ok() {
-        source = format!("/dev/video{}", source);
-    }
-    println!("Using device: {}\n", source);
-
-    // Determine which device to use
-    let mut sink: String = matches
-        .value_of("output")
-        .unwrap_or("/dev/video1")
-        .to_string();
-    if sink.parse::<u64>().is_ok() {
-        sink = format!("/dev/video{}", sink);
-    }
+    let sink = "/dev/video1";
     println!("Using sink device: {}\n", sink);
 
     // Capture 4 frames by default
-    let count = matches.value_of("count").unwrap_or("4").to_string();
-    let count = count.parse::<u32>().unwrap();
+    let count = 4;
 
     // Allocate 4 buffers by default
-    let buffers = matches.value_of("buffers").unwrap_or("4").to_string();
-    let buffers = buffers.parse::<u32>().unwrap();
+    let buffer_count = 4;
 
     let mut cap = Device::with_path(source)?;
     println!("Active cap capabilities:\n{}", cap.query_caps()?);
@@ -105,8 +48,8 @@ fn main() -> io::Result<()> {
     println!("New out format:\n{}", Output::format(&out)?);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut cap_stream = MmapStream::with_buffers(&mut cap, Type::VideoCapture, buffers)?;
-    let mut out_stream = MmapStream::with_buffers(&mut out, Type::VideoOutput, buffers)?;
+    let mut cap_stream = MmapStream::with_buffers(&mut cap, Type::VideoCapture, buffer_count)?;
+    let mut out_stream = MmapStream::with_buffers(&mut out, Type::VideoOutput, buffer_count)?;
 
     // warmup
     CaptureStream::next(&mut cap_stream)?;

@@ -8,6 +8,10 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+## [0.13.0]
+### Changed
+- Simplified examples, removing clap argument parsing
+
 ## [0.12.1] - 2020-05-01
 ### Fixed
 - Update the buffer index for output streams
