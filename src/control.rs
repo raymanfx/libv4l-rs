@@ -219,6 +219,11 @@ pub enum Value {
     Integer(i64),
     Boolean(bool),
     String(String),
+    /* compound (matrix) values */
+    CompoundU8(Vec<u8>),
+    CompoundU16(Vec<u16>),
+    CompoundU32(Vec<u32>),
+    CompoundPtr(Vec<u8>),
 }
 
 impl TryInto<v4l2_control> for Control {
