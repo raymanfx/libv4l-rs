@@ -211,27 +211,83 @@ impl Device {
     ///
     /// # Arguments
     ///
-    /// * `id` - Control identifier
-    /// * `val` - New value
+    /// * `ctrl` - Control to be set
     pub fn set_control(&self, ctrl: Control) -> io::Result<()> {
+        self.set_controls(vec![ctrl])
+    }
+
+    /// Modifies the control values atomically
+    ///
+    /// # Arguments
+    ///
+    /// * `ctrls` - Vec of the controls to be set
+    pub fn set_controls(&self, ctrls: Vec<Control>) -> io::Result<()> {
         unsafe {
-            let mut v4l2_ctrl: v4l2_control = mem::zeroed();
-            v4l2_ctrl.id = ctrl.id;
-            match ctrl.value {
-                control::Value::None => {}
-                control::Value::Integer(val) => v4l2_ctrl.value = val as i32,
-                control::Value::Boolean(val) => v4l2_ctrl.value = val as i32,
-                _ => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidInput,
-                        "only single value controls are supported at the moment",
-                    ))
-                }
+            let mut controls: v4l2_ext_controls = mem::zeroed();
+            let mut control_list: Vec<v4l2_ext_control> = vec![];
+            let mut class: Option<u32> = None;
+
+            controls.count = ctrls.len() as u32;
+
+            if controls.count == 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "ctrls cannot be empty",
+                ));
             }
+
+            for ref ctrl in ctrls {
+                let mut control: v4l2_ext_control = mem::zeroed();
+
+                control.id = ctrl.id;
+                class = match class {
+                    Some(c) => {
+                        if c != (control.id & 0xFFFF0000) {
+                            return Err(io::Error::new(
+                                io::ErrorKind::InvalidInput,
+                                "All controls must be in the same class",
+                            ));
+                        } else {
+                            Some(c)
+                        }
+                    }
+                    None => Some(control.id & 0xFFFF0000),
+                };
+
+                match ctrl.value {
+                    control::Value::None => {}
+                    control::Value::Integer(val) => {
+                        control.__bindgen_anon_1.value64 = val;
+                        control.size = std::mem::size_of::<i64>() as u32;
+                    }
+                    control::Value::Boolean(val) => {
+                        control.__bindgen_anon_1.value64 = val as i64;
+                        control.size = std::mem::size_of::<i64>() as u32;
+                    }
+                    control::Value::String(ref val) => {
+                        control.__bindgen_anon_1.string = val.as_ptr() as *mut i8;
+                        control.size = val.len() as u32;
+                    }
+                };
+
+                control_list.push(control);
+            }
+
+            if let Some(class) = class {
+                controls.__bindgen_anon_1.ctrl_class = class;
+            } else {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "failed to determine control class",
+                ));
+            };
+
+            controls.controls = control_list.as_mut_ptr() as *mut v4l2_ext_control;
+
             v4l2::ioctl(
                 self.handle().fd(),
-                v4l2::vidioc::VIDIOC_S_CTRL,
-                &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+                v4l2::vidioc::VIDIOC_S_EXT_CTRLS,
+                &mut controls as *mut _ as *mut std::os::raw::c_void,
             )
         }
     }
