@@ -205,12 +205,19 @@ impl fmt::Display for Description {
 }
 
 #[derive(Debug)]
+pub struct Control {
+    pub id: u32,
+    pub value: Value,
+}
+
+#[derive(Debug)]
 /// Device control value
-pub enum Control {
+pub enum Value {
+    /* buttons */
+    None,
     /* single values */
     Integer(i64),
     Boolean(bool),
-    Button,
     String(String),
 }
 
@@ -220,16 +227,17 @@ impl TryInto<v4l2_control> for Control {
     fn try_into(self) -> Result<v4l2_control, Self::Error> {
         unsafe {
             let mut ctrl: v4l2_control = mem::zeroed();
-            match self {
-                Control::Integer(val) => {
+            ctrl.id = self.id;
+            match self.value {
+                Value::None => Ok(ctrl),
+                Value::Integer(val) => {
                     ctrl.value = val as i32;
                     Ok(ctrl)
                 }
-                Control::Boolean(val) => {
+                Value::Boolean(val) => {
                     ctrl.value = val as i32;
                     Ok(ctrl)
                 }
-                Control::Button => Ok(ctrl),
                 _ => Err(()),
             }
         }
