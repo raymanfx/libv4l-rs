@@ -190,16 +190,20 @@ impl Device {
                 &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            match description.typ {
+            let value = match description.typ {
                 control::Type::Integer | control::Type::Integer64 => {
-                    Ok(Control::Integer(v4l2_ctrl.value as i64))
+                    control::Value::Integer(v4l2_ctrl.value as i64)
                 }
-                control::Type::Boolean => Ok(Control::Boolean(v4l2_ctrl.value == 1)),
-                _ => Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "cannot handle control type",
-                )),
-            }
+                control::Type::Boolean => control::Value::Boolean(v4l2_ctrl.value == 1),
+                _ => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "cannot handle control type",
+                    ))
+                }
+            };
+
+            Ok(Control { id, value })
         }
     }
 
@@ -209,14 +213,14 @@ impl Device {
     ///
     /// * `id` - Control identifier
     /// * `val` - New value
-    pub fn set_control(&self, id: u32, val: Control) -> io::Result<()> {
+    pub fn set_control(&self, ctrl: Control) -> io::Result<()> {
         unsafe {
             let mut v4l2_ctrl: v4l2_control = mem::zeroed();
-            v4l2_ctrl.id = id;
-            match val {
-                Control::Integer(val) => v4l2_ctrl.value = val as i32,
-                Control::Boolean(val) => v4l2_ctrl.value = val as i32,
-                Control::Button => {}
+            v4l2_ctrl.id = ctrl.id;
+            match ctrl.value {
+                control::Value::None => {}
+                control::Value::Integer(val) => v4l2_ctrl.value = val as i32,
+                control::Value::Boolean(val) => v4l2_ctrl.value = val as i32,
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidInput,
