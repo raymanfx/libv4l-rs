@@ -5,6 +5,7 @@ use std::{io, mem};
 
 use crate::control;
 use crate::v4l2;
+use crate::v4l2::videodev::v4l2_ext_controls;
 use crate::v4l_sys::*;
 use crate::{capability::Capabilities, control::Control};
 
@@ -290,7 +291,7 @@ impl Device {
             }
 
             if let Some(class) = class {
-                controls.__bindgen_anon_1.ctrl_class = class;
+                controls.which = class;
             } else {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
