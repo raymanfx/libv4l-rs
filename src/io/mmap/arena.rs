@@ -34,6 +34,22 @@ impl<'a> Arena<'a> {
             buf_type,
         }
     }
+
+    fn buffer_desc(&self) -> v4l2_buffer {
+        v4l2_buffer {
+            type_: self.buf_type as u32,
+            memory: Memory::Mmap as u32,
+            ..unsafe { mem::zeroed() }
+        }
+    }
+
+    fn requestbuffers_desc(&self) -> v4l2_requestbuffers {
+        v4l2_requestbuffers {
+            type_: self.buf_type as u32,
+            memory: Memory::Mmap as u32,
+            ..unsafe { mem::zeroed() }
+        }
+    }
 }
 
 impl<'a> Drop for Arena<'a> {
@@ -63,12 +79,11 @@ impl<'a> ArenaTrait for Arena<'a> {
     type Buffer = [u8];
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
-        let mut v4l2_reqbufs: v4l2_requestbuffers;
+        let mut v4l2_reqbufs = v4l2_requestbuffers {
+            count,
+            ..self.requestbuffers_desc()
+        };
         unsafe {
-            v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = self.buf_type as u32;
-            v4l2_reqbufs.count = count;
-            v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
@@ -76,13 +91,12 @@ impl<'a> ArenaTrait for Arena<'a> {
             )?;
         }
 
-        for i in 0..v4l2_reqbufs.count {
-            let mut v4l2_buf: v4l2_buffer;
+        for index in 0..v4l2_reqbufs.count {
+            let mut v4l2_buf = v4l2_buffer {
+                index,
+                ..self.buffer_desc()
+            };
             unsafe {
-                v4l2_buf = mem::zeroed();
-                v4l2_buf.type_ = self.buf_type as u32;
-                v4l2_buf.memory = Memory::Mmap as u32;
-                v4l2_buf.index = i;
                 v4l2::ioctl(
                     self.handle.fd(),
                     v4l2::vidioc::VIDIOC_QUERYBUF,
@@ -115,12 +129,11 @@ impl<'a> ArenaTrait for Arena<'a> {
         }
 
         // free all buffers by requesting 0
-        let mut v4l2_reqbufs: v4l2_requestbuffers;
+        let mut v4l2_reqbufs = v4l2_requestbuffers {
+            count: 0,
+            ..self.requestbuffers_desc()
+        };
         unsafe {
-            v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = self.buf_type as u32;
-            v4l2_reqbufs.count = 0;
-            v4l2_reqbufs.memory = Memory::Mmap as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,

@@ -1,4 +1,4 @@
-use std::{fmt, mem, time};
+use std::{fmt, time};
 
 use crate::v4l_sys::*;
 
@@ -45,15 +45,11 @@ impl From<timeval> for Timestamp {
 }
 
 impl Into<timeval> for Timestamp {
-    fn into(self: Timestamp) -> timeval {
-        let mut tv: timeval;
-        unsafe {
-            tv = mem::zeroed();
+    fn into(self) -> timeval {
+        timeval {
+            tv_sec: self.sec as time_t,
+            tv_usec: self.usec as time_t,
         }
-
-        tv.tv_sec = self.sec as time_t;
-        tv.tv_usec = self.usec as time_t;
-        tv
     }
 }
 
