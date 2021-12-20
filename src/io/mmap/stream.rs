@@ -5,6 +5,7 @@ use crate::device::{Device, Handle};
 use crate::io::mmap::arena::Arena;
 use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::Memory;
+use crate::pselect::pselect;
 use crate::v4l2;
 use crate::v4l_sys::*;
 
@@ -126,6 +127,16 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
             index: index as u32,
             ..self.buffer_desc()
         };
+
+        pselect(
+            self.handle.fd() + 1,
+            Some(&mut self.handle.fd_set()),
+            None,
+            None,
+            None,
+            None,
+        )?;
+
         unsafe {
             v4l2::ioctl(
                 self.handle.fd(),
@@ -139,6 +150,16 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
 
     fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf = self.buffer_desc();
+
+        pselect(
+            self.handle.fd() + 1,
+            Some(&mut self.handle.fd_set()),
+            None,
+            None,
+            None,
+            None,
+        )?;
+
         unsafe {
             v4l2::ioctl(
                 self.handle.fd(),
@@ -196,6 +217,14 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
             v4l2_buf.bytesused = self.buf_meta[index].bytesused;
             v4l2_buf.field = self.buf_meta[index].field;
 
+            pselect(
+                self.handle.fd() + 1,
+                Some(&mut self.handle.fd_set()),
+                None,
+                None,
+                None,
+                None,
+            )?;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
@@ -206,6 +235,16 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
 
     fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf = self.buffer_desc();
+
+        pselect(
+            self.handle.fd() + 1,
+            Some(&mut self.handle.fd_set()),
+            None,
+            None,
+            None,
+            None,
+        )?;
+
         unsafe {
             v4l2::ioctl(
                 self.handle.fd(),
