@@ -128,15 +128,6 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
             ..self.buffer_desc()
         };
 
-        pselect(
-            self.handle.fd() + 1,
-            Some(&mut self.handle.fd_set()),
-            None,
-            None,
-            None,
-            None,
-        )?;
-
         unsafe {
             v4l2::ioctl(
                 self.handle.fd(),
