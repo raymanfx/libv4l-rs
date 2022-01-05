@@ -16,20 +16,20 @@
 //! e.g. "/dev/video0" for the device which first became known to the system.
 //!
 //! There are three methods of dealing with (capture) device memory:
-//! * MMAP (memory region in device memory or kernel space, mapped into userspace)
-//! * User pointer (memory region allocated in host memory, written into by the kernel)
-//! * DMA (direct memory access for memory transfer without involving the CPU)
+//! * `MMAP` (memory region in device memory or kernel space, mapped into userspace)
+//! * `User` pointer (memory region allocated in host memory, written into by the kernel)
+//! * `DMA` (direct memory access for memory transfer without involving the CPU)
 //!
-//! The following schematic shows the mmap and userptr mechanisms:
+//! The following schematic shows the `mmap` and `userptr` mechanisms:
 //!
 //! **mmap**
 //!
-//! 1. device --[MAP]--> kernel --[MAP]--> user
-//! 2. device --[DMA]--> kernel --[MAP]--> user
+//! 1. `device --[MAP]--> kernel --[MAP]--> user`
+//! 2. `device --[DMA]--> kernel --[MAP]--> user`
 //!
 //! **userptr**
 //!
-//! 3. device --[DMA]-->                   user
+//! 3. `device --[DMA]-->                   user`
 //!
 //!
 //! It is important to note that user pointer is for device-to-user memory transfer whereas
@@ -39,7 +39,7 @@
 //! As you can see, user pointer and DMA are potential candidates for zero-copy applications where
 //! buffers should be writable. If a read-only buffer is good enough, MMAP buffers are fine and
 //! do not incur any copy overhead either. Most (if not all) devices reporting streaming I/O
-//! capabilites support MMAP buffer sharing, but not all support user pointer access.
+//! capabilities support MMAP buffer sharing, but not all support user pointer access.
 //!
 //! The regular user of this crate will mainly be interested in frame capturing.
 //! Here is a very brief example of streaming I/O with memory mapped buffers:

@@ -41,6 +41,10 @@ jobs:
         - rustup component add clippy
       script:
         - cargo clippy -- -D warnings
+    - stage: Build-test docs
+      env: RUSTDOCFLAGS=-Dwarnings
+      script:
+        - cargo doc --no-deps --workspace --document-private-items
 
 stages:
   - check

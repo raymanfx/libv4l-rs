@@ -5,7 +5,7 @@ use crate::{format::FourCC, fraction::Fraction};
 use crate::{v4l_sys, v4l_sys::*};
 
 #[derive(Debug)]
-/// Format description as returned by VIDIOC_ENUM_FRAMEINTERVALS
+/// Format description as returned by [`crate::v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS`]
 pub struct FrameInterval {
     pub index: u32,
     pub fourcc: FourCC,
@@ -64,11 +64,11 @@ impl TryFrom<v4l2_frmivalenum> for FrameIntervalEnum {
 
 #[derive(Debug)]
 pub struct Stepwise {
-    /// Minimum frame interval [s].
+    /// Minimum frame interval (in seconds).
     pub min: Fraction,
-    /// Maximum frame interval [s].
+    /// Maximum frame interval (in seconds).
     pub max: Fraction,
-    /// Frame interval step size [s].
+    /// Frame interval step size (in seconds).
     pub step: Fraction,
 }
 

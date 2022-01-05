@@ -150,10 +150,8 @@ pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
 /// # Arguments
 ///
 /// * `fd` - File descriptor
-/// * `request` - IO control code (see [codes])
+/// * `request` - IO control code (see [`vidioc`])
 /// * `argp` - Pointer to memory region holding the argument type
-///
-/// [codes]: v4l::ioctl::codes
 ///
 /// # Safety
 ///

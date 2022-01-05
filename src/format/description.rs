@@ -33,7 +33,7 @@ impl fmt::Display for Flags {
 }
 
 #[derive(Debug)]
-/// Format description as returned by VIDIOC_ENUM_FMT
+/// Format description as returned by [`crate::v4l2::vidioc::VIDIOC_ENUM_FMT`]
 pub struct Description {
     pub index: u32,
     pub typ: u32,
