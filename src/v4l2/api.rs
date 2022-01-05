@@ -153,7 +153,7 @@ pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
 /// * `request` - IO control code (see [codes])
 /// * `argp` - Pointer to memory region holding the argument type
 ///
-/// [codes]: v4l::ioctl::codes
+/// [codes]: v4l::v4l2::vidioc
 ///
 /// # Safety
 ///
