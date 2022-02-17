@@ -5,7 +5,7 @@ use crate::v4l_sys::*;
 pub type _IOC_TYPE = std::os::raw::c_ulong;
 #[cfg(target_env = "musl")]
 #[allow(non_camel_case_types)]
-pub type _IOC_TYPE = std::os::raw::c_long;
+pub type _IOC_TYPE = std::os::raw::c_int;
 
 // linux ioctl.h
 const _IOC_NRBITS: u8 = 8;
