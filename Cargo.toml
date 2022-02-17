@@ -16,6 +16,7 @@ v4l2-sys = { path = "v4l2-sys", version = "0.2.0", package="v4l2-sys-mit", optio
 
 [dev-dependencies]
 glium = "0.27.0"
+jpeg-decoder = "0.2.1"
 
 [features]
 default = ["v4l2"]

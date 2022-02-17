@@ -11,6 +11,7 @@ Multi-planar capture will not be targeted in the near future unless someone else
 ## [0.13.0]
 ### Added
 - Handling of boolean and button controls
+- MJPG (consumer class hardware) support in `glium` example
 ### Changed
 - Simplified examples, removing clap argument parsing
 - Unified Value/Value64 control types into a single Integer enum variant

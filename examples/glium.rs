@@ -6,6 +6,9 @@ use std::time::Instant;
 use glium::index::PrimitiveType;
 use glium::{glutin, Surface};
 use glium::{implement_vertex, program, uniform};
+
+use jpeg_decoder as jpeg;
+
 use v4l::buffer::Type;
 use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
@@ -29,15 +32,21 @@ fn main() -> io::Result<()> {
         format = dev.format()?;
         params = dev.params()?;
 
-        // enforce RGB3
+        // try RGB3 first
         format.fourcc = FourCC::new(b"RGB3");
         format = dev.set_format(&format)?;
 
         if format.fourcc != FourCC::new(b"RGB3") {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "RGB3 not supported by the device, but required by this example!",
-            ));
+            // fallback to Motion-JPEG
+            format.fourcc = FourCC::new(b"MJPG");
+            format = dev.set_format(&format)?;
+
+            if format.fourcc != FourCC::new(b"MJPG") {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "neither RGB3 nor MJPG supported by the device, but required by this example!",
+                ));
+            }
         }
     }
 
@@ -128,7 +137,16 @@ fn main() -> io::Result<()> {
 
         loop {
             let (buf, _) = stream.next().unwrap();
-            let data = buf.to_vec();
+            let data = match &format.fourcc.repr {
+                b"RGB3" => buf.to_vec(),
+                b"MJPG" => {
+                    // Decode the JPEG frame to RGB
+                    let mut decoder = jpeg::Decoder::new(buf);
+                    let pixels = decoder.decode().expect("failed to decode JPEG");
+                    pixels
+                }
+                _ => panic!("invalid buffer pixelformat"),
+            };
             tx.send(data).unwrap();
         }
     });
