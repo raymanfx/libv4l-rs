@@ -114,7 +114,7 @@ impl fmt::Display for Capabilities {
             "Version     : {}.{}.{}",
             self.version.0, self.version.1, self.version.2
         )?;
-        writeln!(f, "Capabilites : {}", self.capabilities)?;
+        writeln!(f, "Capabilities : {}", self.capabilities)?;
         Ok(())
     }
 }

@@ -6,7 +6,7 @@ use crate::v4l_sys;
 use crate::v4l_sys::*;
 
 #[derive(Debug)]
-/// Format description as returned by VIDIOC_ENUM_FRAMESIZES
+/// Format description as returned by [`crate::v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES`]
 pub struct FrameSize {
     pub index: u32,
     pub fourcc: FourCC,
@@ -95,9 +95,9 @@ impl TryFrom<v4l2_frmsizeenum> for FrameSizeEnum {
 
 #[derive(Debug)]
 pub struct Discrete {
-    /// Width of the frame [pixel].
+    /// Width of the frame (in pixels).
     pub width: u32,
-    /// Height of the frame [pixel].
+    /// Height of the frame (in pixels).
     pub height: u32,
 }
 
@@ -110,17 +110,17 @@ impl fmt::Display for Discrete {
 
 #[derive(Debug)]
 pub struct Stepwise {
-    /// Minimum frame width [pixel].
+    /// Minimum frame width (in pixels).
     pub min_width: u32,
-    /// Maximum frame width [pixel].
+    /// Maximum frame width (in pixels).
     pub max_width: u32,
-    /// Frame width step size [pixel].
+    /// Frame width step size (in pixels).
     pub step_width: u32,
-    /// Minimum frame height [pixel].
+    /// Minimum frame height (in pixels).
     pub min_height: u32,
-    /// Maximum frame height [pixel].
+    /// Maximum frame height (in pixels).
     pub max_height: u32,
-    /// Frame height step size [pixel].
+    /// Frame height step size (in pixels).
     pub step_height: u32,
 }
 
