@@ -191,7 +191,7 @@ impl Device {
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_G_EXT_CTRLS,
-                &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
+                &mut v4l2_ctrls as *mut _ as *mut std::os::raw::c_void,
             )?;
 
             let value = match description.typ {
