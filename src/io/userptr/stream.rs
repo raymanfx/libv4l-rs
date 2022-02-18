@@ -61,6 +61,14 @@ impl Stream {
             active: false,
         })
     }
+
+    fn buffer_desc(&self) -> v4l2_buffer {
+        v4l2_buffer {
+            type_: self.buf_type as u32,
+            memory: Memory::UserPtr as u32,
+            ..unsafe { mem::zeroed() }
+        }
+    }
 }
 
 impl Drop for Stream {
@@ -115,15 +123,16 @@ impl StreamTrait for Stream {
 
 impl<'a> CaptureStream<'a> for Stream {
     fn queue(&mut self, index: usize) -> io::Result<()> {
-        let mut v4l2_buf: v4l2_buffer;
         let buf = unsafe { &mut self.arena.get_unchecked(index) };
+        let mut v4l2_buf = v4l2_buffer {
+            index: index as u32,
+            m: v4l2_buffer__bindgen_ty_1 {
+                userptr: buf.as_ptr() as std::os::raw::c_ulong,
+            },
+            length: buf.len() as u32,
+            ..self.buffer_desc()
+        };
         unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = self.buf_type as u32;
-            v4l2_buf.memory = Memory::UserPtr as u32;
-            v4l2_buf.index = index as u32;
-            v4l2_buf.m.userptr = buf.as_ptr() as std::os::raw::c_ulong;
-            v4l2_buf.length = buf.len() as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
@@ -135,11 +144,8 @@ impl<'a> CaptureStream<'a> for Stream {
     }
 
     fn dequeue(&mut self) -> io::Result<usize> {
-        let mut v4l2_buf: v4l2_buffer;
+        let mut v4l2_buf = self.buffer_desc();
         unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = self.buf_type as u32;
-            v4l2_buf.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,

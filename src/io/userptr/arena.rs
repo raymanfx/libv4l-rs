@@ -33,6 +33,14 @@ impl Arena {
             buf_type,
         }
     }
+
+    fn requestbuffers_desc(&self) -> v4l2_requestbuffers {
+        v4l2_requestbuffers {
+            type_: self.buf_type as u32,
+            memory: Memory::UserPtr as u32,
+            ..unsafe { mem::zeroed() }
+        }
+    }
 }
 
 impl Drop for Arena {
@@ -63,10 +71,11 @@ impl ArenaTrait for Arena {
 
     fn allocate(&mut self, count: u32) -> io::Result<u32> {
         // we need to get the maximum buffer size from the format first
-        let mut v4l2_fmt: v4l2_format;
+        let mut v4l2_fmt = v4l2_format {
+            type_: self.buf_type as u32,
+            ..unsafe { mem::zeroed() }
+        };
         unsafe {
-            v4l2_fmt = mem::zeroed();
-            v4l2_fmt.type_ = self.buf_type as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
@@ -81,12 +90,11 @@ impl ArenaTrait for Arena {
             You may want to use this crate with the raw v4l2 FFI bindings instead!\n"
         );
 
-        let mut v4l2_reqbufs: v4l2_requestbuffers;
+        let mut v4l2_reqbufs = v4l2_requestbuffers {
+            count,
+            ..self.requestbuffers_desc()
+        };
         unsafe {
-            v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = self.buf_type as u32;
-            v4l2_reqbufs.count = count;
-            v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
@@ -108,12 +116,11 @@ impl ArenaTrait for Arena {
 
     fn release(&mut self) -> io::Result<()> {
         // free all buffers by requesting 0
-        let mut v4l2_reqbufs: v4l2_requestbuffers;
+        let mut v4l2_reqbufs = v4l2_requestbuffers {
+            count: 0,
+            ..self.requestbuffers_desc()
+        };
         unsafe {
-            v4l2_reqbufs = mem::zeroed();
-            v4l2_reqbufs.type_ = self.buf_type as u32;
-            v4l2_reqbufs.count = 0;
-            v4l2_reqbufs.memory = Memory::UserPtr as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,

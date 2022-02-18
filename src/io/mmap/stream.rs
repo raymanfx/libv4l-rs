@@ -61,6 +61,14 @@ impl<'a> Stream<'a> {
             active: false,
         })
     }
+
+    fn buffer_desc(&self) -> v4l2_buffer {
+        v4l2_buffer {
+            type_: self.buf_type as u32,
+            memory: Memory::Mmap as u32,
+            ..unsafe { mem::zeroed() }
+        }
+    }
 }
 
 impl<'a> Drop for Stream<'a> {
@@ -115,12 +123,11 @@ impl<'a> StreamTrait for Stream<'a> {
 
 impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
     fn queue(&mut self, index: usize) -> io::Result<()> {
-        let mut v4l2_buf: v4l2_buffer;
+        let mut v4l2_buf = v4l2_buffer {
+            index: index as u32,
+            ..self.buffer_desc()
+        };
         unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = self.buf_type as u32;
-            v4l2_buf.memory = Memory::Mmap as u32;
-            v4l2_buf.index = index as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
@@ -132,11 +139,8 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
     }
 
     fn dequeue(&mut self) -> io::Result<usize> {
-        let mut v4l2_buf: v4l2_buffer;
+        let mut v4l2_buf = self.buffer_desc();
         unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = self.buf_type as u32;
-            v4l2_buf.memory = Memory::Mmap as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,
@@ -190,12 +194,11 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
 
 impl<'a, 'b> OutputStream<'b> for Stream<'a> {
     fn queue(&mut self, index: usize) -> io::Result<()> {
-        let mut v4l2_buf: v4l2_buffer;
+        let mut v4l2_buf = v4l2_buffer {
+            index: index as u32,
+            ..self.buffer_desc()
+        };
         unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = self.buf_type as u32;
-            v4l2_buf.memory = Memory::Mmap as u32;
-            v4l2_buf.index = index as u32;
             // output settings
             //
             // MetaData.bytesused is initialized to 0. For an output device, when bytesused is
@@ -213,11 +216,8 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
     }
 
     fn dequeue(&mut self) -> io::Result<usize> {
-        let mut v4l2_buf: v4l2_buffer;
+        let mut v4l2_buf = self.buffer_desc();
         unsafe {
-            v4l2_buf = mem::zeroed();
-            v4l2_buf.type_ = self.buf_type as u32;
-            v4l2_buf.memory = Memory::Mmap as u32;
             v4l2::ioctl(
                 self.handle.fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,

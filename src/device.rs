@@ -113,13 +113,14 @@ impl Device {
                         {
                             let mut items = Vec::new();
 
-                            let mut v4l2_menu: v4l2_querymenu = mem::zeroed();
-                            v4l2_menu.id = v4l2_ctrl.id;
-
                             for i in (v4l2_ctrl.minimum..=v4l2_ctrl.maximum)
                                 .step_by(v4l2_ctrl.step as usize)
                             {
-                                v4l2_menu.index = i as u32;
+                                let mut v4l2_menu = v4l2_querymenu {
+                                    id: v4l2_ctrl.id,
+                                    index: i as u32,
+                                    ..mem::zeroed()
+                                };
                                 let res = v4l2::ioctl(
                                     self.handle().fd(),
                                     v4l2::vidioc::VIDIOC_QUERYMENU,
@@ -171,8 +172,10 @@ impl Device {
     /// * `id` - Control identifier
     pub fn control(&self, id: u32) -> io::Result<Control> {
         unsafe {
-            let mut queryctrl: v4l2_query_ext_ctrl = mem::zeroed();
-            queryctrl.id = id;
+            let mut queryctrl = v4l2_query_ext_ctrl {
+                id,
+                ..mem::zeroed()
+            };
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
@@ -183,11 +186,15 @@ impl Device {
             let description = control::Description::from(queryctrl);
 
             // query the actual control value
-            let mut v4l2_ctrls: v4l2_ext_controls = mem::zeroed();
-            let mut v4l2_ctrl: v4l2_ext_control = mem::zeroed();
-            v4l2_ctrl.id = id;
-            v4l2_ctrls.count = 1;
-            v4l2_ctrls.controls = &mut v4l2_ctrl as *mut v4l2_ext_control;
+            let mut v4l2_ctrl = v4l2_ext_control {
+                id,
+                ..mem::zeroed()
+            };
+            let mut v4l2_ctrls = v4l2_ext_controls {
+                count: 1,
+                controls: &mut v4l2_ctrl,
+                ..mem::zeroed()
+            };
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_G_EXT_CTRLS,
@@ -229,13 +236,10 @@ impl Device {
     /// * `ctrls` - Vec of the controls to be set
     pub fn set_controls(&self, ctrls: Vec<Control>) -> io::Result<()> {
         unsafe {
-            let mut controls: v4l2_ext_controls = mem::zeroed();
             let mut control_list: Vec<v4l2_ext_control> = vec![];
             let mut class: Option<u32> = None;
 
-            controls.count = ctrls.len() as u32;
-
-            if controls.count == 0 {
+            if ctrls.is_empty() {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "ctrls cannot be empty",
@@ -243,9 +247,10 @@ impl Device {
             }
 
             for ref ctrl in ctrls {
-                let mut control: v4l2_ext_control = mem::zeroed();
-
-                control.id = ctrl.id;
+                let mut control = v4l2_ext_control {
+                    id: ctrl.id,
+                    ..mem::zeroed()
+                };
                 class = match class {
                     Some(c) => {
                         if c != (control.id & 0xFFFF0000) {
@@ -295,16 +300,20 @@ impl Device {
                 control_list.push(control);
             }
 
-            if let Some(class) = class {
-                controls.which = class;
-            } else {
-                return Err(io::Error::new(
+            let class = class.ok_or_else(|| {
+                io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "failed to determine control class",
-                ));
-            };
+                )
+            })?;
 
-            controls.controls = control_list.as_mut_ptr() as *mut v4l2_ext_control;
+            let mut controls = v4l2_ext_controls {
+                count: control_list.len() as u32,
+                controls: control_list.as_mut_ptr(),
+
+                which: class,
+                ..mem::zeroed()
+            };
 
             v4l2::ioctl(
                 self.handle().fd(),

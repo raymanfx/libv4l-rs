@@ -46,13 +46,10 @@ impl From<v4l2_outputparm> for Parameters {
 
 impl Into<v4l2_outputparm> for Parameters {
     fn into(self: Parameters) -> v4l2_outputparm {
-        let mut params: v4l2_outputparm;
-        unsafe {
-            params = mem::zeroed();
+        v4l2_outputparm {
+            capability: self.capabilities.into(),
+            timeperframe: self.interval.into(),
+            ..unsafe { mem::zeroed() }
         }
-
-        params.capability = self.capabilities.into();
-        params.timeperframe = self.interval.into();
-        params
     }
 }

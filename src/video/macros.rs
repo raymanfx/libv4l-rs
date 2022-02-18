@@ -7,12 +7,13 @@ macro_rules! impl_enum_frameintervals {
             height: u32,
         ) -> io::Result<Vec<FrameInterval>> {
             let mut frameintervals = Vec::new();
-            let mut v4l2_struct: v4l2_frmivalenum = unsafe { mem::zeroed() };
-
-            v4l2_struct.index = 0;
-            v4l2_struct.pixel_format = fourcc.into();
-            v4l2_struct.width = width;
-            v4l2_struct.height = height;
+            let mut v4l2_struct = v4l2_frmivalenum {
+                index: 0,
+                pixel_format: fourcc.into(),
+                width,
+                height,
+                ..unsafe { mem::zeroed() }
+            };
 
             loop {
                 let ret = unsafe {
@@ -45,10 +46,11 @@ macro_rules! impl_enum_framesizes {
     () => {
         fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
             let mut framesizes = Vec::new();
-            let mut v4l2_struct: v4l2_frmsizeenum = unsafe { mem::zeroed() };
-
-            v4l2_struct.index = 0;
-            v4l2_struct.pixel_format = fourcc.into();
+            let mut v4l2_struct = v4l2_frmsizeenum {
+                index: 0,
+                pixel_format: fourcc.into(),
+                ..unsafe { mem::zeroed() }
+            };
 
             loop {
                 let ret = unsafe {
@@ -81,14 +83,11 @@ macro_rules! impl_enum_formats {
     ($typ:expr) => {
         fn enum_formats(&self) -> io::Result<Vec<FormatDescription>> {
             let mut formats: Vec<FormatDescription> = Vec::new();
-            let mut v4l2_fmt: v4l2_fmtdesc;
-
-            unsafe {
-                v4l2_fmt = mem::zeroed();
-            }
-
-            v4l2_fmt.index = 0;
-            v4l2_fmt.type_ = $typ as u32;
+            let mut v4l2_fmt = v4l2_fmtdesc {
+                index: 0,
+                type_: $typ as u32,
+                ..unsafe { mem::zeroed() }
+            };
 
             let mut ret: io::Result<()>;
 
@@ -132,8 +131,10 @@ macro_rules! impl_format {
     ($typ:expr) => {
         fn format(&self) -> io::Result<Format> {
             unsafe {
-                let mut v4l2_fmt: v4l2_format = mem::zeroed();
-                v4l2_fmt.type_ = $typ as u32;
+                let mut v4l2_fmt = v4l2_format {
+                    type_: $typ as u32,
+                    ..mem::zeroed()
+                };
                 v4l2::ioctl(
                     self.handle().fd(),
                     v4l2::vidioc::VIDIOC_G_FMT,
@@ -150,9 +151,10 @@ macro_rules! impl_set_format {
     ($typ:expr) => {
         fn set_format(&self, fmt: &Format) -> io::Result<Format> {
             unsafe {
-                let mut v4l2_fmt: v4l2_format = mem::zeroed();
-                v4l2_fmt.type_ = $typ as u32;
-                v4l2_fmt.fmt.pix = (*fmt).into();
+                let mut v4l2_fmt = v4l2_format {
+                    type_: $typ as u32,
+                    fmt: v4l2_format__bindgen_ty_1 { pix: (*fmt).into() },
+                };
                 v4l2::ioctl(
                     self.handle().fd(),
                     v4l2::vidioc::VIDIOC_S_FMT,

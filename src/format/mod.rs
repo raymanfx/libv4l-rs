@@ -139,21 +139,18 @@ impl From<v4l2_pix_format> for Format {
 
 impl Into<v4l2_pix_format> for Format {
     fn into(self: Format) -> v4l2_pix_format {
-        let mut fmt: v4l2_pix_format;
-        unsafe {
-            fmt = mem::zeroed();
+        v4l2_pix_format {
+            width: self.width,
+            height: self.height,
+            pixelformat: self.fourcc.into(),
+            field: self.field_order as u32,
+            bytesperline: self.stride,
+            sizeimage: self.size,
+            colorspace: self.colorspace as u32,
+            flags: self.flags.into(),
+            quantization: self.quantization as u32,
+            xfer_func: self.transfer as u32,
+            ..unsafe { mem::zeroed() }
         }
-
-        fmt.width = self.width;
-        fmt.height = self.height;
-        fmt.pixelformat = self.fourcc.into();
-        fmt.field = self.field_order as u32;
-        fmt.bytesperline = self.stride;
-        fmt.sizeimage = self.size;
-        fmt.colorspace = self.colorspace as u32;
-        fmt.flags = self.flags.into();
-        fmt.quantization = self.quantization as u32;
-        fmt.xfer_func = self.transfer as u32;
-        fmt
     }
 }

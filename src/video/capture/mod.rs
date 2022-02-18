@@ -23,8 +23,10 @@ impl Capture for Device {
 
     fn params(&self) -> io::Result<Parameters> {
         unsafe {
-            let mut v4l2_params: v4l2_streamparm = mem::zeroed();
-            v4l2_params.type_ = Type::VideoCapture as u32;
+            let mut v4l2_params = v4l2_streamparm {
+                type_: Type::VideoCapture as u32,
+                ..mem::zeroed()
+            };
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_G_PARM,
@@ -37,9 +39,12 @@ impl Capture for Device {
 
     fn set_params(&self, params: &Parameters) -> io::Result<Parameters> {
         unsafe {
-            let mut v4l2_params: v4l2_streamparm = mem::zeroed();
-            v4l2_params.type_ = Type::VideoCapture as u32;
-            v4l2_params.parm.capture = (*params).into();
+            let mut v4l2_params = v4l2_streamparm {
+                type_: Type::VideoCapture as u32,
+                parm: v4l2_streamparm__bindgen_ty_1 {
+                    capture: (*params).into(),
+                },
+            };
             v4l2::ioctl(
                 self.handle().fd(),
                 v4l2::vidioc::VIDIOC_S_PARM,

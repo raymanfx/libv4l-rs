@@ -231,8 +231,10 @@ impl TryInto<v4l2_control> for Control {
 
     fn try_into(self) -> Result<v4l2_control, Self::Error> {
         unsafe {
-            let mut ctrl: v4l2_control = mem::zeroed();
-            ctrl.id = self.id;
+            let mut ctrl = v4l2_control {
+                id: self.id,
+                ..mem::zeroed()
+            };
             match self.value {
                 Value::None => Ok(ctrl),
                 Value::Integer(val) => {

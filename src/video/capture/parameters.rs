@@ -76,14 +76,11 @@ impl From<v4l2_captureparm> for Parameters {
 
 impl Into<v4l2_captureparm> for Parameters {
     fn into(self: Parameters) -> v4l2_captureparm {
-        let mut params: v4l2_captureparm;
-        unsafe {
-            params = mem::zeroed();
+        v4l2_captureparm {
+            capability: self.capabilities.into(),
+            capturemode: self.modes.into(),
+            timeperframe: self.interval.into(),
+            ..unsafe { mem::zeroed() }
         }
-
-        params.capability = self.capabilities.into();
-        params.capturemode = self.modes.into();
-        params.timeperframe = self.interval.into();
-        params
     }
 }
