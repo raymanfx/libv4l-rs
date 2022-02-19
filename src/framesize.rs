@@ -40,8 +40,8 @@ impl FrameSizeEnum {
                         .step_by(stepwise.step_height as usize)
                     {
                         discrete.push(Discrete {
-                            width: width,
-                            height: height,
+                            width,
+                            height,
                         });
                     }
                 }

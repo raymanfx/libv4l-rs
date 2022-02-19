@@ -16,14 +16,14 @@ fn main() -> io::Result<()> {
     // Allocate 4 buffers by default
     let buffer_count = 4;
 
-    let mut dev = Device::with_path(path)?;
+    let dev = Device::with_path(path)?;
     let format = dev.format()?;
     let params = dev.params()?;
     println!("Active format:\n{}", format);
     println!("Active parameters:\n{}", params);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, buffer_count)?;
+    let mut stream = MmapStream::with_buffers(&dev, Type::VideoCapture, buffer_count)?;
 
     // warmup
     stream.next()?;
