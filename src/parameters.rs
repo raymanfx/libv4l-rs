@@ -10,13 +10,13 @@ bitflags! {
 
 impl From<u32> for Capabilities {
     fn from(caps: u32) -> Self {
-        Capabilities::from_bits_truncate(caps)
+        Self::from_bits_truncate(caps)
     }
 }
 
-impl Into<u32> for Capabilities {
-    fn into(self) -> u32 {
-        self.bits()
+impl From<Capabilities> for u32 {
+    fn from(capabilities: Capabilities) -> Self {
+        capabilities.bits()
     }
 }
 

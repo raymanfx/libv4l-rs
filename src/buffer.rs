@@ -81,14 +81,14 @@ impl Default for Flags {
 }
 
 impl From<u32> for Flags {
-    fn from(flags: u32) -> Flags {
-        Flags::from_bits_truncate(flags)
+    fn from(flags: u32) -> Self {
+        Self::from_bits_truncate(flags)
     }
 }
 
-impl Into<u32> for Flags {
-    fn into(self) -> u32 {
-        self.bits()
+impl From<Flags> for u32 {
+    fn from(flags: Flags) -> Self {
+        flags.bits()
     }
 }
 

@@ -37,18 +37,18 @@ impl fmt::Display for Parameters {
 
 impl From<v4l2_outputparm> for Parameters {
     fn from(params: v4l2_outputparm) -> Self {
-        Parameters {
+        Self {
             capabilities: Capabilities::from(params.capability),
             interval: Fraction::from(params.timeperframe),
         }
     }
 }
 
-impl Into<v4l2_outputparm> for Parameters {
-    fn into(self: Parameters) -> v4l2_outputparm {
-        v4l2_outputparm {
-            capability: self.capabilities.into(),
-            timeperframe: self.interval.into(),
+impl From<Parameters> for v4l2_outputparm {
+    fn from(parameters: Parameters) -> Self {
+        Self {
+            capability: parameters.capabilities.into(),
+            timeperframe: parameters.interval.into(),
             ..unsafe { mem::zeroed() }
         }
     }

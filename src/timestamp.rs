@@ -37,25 +37,25 @@ impl fmt::Display for Timestamp {
 
 impl From<timeval> for Timestamp {
     fn from(tv: timeval) -> Self {
-        Timestamp {
+        Self {
             sec: tv.tv_sec as time_t,
             usec: tv.tv_usec as time_t,
         }
     }
 }
 
-impl Into<timeval> for Timestamp {
-    fn into(self) -> timeval {
-        timeval {
-            tv_sec: self.sec as time_t,
-            tv_usec: self.usec as time_t,
+impl From<Timestamp> for timeval {
+    fn from(timestamp: Timestamp) -> Self {
+        Self {
+            tv_sec: timestamp.sec as time_t,
+            tv_usec: timestamp.usec as time_t,
         }
     }
 }
 
 impl From<time::Duration> for Timestamp {
     fn from(duration: time::Duration) -> Self {
-        Timestamp::new(
+        Self::new(
             duration.as_secs() as time_t,
             duration.subsec_micros() as time_t,
         )
@@ -64,6 +64,6 @@ impl From<time::Duration> for Timestamp {
 
 impl From<Timestamp> for time::Duration {
     fn from(ts: Timestamp) -> Self {
-        time::Duration::new(ts.sec as u64, (ts.usec * 1000) as u32)
+        Self::new(ts.sec as u64, (ts.usec * 1000) as u32)
     }
 }

@@ -38,18 +38,18 @@ impl fmt::Display for Fraction {
 
 impl From<v4l2_fract> for Fraction {
     fn from(frac: v4l2_fract) -> Self {
-        Fraction {
+        Self {
             numerator: frac.numerator,
             denominator: frac.denominator,
         }
     }
 }
 
-impl Into<v4l2_fract> for Fraction {
-    fn into(self: Fraction) -> v4l2_fract {
-        v4l2_fract {
-            numerator: self.numerator,
-            denominator: self.denominator,
+impl From<Fraction> for v4l2_fract {
+    fn from(fraction: Fraction) -> Self {
+        Self {
+            numerator: fraction.numerator,
+            denominator: fraction.denominator,
         }
     }
 }
