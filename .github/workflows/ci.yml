@@ -1,31 +1,16 @@
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 
 name: CI
 
 jobs:
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: sudo apt-get install libv4l-dev
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
   check:
     name: Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
       - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -44,10 +29,10 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
       - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -64,13 +49,28 @@ jobs:
           command: test
           args: --workspace --doc
 
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    continue-on-error: true # Until #55 lands
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-20.04
+    steps:
       - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -90,10 +90,10 @@ jobs:
 
   docs:
     name: Build-test docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
       - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
