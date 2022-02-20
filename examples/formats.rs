@@ -31,7 +31,7 @@ fn main() -> io::Result<()> {
             }
         }
 
-        println!("")
+        println!()
     }
 
     Ok(())

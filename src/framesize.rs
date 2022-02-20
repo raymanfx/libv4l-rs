@@ -39,10 +39,7 @@ impl FrameSizeEnum {
                     for height in (stepwise.min_height..=stepwise.max_height)
                         .step_by(stepwise.step_height as usize)
                     {
-                        discrete.push(Discrete {
-                            width: width,
-                            height: height,
-                        });
+                        discrete.push(Discrete { width, height });
                     }
                 }
 

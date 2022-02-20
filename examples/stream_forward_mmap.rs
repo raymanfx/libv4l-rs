@@ -20,12 +20,12 @@ fn main() -> io::Result<()> {
     // Allocate 4 buffers by default
     let buffer_count = 4;
 
-    let mut cap = Device::with_path(source)?;
+    let cap = Device::with_path(source)?;
     println!("Active cap capabilities:\n{}", cap.query_caps()?);
     println!("Active cap format:\n{}", Capture::format(&cap)?);
     println!("Active cap parameters:\n{}", Capture::params(&cap)?);
 
-    let mut out = Device::with_path(sink)?;
+    let out = Device::with_path(sink)?;
     println!("Active out capabilities:\n{}", out.query_caps()?);
     println!("Active out format:\n{}", Output::format(&out)?);
     println!("Active out parameters:\n{}", Output::params(&out)?);
@@ -35,7 +35,7 @@ fn main() -> io::Result<()> {
     // a format is set, even though a valid format appears to be available when doing VIDIOC_G_FMT!
     // In our case, we just (try to) enforce the source format on the sink device.
     let source_fmt = Capture::format(&cap)?;
-    let sink_fmt = Output::set_format(&mut out, &source_fmt)?;
+    let sink_fmt = Output::set_format(&out, &source_fmt)?;
     if source_fmt.width != sink_fmt.width
         || source_fmt.height != sink_fmt.height
         || source_fmt.fourcc != sink_fmt.fourcc
@@ -48,8 +48,8 @@ fn main() -> io::Result<()> {
     println!("New out format:\n{}", Output::format(&out)?);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut cap_stream = MmapStream::with_buffers(&mut cap, Type::VideoCapture, buffer_count)?;
-    let mut out_stream = MmapStream::with_buffers(&mut out, Type::VideoOutput, buffer_count)?;
+    let mut cap_stream = MmapStream::with_buffers(&cap, Type::VideoCapture, buffer_count)?;
+    let mut out_stream = MmapStream::with_buffers(&out, Type::VideoOutput, buffer_count)?;
 
     // warmup
     CaptureStream::next(&mut cap_stream)?;

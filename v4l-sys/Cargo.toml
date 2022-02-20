@@ -9,4 +9,4 @@ links = "v4l1 v4l2 4lconvert"
 build = "build.rs"
 
 [build-dependencies]
-bindgen = "0.56.0"
+bindgen = "0.59"

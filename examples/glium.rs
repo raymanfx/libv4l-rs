@@ -26,7 +26,7 @@ fn main() -> io::Result<()> {
     let mut format: Format;
     let params: Parameters;
 
-    let dev = RwLock::new(Device::with_path(path.clone())?);
+    let dev = RwLock::new(Device::with_path(path)?);
     {
         let dev = dev.write().unwrap();
         format = dev.format()?;
@@ -95,8 +95,7 @@ fn main() -> io::Result<()> {
 
     // building the index buffer
     let index_buffer =
-        glium::IndexBuffer::new(&display, PrimitiveType::TriangleStrip, &[1 as u16, 2, 0, 3])
-            .unwrap();
+        glium::IndexBuffer::new(&display, PrimitiveType::TriangleStrip, &[1u16, 2, 0, 3]).unwrap();
 
     // compiling shaders and linking them together
     let program = program!(&display,
@@ -129,11 +128,10 @@ fn main() -> io::Result<()> {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let mut dev = dev.write().unwrap();
+        let dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream =
-            MmapStream::with_buffers(&mut *dev, Type::VideoCapture, buffer_count).unwrap();
+        let mut stream = MmapStream::with_buffers(&dev, Type::VideoCapture, buffer_count).unwrap();
 
         loop {
             let (buf, _) = stream.next().unwrap();
@@ -142,8 +140,7 @@ fn main() -> io::Result<()> {
                 b"MJPG" => {
                     // Decode the JPEG frame to RGB
                     let mut decoder = jpeg::Decoder::new(buf);
-                    let pixels = decoder.decode().expect("failed to decode JPEG");
-                    pixels
+                    decoder.decode().expect("failed to decode JPEG")
                 }
                 _ => panic!("invalid buffer pixelformat"),
             };
@@ -186,14 +183,12 @@ fn main() -> io::Result<()> {
         target.finish().unwrap();
 
         // polling and handling the events received by the window
-        match event {
-            glutin::event::Event::WindowEvent { event, .. } => match event {
-                glutin::event::WindowEvent::CloseRequested => {
-                    *control_flow = glutin::event_loop::ControlFlow::Exit;
-                }
-                _ => {}
-            },
-            _ => {}
+        if let glutin::event::Event::WindowEvent {
+            event: glutin::event::WindowEvent::CloseRequested,
+            ..
+        } = event
+        {
+            *control_flow = glutin::event_loop::ControlFlow::Exit;
         }
 
         print!(

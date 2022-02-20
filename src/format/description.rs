@@ -16,13 +16,13 @@ bitflags! {
 
 impl From<u32> for Flags {
     fn from(flags: u32) -> Self {
-        Flags::from_bits_truncate(flags)
+        Self::from_bits_truncate(flags)
     }
 }
 
-impl Into<u32> for Flags {
-    fn into(self) -> u32 {
-        self.bits()
+impl From<Flags> for u32 {
+    fn from(flags: Flags) -> Self {
+        flags.bits()
     }
 }
 
@@ -55,7 +55,7 @@ impl fmt::Display for Description {
 
 impl From<v4l2_fmtdesc> for Description {
     fn from(desc: v4l2_fmtdesc) -> Self {
-        Description {
+        Self {
             index: desc.index,
             typ: desc.type_,
             flags: Flags::from(desc.flags),

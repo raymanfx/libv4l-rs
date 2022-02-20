@@ -30,13 +30,13 @@ bitflags! {
 
 impl From<u32> for Flags {
     fn from(flags: u32) -> Self {
-        Flags::from_bits_truncate(flags)
+        Self::from_bits_truncate(flags)
     }
 }
 
-impl Into<u32> for Flags {
-    fn into(self) -> u32 {
-        self.bits()
+impl From<Flags> for u32 {
+    fn from(flags: Flags) -> Self {
+        flags.bits()
     }
 }
 
@@ -122,7 +122,7 @@ impl fmt::Display for Format {
 
 impl From<v4l2_pix_format> for Format {
     fn from(fmt: v4l2_pix_format) -> Self {
-        Format {
+        Self {
             width: fmt.width,
             height: fmt.height,
             fourcc: FourCC::from(fmt.pixelformat),
@@ -137,19 +137,19 @@ impl From<v4l2_pix_format> for Format {
     }
 }
 
-impl Into<v4l2_pix_format> for Format {
-    fn into(self: Format) -> v4l2_pix_format {
-        v4l2_pix_format {
-            width: self.width,
-            height: self.height,
-            pixelformat: self.fourcc.into(),
-            field: self.field_order as u32,
-            bytesperline: self.stride,
-            sizeimage: self.size,
-            colorspace: self.colorspace as u32,
-            flags: self.flags.into(),
-            quantization: self.quantization as u32,
-            xfer_func: self.transfer as u32,
+impl From<Format> for v4l2_pix_format {
+    fn from(format: Format) -> Self {
+        Self {
+            width: format.width,
+            height: format.height,
+            pixelformat: format.fourcc.into(),
+            field: format.field_order as u32,
+            bytesperline: format.stride,
+            sizeimage: format.size,
+            colorspace: format.colorspace as u32,
+            flags: format.flags.into(),
+            quantization: format.quantization as u32,
+            xfer_func: format.transfer as u32,
             ..unsafe { mem::zeroed() }
         }
     }

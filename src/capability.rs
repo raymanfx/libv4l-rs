@@ -46,13 +46,13 @@ bitflags! {
 
 impl From<u32> for Flags {
     fn from(flags: u32) -> Self {
-        Flags::from_bits_truncate(flags)
+        Self::from_bits_truncate(flags)
     }
 }
 
-impl Into<u32> for Flags {
-    fn into(self) -> u32 {
-        self.bits()
+impl From<Flags> for u32 {
+    fn from(flags: Flags) -> Self {
+        flags.bits()
     }
 }
 
@@ -80,7 +80,7 @@ pub struct Capabilities {
 
 impl From<v4l2_capability> for Capabilities {
     fn from(cap: v4l2_capability) -> Self {
-        let mut caps = Capabilities {
+        Self {
             driver: str::from_utf8(&cap.driver)
                 .unwrap()
                 .trim_matches(char::from(0))
@@ -93,14 +93,13 @@ impl From<v4l2_capability> for Capabilities {
                 .unwrap()
                 .trim_matches(char::from(0))
                 .to_string(),
-            version: (0, 0, 0),
+            version: (
+                ((cap.version >> 16) & 0xff) as u8,
+                ((cap.version >> 8) & 0xff) as u8,
+                (cap.version & 0xff) as u8,
+            ),
             capabilities: Flags::from(cap.device_caps),
-        };
-
-        caps.version.0 = ((cap.version >> 16) & 0xff) as u8;
-        caps.version.1 = ((cap.version >> 8) & 0xff) as u8;
-        caps.version.2 = (cap.version & 0xff) as u8;
-        caps
+        }
     }
 }
 
