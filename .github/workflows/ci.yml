@@ -1,0 +1,108 @@
+on:
+  push:
+  pull_request:
+
+name: CI
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        name: Check `v4l2`
+        with:
+          command: check
+          args: --workspace --all-targets
+      - uses: actions-rs/cargo@v1
+        name: Check `libv4l`
+        with:
+          command: check
+          args: --workspace --all-targets --no-default-features --features libv4l
+
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Test all targets
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace --all-targets
+      - name: Test docs
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace --doc
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+      - uses: actions-rs/cargo@v1
+        name: Clippy lint `v4l2`
+        with:
+          command: clippy
+          args: --workspace --all-targets -- -D warnings
+      - uses: actions-rs/cargo@v1
+        name: Clippy lint `libv4l`
+        with:
+          command: clippy
+          args: --workspace --all-targets --no-default-features --features libv4l -- -D warnings
+
+  docs:
+    name: Build-test docs
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get install libv4l-dev
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        name: Document all crates
+        env:
+          RUSTDOCFLAGS: -Dwarnings
+        with:
+          command: doc
+          args: --workspace --no-deps --document-private-items

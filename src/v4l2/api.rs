@@ -21,6 +21,9 @@ mod detail {
         request: vidioc::_IOC_TYPE,
         argp: *mut std::os::raw::c_void,
     ) -> std::os::raw::c_int {
+        // libv4l expects `request` to be a u64, but this is not guaranteed on all platforms.
+        // For the default CI platform (x86_64) clippy will complain about a useless conversion.
+        #![allow(clippy::useless_conversion)]
         v4l2_ioctl(
             fd,
             request.try_into().expect("vidioc::_IOC_TYPE -> u64 failed"),
@@ -35,6 +38,9 @@ mod detail {
         fd: std::os::raw::c_int,
         offset: libc::off_t,
     ) -> *mut std::os::raw::c_void {
+        // libv4l expects `request` to be a u64, but this is not guaranteed on all platforms.
+        // For the default CI platform (x86_64) clippy will complain about a useless conversion.
+        #![allow(clippy::useless_conversion)]
         v4l2_mmap(
             start,
             length.try_into().expect("usize -> c size_t failed"),
