@@ -2,7 +2,6 @@ use std::{io, mem, sync::Arc};
 
 use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
-use crate::io::arena::Arena as ArenaTrait;
 use crate::io::mmap::arena::Arena;
 use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::Memory;
@@ -160,18 +159,10 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
         Ok(self.arena_index)
     }
 
-    fn get(&self, index: usize) -> Option<&Self::Item> {
-        self.arena.get(index)
-    }
-
-    fn get_meta(&self, index: usize) -> Option<&Metadata> {
-        self.buf_meta.get(index)
-    }
-
     fn next(&'b mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
             // Enqueue all buffers once on stream start
-            for index in 0..self.arena.len() {
+            for index in 0..self.arena.bufs.len() {
                 CaptureStream::queue(self, index)?;
             }
 
@@ -184,11 +175,9 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
 
         // The index used to access the buffer elements is given to us by v4l2, so we assume it
         // will always be valid.
-        unsafe {
-            let bytes = self.arena.get_unchecked(self.arena_index);
-            let meta = self.buf_meta.get_unchecked(self.arena_index);
-            Ok((bytes, meta))
-        }
+        let bytes = &self.arena.bufs[self.arena_index];
+        let meta = &self.buf_meta[self.arena_index];
+        Ok((bytes, meta))
     }
 }
 
@@ -237,14 +226,6 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
         Ok(self.arena_index)
     }
 
-    fn get(&mut self, index: usize) -> Option<&mut Self::Item> {
-        self.arena.get_mut(index)
-    }
-
-    fn get_meta(&mut self, index: usize) -> Option<&mut Metadata> {
-        self.buf_meta.get_mut(index)
-    }
-
     fn next(&'b mut self) -> io::Result<(&mut Self::Item, &mut Metadata)> {
         let init = !self.active;
         if !self.active {
@@ -261,10 +242,8 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
 
         // The index used to access the buffer elements is given to us by v4l2, so we assume it
         // will always be valid.
-        unsafe {
-            let bytes = self.arena.get_unchecked_mut(self.arena_index);
-            let meta = self.buf_meta.get_unchecked_mut(self.arena_index);
-            Ok((bytes, meta))
-        }
+        let bytes = &mut self.arena.bufs[self.arena_index];
+        let meta = &mut self.buf_meta[self.arena_index];
+        Ok((bytes, meta))
     }
 }

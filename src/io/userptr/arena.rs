@@ -2,7 +2,6 @@ use std::{io, mem, sync::Arc};
 
 use crate::buffer;
 use crate::device::Handle;
-use crate::io::arena::Arena as ArenaTrait;
 use crate::memory::Memory;
 use crate::v4l2;
 use crate::v4l_sys::*;
@@ -12,8 +11,8 @@ use crate::v4l_sys::*;
 /// All buffers are released in the Drop impl.
 pub struct Arena {
     handle: Arc<Handle>,
-    bufs: Vec<Vec<u8>>,
-    buf_type: buffer::Type,
+    pub bufs: Vec<Vec<u8>>,
+    pub buf_type: buffer::Type,
 }
 
 impl Arena {
@@ -41,35 +40,8 @@ impl Arena {
             ..unsafe { mem::zeroed() }
         }
     }
-}
 
-impl Drop for Arena {
-    fn drop(&mut self) {
-        if self.bufs.is_empty() {
-            // nothing to do
-            return;
-        }
-
-        if let Err(e) = self.release() {
-            if let Some(code) = e.raw_os_error() {
-                // ENODEV means the file descriptor wrapped in the handle became invalid, most
-                // likely because the device was unplugged or the connection (USB, PCI, ..)
-                // broke down. Handle this case gracefully by ignoring it.
-                if code == 19 {
-                    /* ignore */
-                    return;
-                }
-            }
-
-            panic!("{:?}", e)
-        }
-    }
-}
-
-impl ArenaTrait for Arena {
-    type Buffer = [u8];
-
-    fn allocate(&mut self, count: u32) -> io::Result<u32> {
+    pub fn allocate(&mut self, count: u32) -> io::Result<u32> {
         // we need to get the maximum buffer size from the format first
         let mut v4l2_fmt = v4l2_format {
             type_: self.buf_type as u32,
@@ -114,7 +86,7 @@ impl ArenaTrait for Arena {
         Ok(v4l2_reqbufs.count)
     }
 
-    fn release(&mut self) -> io::Result<()> {
+    pub fn release(&mut self) -> io::Result<()> {
         // free all buffers by requesting 0
         let mut v4l2_reqbufs = v4l2_requestbuffers {
             count: 0,
@@ -128,24 +100,27 @@ impl ArenaTrait for Arena {
             )
         }
     }
+}
 
-    fn get(&self, index: usize) -> Option<&Self::Buffer> {
-        Some(self.bufs.get(index)?)
-    }
+impl Drop for Arena {
+    fn drop(&mut self) {
+        if self.bufs.is_empty() {
+            // nothing to do
+            return;
+        }
 
-    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Buffer> {
-        Some(self.bufs.get_mut(index)?)
-    }
+        if let Err(e) = self.release() {
+            if let Some(code) = e.raw_os_error() {
+                // ENODEV means the file descriptor wrapped in the handle became invalid, most
+                // likely because the device was unplugged or the connection (USB, PCI, ..)
+                // broke down. Handle this case gracefully by ignoring it.
+                if code == 19 {
+                    /* ignore */
+                    return;
+                }
+            }
 
-    unsafe fn get_unchecked(&self, index: usize) -> &Self::Buffer {
-        self.bufs.get_unchecked(index)
-    }
-
-    unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Buffer {
-        self.bufs.get_unchecked_mut(index)
-    }
-
-    fn len(&self) -> usize {
-        self.bufs.len()
+            panic!("{:?}", e)
+        }
     }
 }
