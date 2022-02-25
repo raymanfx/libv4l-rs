@@ -68,9 +68,7 @@ impl From<u32> for FourCC {
 
 impl From<FourCC> for u32 {
     fn from(fourcc: FourCC) -> Self {
-        let mut code: Self;
-
-        code = fourcc.repr[0] as u32;
+        let mut code = fourcc.repr[0] as u32;
         code |= (fourcc.repr[1] as u32) << 8;
         code |= (fourcc.repr[2] as u32) << 16;
         code |= (fourcc.repr[3] as u32) << 24;
