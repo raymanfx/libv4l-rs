@@ -56,24 +56,12 @@ impl PartialEq for FourCC {
 
 impl From<u32> for FourCC {
     fn from(code: u32) -> Self {
-        let mut repr: [u8; 4] = [0; 4];
-
-        repr[0] = (code & 0xff) as u8;
-        repr[1] = ((code >> 8) & 0xff) as u8;
-        repr[2] = ((code >> 16) & 0xff) as u8;
-        repr[3] = ((code >> 24) & 0xff) as u8;
-        FourCC::new(&repr)
+        FourCC::new(&code.to_le_bytes())
     }
 }
 
 impl From<FourCC> for u32 {
     fn from(fourcc: FourCC) -> Self {
-        let mut code: Self;
-
-        code = fourcc.repr[0] as u32;
-        code |= (fourcc.repr[1] as u32) << 8;
-        code |= (fourcc.repr[2] as u32) << 16;
-        code |= (fourcc.repr[3] as u32) << 24;
-        code
+        Self::from_le_bytes(fourcc.repr)
     }
 }
