@@ -40,11 +40,8 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        let mut fd_set = FdSet::new();
-        fd_set.set(fd);
-
         Ok(Device {
-            handle: Arc::new(Handle { fd, fd_set }),
+            handle: Arc::new(Handle::new(fd)),
         })
     }
 
@@ -69,11 +66,8 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        let mut fd_set = FdSet::new();
-        fd_set.set(fd);
-
         Ok(Device {
-            handle: Arc::new(Handle { fd, fd_set }),
+            handle: Arc::new(Handle::new(fd)),
         })
     }
 
@@ -379,6 +373,13 @@ pub struct Handle {
 }
 
 impl Handle {
+    fn new(fd: std::os::raw::c_int) -> Self {
+        let mut fd_set = FdSet::new();
+        fd_set.set(fd);
+
+        Self { fd, fd_set }
+    }
+
     /// Returns the raw file descriptor
     pub fn fd(&self) -> std::os::raw::c_int {
         self.fd
