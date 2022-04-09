@@ -374,7 +374,7 @@ pub struct Handle {
 
 impl Handle {
     fn new(fd: std::os::raw::c_int) -> Self {
-        let mut fd_set = FdSet::new();
+        let mut fd_set = FdSet::default();
         fd_set.set(fd);
 
         Self { fd, fd_set }

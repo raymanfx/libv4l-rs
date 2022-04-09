@@ -4,15 +4,17 @@ use std::{io, mem, ptr, time};
 #[derive(Clone, Copy)]
 pub struct FdSet(libc::fd_set);
 
-impl FdSet {
-    pub fn new() -> FdSet {
+impl Default for FdSet {
+    fn default() -> Self {
         unsafe {
             let mut raw_fd_set = mem::MaybeUninit::<libc::fd_set>::uninit();
             libc::FD_ZERO(raw_fd_set.as_mut_ptr());
             FdSet(raw_fd_set.assume_init())
         }
     }
+}
 
+impl FdSet {
     pub fn set(&mut self, fd: RawFd) {
         unsafe {
             libc::FD_SET(fd, &mut self.0);
