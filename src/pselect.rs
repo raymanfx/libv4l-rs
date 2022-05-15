@@ -60,7 +60,7 @@ pub fn pselect(
 
 pub fn make_timespec(duration: time::Duration) -> libc::timespec {
     libc::timespec {
-        tv_sec: duration.as_secs() as i64,
-        tv_nsec: duration.subsec_nanos() as i64,
+        tv_sec: duration.as_secs() as _,
+        tv_nsec: duration.subsec_nanos() as _,
     }
 }
