@@ -8,7 +8,7 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
-## [0.13.0]
+## [0.13.0] - 2022-05-19
 ### Added
 - Handling of boolean and button controls
 - MJPG (consumer class hardware) support in `glium` example
@@ -19,12 +19,16 @@ Multi-planar capture will not be targeted in the near future unless someone else
 - MUSL libc compatibility
 - Android cross compilation
 
-## [0.12.1] - 2020-05-01
+## [0.12.2] - 2021-19-01
+### Fixed
+- Avoid dropping frames by queuing all buffers on stream start
+
+## [0.12.1] - 2021-05-01
 ### Fixed
 - Update the buffer index for output streams
 - Honor the bytesused field for compressed frames in output streams
 
-## [0.12.0] - 2020-01-07
+## [0.12.0] - 2021-01-07
 ### Changed
 - Depend on `0.2.0` sys packages to ship bindgen 0.56.0
 
