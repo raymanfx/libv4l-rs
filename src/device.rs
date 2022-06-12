@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::{io, mem};
 
 use crate::control;
+use crate::pselect::FdSet;
 use crate::v4l2;
 use crate::v4l2::videodev::v4l2_ext_controls;
 use crate::v4l_sys::*;
@@ -33,14 +34,14 @@ impl Device {
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
         let path = format!("{}{}", "/dev/video", index);
-        let fd = v4l2::open(&path, libc::O_RDWR)?;
+        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
         }
 
         Ok(Device {
-            handle: Arc::new(Handle { fd }),
+            handle: Arc::new(Handle::new(fd)),
         })
     }
 
@@ -59,14 +60,14 @@ impl Device {
     /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let fd = v4l2::open(&path, libc::O_RDWR)?;
+        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
         }
 
         Ok(Device {
-            handle: Arc::new(Handle { fd }),
+            handle: Arc::new(Handle::new(fd)),
         })
     }
 
@@ -368,12 +369,25 @@ impl io::Write for Device {
 /// Acquiring a handle facilitates (possibly mutating) interactions with the device.
 pub struct Handle {
     fd: std::os::raw::c_int,
+    fd_set: FdSet,
 }
 
 impl Handle {
+    fn new(fd: std::os::raw::c_int) -> Self {
+        let mut fd_set = FdSet::default();
+        fd_set.set(fd);
+
+        Self { fd, fd_set }
+    }
+
     /// Returns the raw file descriptor
     pub fn fd(&self) -> std::os::raw::c_int {
         self.fd
+    }
+
+    /// Returns the raw file descriptor set
+    pub fn fd_set(&self) -> FdSet {
+        self.fd_set
     }
 }
 

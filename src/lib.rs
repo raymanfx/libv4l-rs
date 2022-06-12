@@ -90,6 +90,7 @@ pub mod timestamp;
 pub mod video;
 
 pub mod io;
+mod pselect;
 
 pub use {
     capability::Capabilities,

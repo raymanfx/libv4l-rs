@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{io, mem, sync::Arc};
 
 use crate::buffer::{Metadata, Type};
@@ -5,6 +6,7 @@ use crate::device::{Device, Handle};
 use crate::io::traits::{CaptureStream, Stream as StreamTrait};
 use crate::io::userptr::arena::Arena;
 use crate::memory::Memory;
+use crate::pselect::{make_timespec, pselect};
 use crate::v4l2;
 use crate::v4l_sys::*;
 
@@ -17,6 +19,7 @@ pub struct Stream {
     arena_index: usize,
     buf_type: Type,
     buf_meta: Vec<Metadata>,
+    timeout: Option<libc::timespec>,
 
     active: bool,
 }
@@ -58,7 +61,18 @@ impl Stream {
             buf_type,
             buf_meta,
             active: false,
+            timeout: None,
         })
+    }
+
+    /// Sets a timeout of the v4l file handle.
+    pub fn set_timeout(&mut self, duration: Duration) {
+        self.timeout = Some(make_timespec(duration));
+    }
+
+    /// Clears the timeout of the v4l file handle.
+    pub fn clear_timeout(&mut self) {
+        self.timeout = None;
     }
 
     fn buffer_desc(&self) -> v4l2_buffer {
@@ -144,6 +158,16 @@ impl<'a> CaptureStream<'a> for Stream {
 
     fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf = self.buffer_desc();
+
+        pselect(
+            self.handle.fd() + 1,
+            Some(&mut self.handle.fd_set()),
+            None,
+            None,
+            self.timeout.as_ref(),
+            None,
+        )?;
+
         unsafe {
             v4l2::ioctl(
                 self.handle.fd(),
