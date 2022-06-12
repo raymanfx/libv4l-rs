@@ -3,8 +3,9 @@ use std::path::Path;
 use std::sync::Arc;
 use std::{io, mem};
 
+use libc;
+
 use crate::control;
-use crate::pselect::FdSet;
 use crate::v4l2;
 use crate::v4l2::videodev::v4l2_ext_controls;
 use crate::v4l_sys::*;
@@ -369,15 +370,11 @@ impl io::Write for Device {
 /// Acquiring a handle facilitates (possibly mutating) interactions with the device.
 pub struct Handle {
     fd: std::os::raw::c_int,
-    fd_set: FdSet,
 }
 
 impl Handle {
     fn new(fd: std::os::raw::c_int) -> Self {
-        let mut fd_set = FdSet::default();
-        fd_set.set(fd);
-
-        Self { fd, fd_set }
+        Self { fd }
     }
 
     /// Returns the raw file descriptor
@@ -385,9 +382,36 @@ impl Handle {
         self.fd
     }
 
-    /// Returns the raw file descriptor set
-    pub fn fd_set(&self) -> FdSet {
-        self.fd_set
+    /// Polls the file descriptor for I/O events
+    ///
+    /// # Arguments
+    ///
+    /// * `events`  - The events you are interested in (e.g. POLLIN)
+    ///
+    /// * `timeout` - Timeout in milliseconds
+    ///               A value of zero returns immedately, even if the fd is not ready.
+    ///               A negative value means infinite timeout (blocking).
+    pub fn poll(&self, events: i16, timeout: i32) -> io::Result<i32> {
+        match unsafe {
+            libc::poll(
+                [libc::pollfd {
+                    fd: self.fd,
+                    events,
+                    revents: 0,
+                }]
+                .as_mut_ptr(),
+                1,
+                timeout,
+            )
+        } {
+            -1 => Err(io::Error::last_os_error()),
+            ret => {
+                // A return value of zero means that we timed out. A positive value signifies the
+                // number of fds with non-zero revents fields (aka I/O activity).
+                assert!(ret == 0 || ret == 1);
+                Ok(ret)
+            }
+        }
     }
 }
 
