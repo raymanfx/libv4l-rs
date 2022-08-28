@@ -203,7 +203,7 @@ impl Device {
             )?;
 
             let value = match description.typ {
-                control::Type::Integer | control::Type::Integer64 => {
+                control::Type::Integer | control::Type::Integer64 | control::Type::Menu => {
                     control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value64)
                 }
                 control::Type::Boolean => {
