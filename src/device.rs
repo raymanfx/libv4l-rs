@@ -5,11 +5,11 @@ use std::{io, mem};
 
 use libc;
 
-use crate::control;
+use crate::capability::Capabilities;
+use crate::control::{self, Control, Description};
 use crate::v4l2;
 use crate::v4l2::videodev::v4l2_ext_controls;
 use crate::v4l_sys::*;
-use crate::{capability::Capabilities, control::Control};
 
 /// Linux capture device abstraction
 pub struct Device {
@@ -92,7 +92,7 @@ impl Device {
     }
 
     /// Returns the supported controls for a device such as gain, focus, white balance, etc.
-    pub fn query_controls(&self) -> io::Result<Vec<control::Description>> {
+    pub fn query_controls(&self) -> io::Result<Vec<Description>> {
         let mut controls = Vec::new();
         unsafe {
             let mut v4l2_ctrl: v4l2_query_ext_ctrl = mem::zeroed();
@@ -107,7 +107,7 @@ impl Device {
                 ) {
                     Ok(_) => {
                         // get the basic control information
-                        let mut control = control::Description::from(v4l2_ctrl);
+                        let mut control = Description::from(v4l2_ctrl);
 
                         // if this is a menu control, enumerate its items
                         if control.typ == control::Type::Menu
@@ -167,29 +167,16 @@ impl Device {
         Ok(controls)
     }
 
-    /// Returns the control value for an ID
+    /// Returns the current control value from its [`Description`]
     ///
     /// # Arguments
     ///
-    /// * `id` - Control identifier
-    pub fn control(&self, id: u32) -> io::Result<Control> {
+    /// * `desc` - Control description
+    pub fn control(&self, desc: &Description) -> io::Result<Control> {
         unsafe {
-            let mut queryctrl = v4l2_query_ext_ctrl {
-                id,
-                ..mem::zeroed()
-            };
-            v4l2::ioctl(
-                self.handle().fd(),
-                v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
-                &mut queryctrl as *mut _ as *mut std::os::raw::c_void,
-            )?;
-
-            // determine the control type
-            let description = control::Description::from(queryctrl);
-
             // query the actual control value
             let mut v4l2_ctrl = v4l2_ext_control {
-                id,
+                id: desc.id,
                 ..mem::zeroed()
             };
             let mut v4l2_ctrls = v4l2_ext_controls {
@@ -203,12 +190,9 @@ impl Device {
                 &mut v4l2_ctrls as *mut _ as *mut std::os::raw::c_void,
             )?;
 
-            let value = match description.typ {
-                control::Type::Integer64 => {
-                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value64)
-                }
-                control::Type::Integer | control::Type::Menu => {
-                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value as i64)
+            let value = match desc.typ {
+                control::Type::Integer | control::Type::Integer64 | control::Type::Menu => {
+                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value64 as i64)
                 }
                 control::Type::Boolean => {
                     control::Value::Boolean(v4l2_ctrl.__bindgen_anon_1.value == 1)
@@ -221,8 +205,32 @@ impl Device {
                 }
             };
 
-            Ok(Control { id, value })
+            Ok(Control { id: desc.id, value })
         }
+    }
+
+    /// Convenience method to get the current control for an ID.
+    /// Requires an extra syscall compared to [`control`].
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Control identifier
+    pub fn control_from_id(&self, id: u32) -> io::Result<Control> {
+        let queryctrl = unsafe {
+            let mut queryctrl = v4l2_query_ext_ctrl {
+                id,
+                ..mem::zeroed()
+            };
+            v4l2::ioctl(
+                self.handle().fd(),
+                v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
+                &mut queryctrl as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            queryctrl
+        };
+
+        self.control(&Description::from(queryctrl))
     }
 
     /// Modifies the control value
