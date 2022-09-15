@@ -210,7 +210,7 @@ pub struct Control {
     pub value: Value,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 /// Device control value
 pub enum Value {
     /* buttons */
