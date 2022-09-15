@@ -8,7 +8,7 @@ use crate::v4l_sys::*;
 #[allow(clippy::unreadable_literal)]
 #[rustfmt::skip]
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Type {
     Integer         = 1,
     Boolean         = 2,

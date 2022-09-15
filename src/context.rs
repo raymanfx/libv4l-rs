@@ -73,7 +73,7 @@ impl Node {
 
         let mut index_str = String::new();
         for c in file_name.to_str().unwrap().chars() {
-            if !c.is_digit(10) {
+            if !c.is_ascii_digit() {
                 continue;
             }
 
