@@ -8,6 +8,13 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+## [0.13.1] - 2022-12-08
+### Fixed
+- Do not block when the device is disconnected
+  - This is achieved by using the non-blocking file descriptor API internally
+  - The outside-facing API is the same for now
+  - Can be used as a foundation for language-level async support in the future
+
 ## [0.13.0] - 2022-05-19
 ### Added
 - Handling of boolean and button controls
