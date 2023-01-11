@@ -65,6 +65,11 @@ impl Stream {
         })
     }
 
+    /// Returns the raw device handle
+    pub fn handle(&self) -> Arc<Handle> {
+        self.handle.clone()
+    }
+
     /// Sets a timeout of the v4l file handle.
     pub fn set_timeout(&mut self, duration: Duration) {
         self.timeout = Some(duration.as_millis().try_into().unwrap());
