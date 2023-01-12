@@ -35,7 +35,7 @@ impl Device {
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
         let path = format!("{}{}", "/dev/video", index);
-        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
+        let fd = v4l2::open(path, libc::O_RDWR | libc::O_NONBLOCK)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
@@ -204,11 +204,14 @@ impl Device {
             )?;
 
             let value = match description.typ {
-                control::Type::Integer | control::Type::Integer64 | control::Type::Menu => {
+                control::Type::Integer64 => {
                     control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value64)
                 }
+                control::Type::Integer | control::Type::Menu => {
+                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value as i64)
+                }
                 control::Type::Boolean => {
-                    control::Value::Boolean(v4l2_ctrl.__bindgen_anon_1.value64 == 1)
+                    control::Value::Boolean(v4l2_ctrl.__bindgen_anon_1.value == 1)
                 }
                 _ => {
                     return Err(io::Error::new(
