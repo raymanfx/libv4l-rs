@@ -212,8 +212,8 @@ impl Device {
         }
     }
 
-    /// Convenience method to get the current control for an ID.
-    /// Requires an extra syscall compared to [Device::control()].
+    /// Convenience method to get the current control by ID.  Requires an extra syscall compared to
+    /// [`Device::control()`] when a [`Description`] is already available.
     ///
     /// # Arguments
     ///
