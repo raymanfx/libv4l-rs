@@ -191,8 +191,11 @@ impl Device {
             )?;
 
             let value = match desc.typ {
-                control::Type::Integer | control::Type::Integer64 | control::Type::Menu => {
-                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value64 as i64)
+                control::Type::Integer64 => {
+                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value64)
+                }
+                control::Type::Integer | control::Type::Menu => {
+                    control::Value::Integer(v4l2_ctrl.__bindgen_anon_1.value as i64)
                 }
                 control::Type::Boolean => {
                     control::Value::Boolean(v4l2_ctrl.__bindgen_anon_1.value == 1)
@@ -210,7 +213,7 @@ impl Device {
     }
 
     /// Convenience method to get the current control for an ID.
-    /// Requires an extra syscall compared to [`control`].
+    /// Requires an extra syscall compared to [Device::control()].
     ///
     /// # Arguments
     ///
