@@ -8,7 +8,7 @@ use v4l::video::Capture;
 
 fn main() -> io::Result<()> {
     let path = "/dev/video0";
-    println!("Using device: {}\n", path);
+    println!("Using device: {path}\n");
 
     // Capture 4 frames by default
     let count = 4;
@@ -19,8 +19,8 @@ fn main() -> io::Result<()> {
     let dev = Device::with_path(path)?;
     let format = dev.format()?;
     let params = dev.params()?;
-    println!("Active format:\n{}", format);
-    println!("Active parameters:\n{}", params);
+    println!("Active format:\n{format}");
+    println!("Active parameters:\n{params}");
 
     // Setup a buffer stream and grab a frame, then print its data
     let mut stream = UserptrStream::with_buffers(&dev, Type::VideoCapture, buffer_count)?;
@@ -54,7 +54,7 @@ fn main() -> io::Result<()> {
 
     println!();
     println!("FPS: {}", count as f64 / start.elapsed().as_secs_f64());
-    println!("MB/s: {}", megabytes_ps);
+    println!("MB/s: {megabytes_ps}");
 
     Ok(())
 }

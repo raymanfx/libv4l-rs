@@ -8,11 +8,11 @@ use v4l::video::{Capture, Output};
 
 fn main() -> io::Result<()> {
     let source = "/dev/video0";
-    println!("Using source device: {}\n", source);
+    println!("Using source device: {source}\n");
 
     // Determine which device to use
     let sink = "/dev/video1";
-    println!("Using sink device: {}\n", sink);
+    println!("Using sink device: {sink}\n");
 
     // Capture 4 frames by default
     let count = 4;
@@ -95,7 +95,7 @@ fn main() -> io::Result<()> {
 
     println!();
     println!("FPS: {}", count as f64 / start.elapsed().as_secs_f64());
-    println!("MB/s: {}", megabytes_ps);
+    println!("MB/s: {megabytes_ps}");
 
     Ok(())
 }

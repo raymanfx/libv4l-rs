@@ -31,7 +31,7 @@ impl Timestamp {
 impl fmt::Display for Timestamp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let floating: f64 = self.sec as f64 + self.usec as f64 / 1_000_000.0;
-        write!(f, "{} [s]", floating)
+        write!(f, "{floating} [s]")
     }
 }
 

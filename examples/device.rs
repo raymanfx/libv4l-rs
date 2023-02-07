@@ -4,12 +4,12 @@ use v4l::prelude::*;
 
 fn main() -> io::Result<()> {
     let path = "/dev/video0";
-    println!("Using device: {}\n", path);
+    println!("Using device: {path}\n");
 
     let dev = Device::with_path(path)?;
 
     let caps = dev.query_caps()?;
-    println!("Device capabilities:\n{}", caps);
+    println!("Device capabilities:\n{caps}");
 
     let controls = dev.query_controls()?;
     println!("Device controls:");

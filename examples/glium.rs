@@ -18,7 +18,7 @@ use v4l::{Format, FourCC};
 
 fn main() -> io::Result<()> {
     let path = "/dev/video0";
-    println!("Using device: {}\n", path);
+    println!("Using device: {path}\n");
 
     // Allocate 4 buffers by default
     let buffer_count = 4;
@@ -50,8 +50,8 @@ fn main() -> io::Result<()> {
         }
     }
 
-    println!("Active format:\n{}", format);
-    println!("Active parameters:\n{}", params);
+    println!("Active format:\n{format}");
+    println!("Active parameters:\n{params}");
 
     // Setup the GL display stuff
     let event_loop = glutin::event_loop::EventLoop::new();
