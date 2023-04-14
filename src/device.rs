@@ -11,8 +11,13 @@ use crate::v4l2::videodev::v4l2_ext_controls;
 use crate::v4l_sys::*;
 use crate::{capability::Capabilities, control::Control};
 
+pub const PLANES_ONE: bool = false;
+pub const PLANES_MANY: bool = true;
+
+pub type Device = PlanarDevice<PLANES_ONE>;
+
 /// Linux capture device abstraction
-pub struct Device {
+pub struct PlanarDevice<const P: bool> {
     /// Raw handle
     handle: Arc<Handle>,
 }
