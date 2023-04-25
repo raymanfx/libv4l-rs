@@ -48,7 +48,7 @@ fn main() {
     fmt.width = 1280;
     fmt.height = 720;
     fmt.fourcc = FourCC::new(b"YUYV");
-    dev.set_format(&fmt).expect("Failed to write format");
+    let fmt = dev.set_format(&fmt).expect("Failed to write format");
 
     // The actual format chosen by the device driver may differ from what we
     // requested! Print it out to get an idea of what is actually used now.
