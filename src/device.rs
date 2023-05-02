@@ -15,14 +15,15 @@ pub const PLANES_ONE: bool = false;
 pub const PLANES_MANY: bool = true;
 
 pub type Device = PlanarDevice<PLANES_ONE>;
+pub type MultiPlaneDevice = PlanarDevice<PLANES_MANY>;
 
 /// Linux capture device abstraction
-pub struct PlanarDevice<const P: bool> {
+pub struct PlanarDevice<const M: bool> {
     /// Raw handle
     handle: Arc<Handle>,
 }
 
-impl Device {
+impl<const M: bool> PlanarDevice<M> {
     /// Returns a capture device by index
     ///
     /// Devices are usually enumerated by the system.
@@ -46,7 +47,7 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device {
+        Ok(Self {
             handle: Arc::new(Handle::new(fd)),
         })
     }
@@ -72,7 +73,7 @@ impl Device {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Device {
+        Ok(Self {
             handle: Arc::new(Handle::new(fd)),
         })
     }
@@ -81,7 +82,9 @@ impl Device {
     pub fn handle(&self) -> Arc<Handle> {
         self.handle.clone()
     }
+}
 
+impl Device {
     /// Returns video4linux framework defined information such as card, driver, etc.
     pub fn query_caps(&self) -> io::Result<Capabilities> {
         unsafe {

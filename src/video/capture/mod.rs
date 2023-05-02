@@ -1,10 +1,11 @@
 pub mod parameters;
 pub use parameters::Parameters;
+pub mod mplane;
 
 use std::convert::TryFrom;
 use std::{io, mem};
 
-use crate::buffer::Type;
+use crate::buffer::Type::VideoCapture;
 use crate::device::Device;
 use crate::format::FourCC;
 use crate::format::{Description as FormatDescription, Format};
@@ -17,14 +18,16 @@ use crate::video::traits::Capture;
 impl Capture for Device {
     impl_enum_frameintervals!();
     impl_enum_framesizes!();
-    impl_enum_formats!(Type::VideoCapture);
-    impl_format!(Type::VideoCapture);
-    impl_set_format!(Type::VideoCapture);
+    impl_enum_formats!(VideoCapture);
+    impl_format!(VideoCapture);
+    impl_set_format!(VideoCapture);
+
+    type Format = Format;
 
     fn params(&self) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params = v4l2_streamparm {
-                type_: Type::VideoCapture as u32,
+                type_: VideoCapture as u32,
                 ..mem::zeroed()
             };
             v4l2::ioctl(
@@ -40,7 +43,7 @@ impl Capture for Device {
     fn set_params(&self, params: &Parameters) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params = v4l2_streamparm {
-                type_: Type::VideoCapture as u32,
+                type_: VideoCapture as u32,
                 parm: v4l2_streamparm__bindgen_ty_1 {
                     capture: (*params).into(),
                 },

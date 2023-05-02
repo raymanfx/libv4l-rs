@@ -3,12 +3,13 @@ use std::io;
 use crate::video::capture::Parameters as CaptureParameters;
 use crate::video::output::Parameters as OutputParameters;
 use crate::{
-    format::Description as FormatDescription, format::Format, format::FourCC,
+    format::Description as FormatDescription, format::FourCC,
     frameinterval::FrameInterval, framesize::FrameSize,
 };
 
 /// Capture device protocol
 pub trait Capture {
+    type Format;
     /// Returns a vector of all frame intervals that the device supports for the given pixel format
     /// and frame size
     fn enum_frameintervals(
@@ -28,7 +29,7 @@ pub trait Capture {
     fn enum_formats(&self) -> io::Result<Vec<FormatDescription>>;
 
     /// Returns the format currently in use
-    fn format(&self) -> io::Result<Format>;
+    fn format(&self) -> io::Result<Self::Format>;
 
     /// Modifies the capture format and returns the actual format
     ///
@@ -40,7 +41,7 @@ pub trait Capture {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, fmt: &Self::Format) -> io::Result<Self::Format>;
 
     /// Returns the parameters currently in use
     fn params(&self) -> io::Result<CaptureParameters>;
@@ -55,6 +56,7 @@ pub trait Capture {
 
 /// Output device protocol
 pub trait Output {
+    type Format;
     /// Returns a vector of all frame intervals that the device supports for the given pixel format
     /// and frame size
     fn enum_frameintervals(
@@ -74,7 +76,7 @@ pub trait Output {
     fn enum_formats(&self) -> io::Result<Vec<FormatDescription>>;
 
     /// Returns the format currently in use
-    fn format(&self) -> io::Result<Format>;
+    fn format(&self) -> io::Result<Self::Format>;
 
     /// Modifies the capture format and returns the actual format
     ///
@@ -85,7 +87,7 @@ pub trait Output {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, fmt: &Self::Format) -> io::Result<Self::Format>;
 
     /// Returns the parameters currently in use
     fn params(&self) -> io::Result<OutputParameters>;
