@@ -1,25 +1,42 @@
 pub mod parameters;
 pub use parameters::Parameters;
 
-use std::convert::TryFrom;
 use std::{io, mem};
 
 use crate::buffer::Type;
 use crate::device::Device;
-use crate::format::FourCC;
-use crate::format::{Description as FormatDescription, Format};
+use crate::format::{Description as FormatDescription, Format, FourCC};
 use crate::frameinterval::FrameInterval;
 use crate::framesize::FrameSize;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::video::traits::Capture;
+use crate::video::traits::{Capture, Video};
 
 impl Capture for Device {
-    impl_enum_frameintervals!();
-    impl_enum_framesizes!();
-    impl_enum_formats!(Type::VideoCapture);
-    impl_format!(Type::VideoCapture);
-    impl_set_format!(Type::VideoCapture);
+    fn enum_frameintervals(
+        &self,
+        fourcc: FourCC,
+        width: u32,
+        height: u32,
+    ) -> io::Result<Vec<FrameInterval>> {
+        <Self as Video>::enum_frameintervals(self, fourcc, width, height)
+    }
+
+    fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
+        <Self as Video>::enum_framesizes(self, fourcc)
+    }
+
+    fn enum_formats(&self) -> io::Result<Vec<FormatDescription>> {
+        <Self as Video>::enum_formats(self, Type::VideoCapture)
+    }
+
+    fn format(&self) -> io::Result<Format> {
+        <Self as Video>::format(self, Type::VideoCapture)
+    }
+
+    fn set_format(&self, fmt: &Format) -> io::Result<Format> {
+        <Self as Video>::set_format(self, Type::VideoCapture, fmt)
+    }
 
     fn params(&self) -> io::Result<Parameters> {
         unsafe {
