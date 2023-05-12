@@ -8,6 +8,15 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 
 
+## [0.14.0] - 2023-05-13
+### Added
+- Expose raw file descriptor of streams through `Stream::handle()`
+### Changed
+- Updated `bindgen` dependency to 0.65.1
+### Fixed
+- Use proper C FFI struct field for `Integer64` controls
+- Fix example in README.md to account for the negotiated pixelformat
+
 ## [0.13.1] - 2022-12-08
 ### Fixed
 - Do not block when the device is disconnected
