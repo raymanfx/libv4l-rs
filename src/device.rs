@@ -1,7 +1,10 @@
 use std::convert::TryFrom;
 use std::path::Path;
-use std::sync::Arc;
-use std::{io, mem};
+use std::{
+    io, mem,
+    os::fd::{AsRawFd, RawFd},
+    sync::Arc,
+};
 
 use libc;
 
@@ -34,15 +37,8 @@ impl Device {
     /// let dev = Device::new(0);
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
-        let path = format!("{}{}", "/dev/video", index);
-        let fd = v4l2::open(path, libc::O_RDWR | libc::O_NONBLOCK)?;
-
-        if fd == -1 {
-            return Err(io::Error::last_os_error());
-        }
-
         Ok(Device {
-            handle: Arc::new(Handle::new(fd)),
+            handle: Arc::new(Handle::open(format!("{}{}", "/dev/video", index))?),
         })
     }
 
@@ -61,14 +57,8 @@ impl Device {
     /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
-
-        if fd == -1 {
-            return Err(io::Error::last_os_error());
-        }
-
         Ok(Device {
-            handle: Arc::new(Handle::new(fd)),
+            handle: Arc::new(Handle::open(path)?),
         })
     }
 
@@ -371,18 +361,39 @@ impl io::Write for Device {
 /// Device handle for low-level access.
 ///
 /// Acquiring a handle facilitates (possibly mutating) interactions with the device.
-pub struct Handle {
-    fd: std::os::raw::c_int,
-}
+#[derive(Debug, Clone)]
+pub struct Handle(RawFd);
 
 impl Handle {
-    fn new(fd: std::os::raw::c_int) -> Self {
-        Self { fd }
+    /// Wraps an existing file descriptor
+    ///
+    /// The caller must ensure that `fd` is a valid, open file descriptor for a V4L device.
+    pub unsafe fn new(fd: RawFd) -> Self {
+        Self(fd)
+    }
+
+    /// Opens a path and returns a handle to the device
+    ///
+    /// Linux device nodes are usually found in /dev/videoX or /sys/class/video4linux/videoX.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path (e.g. "/dev/video0")
+    pub fn open<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
+        if fd == -1 {
+            return Err(io::Error::last_os_error());
+        }
+
+        Ok(Handle(fd))
     }
 
     /// Returns the raw file descriptor
-    pub fn fd(&self) -> std::os::raw::c_int {
-        self.fd
+    ///
+    /// The caller must ensure not to use the fd once the handle instance is dropped, since it
+    /// will close the fd.
+    pub unsafe fn fd(&self) -> RawFd {
+        self.0
     }
 
     /// Polls the file descriptor for I/O events
@@ -398,7 +409,7 @@ impl Handle {
         match unsafe {
             libc::poll(
                 [libc::pollfd {
-                    fd: self.fd,
+                    fd: self.0,
                     events,
                     revents: 0,
                 }]
@@ -420,6 +431,12 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        v4l2::close(self.fd).unwrap();
+        let _ = v4l2::close(self.0);
+    }
+}
+
+impl AsRawFd for Handle {
+    fn as_raw_fd(&self) -> RawFd {
+        self.0
     }
 }
