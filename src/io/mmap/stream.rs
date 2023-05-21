@@ -52,7 +52,7 @@ impl<'a> Stream<'a> {
         let mut arena = Arena::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
         let mut buf_meta = Vec::new();
-        buf_meta.resize(count as usize, Metadata::default());
+        buf_meta.resize(count as usize, unsafe { Metadata { ..mem::zeroed() } });
 
         Ok(Stream {
             handle: dev.handle(),
@@ -175,14 +175,7 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
             )?;
         }
         self.arena_index = v4l2_buf.index as usize;
-
-        self.buf_meta[self.arena_index] = Metadata {
-            bytesused: v4l2_buf.bytesused,
-            flags: v4l2_buf.flags.into(),
-            field: v4l2_buf.field,
-            timestamp: v4l2_buf.timestamp.into(),
-            sequence: v4l2_buf.sequence,
-        };
+        self.buf_meta[self.arena_index] = Metadata::from(v4l2_buf);
 
         Ok(self.arena_index)
     }
@@ -254,14 +247,7 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
             )?;
         }
         self.arena_index = v4l2_buf.index as usize;
-
-        self.buf_meta[self.arena_index] = Metadata {
-            bytesused: v4l2_buf.bytesused,
-            flags: v4l2_buf.flags.into(),
-            field: v4l2_buf.field,
-            timestamp: v4l2_buf.timestamp.into(),
-            sequence: v4l2_buf.sequence,
-        };
+        self.buf_meta[self.arena_index] = Metadata::from(v4l2_buf);
 
         Ok(self.arena_index)
     }

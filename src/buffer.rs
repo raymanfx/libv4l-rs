@@ -1,7 +1,9 @@
 use bitflags::bitflags;
-use std::fmt;
+use std::{convert::TryInto, fmt, mem};
 
-use crate::timestamp::Timestamp;
+use v4l2_sys::v4l2_buffer;
+
+use crate::{memory::Memory, timestamp::Timestamp};
 
 /// Buffer type
 ///
@@ -99,8 +101,12 @@ impl fmt::Display for Flags {
 }
 
 /// Buffer metadata, mostly used not to convolute the main buffer structs
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone)]
 pub struct Metadata {
+    /// Number of the buffer
+    pub index: u32,
+    /// Type of the buffer
+    pub type_: u32,
     /// Number of bytes occupied by the data in the buffer
     pub bytesused: u32,
     /// Buffer flags
@@ -111,4 +117,44 @@ pub struct Metadata {
     pub timestamp: Timestamp,
     /// Sequence number, counting the frames
     pub sequence: u32,
+    /// Memory type, depending on streaming I/O method
+    pub memory: Memory,
+    /// Single-planar API: size of the buffer (not payload!)
+    /// Multi-planar API: number of planes
+    pub length: u32,
+}
+
+impl From<v4l2_buffer> for Metadata {
+    fn from(buf: v4l2_buffer) -> Self {
+        Self {
+            index: buf.index,
+            type_: buf.type_,
+            bytesused: buf.bytesused,
+            flags: buf.flags.into(),
+            field: buf.field,
+            timestamp: buf.timestamp.into(),
+            sequence: buf.sequence,
+            memory: buf.memory.try_into().unwrap(),
+            length: buf.length,
+        }
+    }
+}
+
+impl Into<v4l2_buffer> for Metadata {
+    fn into(self) -> v4l2_buffer {
+        unsafe {
+            v4l2_buffer {
+                index: self.index,
+                type_: self.type_,
+                bytesused: self.bytesused,
+                flags: self.flags.into(),
+                field: self.field,
+                timestamp: self.timestamp.into(),
+                sequence: self.sequence,
+                memory: self.memory as u32,
+                length: self.length,
+                ..mem::zeroed()
+            }
+        }
+    }
 }
