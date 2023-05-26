@@ -191,6 +191,10 @@ impl<'a> CaptureStream<'a> for Stream {
         Ok(self.arena_index)
     }
 
+    fn get(&self, index: usize) -> io::Result<(&Self::Item, &Metadata)> {
+        Ok((&self.arena.bufs[index], &self.buf_meta[index]))
+    }
+
     fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
             // Enqueue all buffers once on stream start
@@ -203,12 +207,7 @@ impl<'a> CaptureStream<'a> for Stream {
             self.queue(self.arena_index)?;
         }
 
-        self.arena_index = self.dequeue()?;
-
-        // The index used to access the buffer elements is given to us by v4l2, so we assume it
-        // will always be valid.
-        let bytes = &mut self.arena.bufs[self.arena_index];
-        let meta = &self.buf_meta[self.arena_index];
-        Ok((bytes, meta))
+        let index = self.dequeue()?;
+        self.get(index)
     }
 }
