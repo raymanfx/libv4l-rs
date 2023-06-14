@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 use std::time::Duration;
-use std::{io, mem, sync::Arc};
+use std::{io, mem, os::fd::AsRawFd, sync::Arc};
 
 use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
@@ -114,7 +114,7 @@ impl StreamTrait for Stream {
         unsafe {
             let mut typ = self.buf_type as u32;
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_STREAMON,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -128,7 +128,7 @@ impl StreamTrait for Stream {
         unsafe {
             let mut typ = self.buf_type as u32;
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_STREAMOFF,
                 &mut typ as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -152,7 +152,7 @@ impl<'a> CaptureStream<'a> for Stream {
         };
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -173,7 +173,7 @@ impl<'a> CaptureStream<'a> for Stream {
 
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,
                 &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
             )?;

@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, io, mem};
+use std::{convert::TryFrom, io, mem, os::fd::AsRawFd};
 
 use crate::v4l_sys::*;
 use crate::{
@@ -32,7 +32,7 @@ impl traits::Video for Device {
         loop {
             let ret = unsafe {
                 v4l2::ioctl(
-                    self.handle().fd(),
+                    self.handle().as_raw_fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS,
                     &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
                 )
@@ -65,7 +65,7 @@ impl traits::Video for Device {
         loop {
             let ret = unsafe {
                 v4l2::ioctl(
-                    self.handle().fd(),
+                    self.handle().as_raw_fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES,
                     &mut v4l2_struct as *mut _ as *mut std::os::raw::c_void,
                 )
@@ -99,7 +99,7 @@ impl traits::Video for Device {
 
         unsafe {
             ret = v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_ENUM_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             );
@@ -121,7 +121,7 @@ impl traits::Video for Device {
 
             unsafe {
                 ret = v4l2::ioctl(
-                    self.handle().fd(),
+                    self.handle().as_raw_fd(),
                     v4l2::vidioc::VIDIOC_ENUM_FMT,
                     &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
                 );
@@ -138,7 +138,7 @@ impl traits::Video for Device {
                 ..mem::zeroed()
             };
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -154,7 +154,7 @@ impl traits::Video for Device {
                 fmt: v4l2_format__bindgen_ty_1 { pix: (*fmt).into() },
             };
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_S_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;

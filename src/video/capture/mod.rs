@@ -1,7 +1,7 @@
 pub mod parameters;
 pub use parameters::Parameters;
 
-use std::{io, mem};
+use std::{io, mem, os::fd::AsRawFd};
 
 use crate::buffer::Type;
 use crate::device::Device;
@@ -45,7 +45,7 @@ impl Capture for Device {
                 ..mem::zeroed()
             };
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_G_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -63,7 +63,7 @@ impl Capture for Device {
                 },
             };
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_S_PARM,
                 &mut v4l2_params as *mut _ as *mut std::os::raw::c_void,
             )?;

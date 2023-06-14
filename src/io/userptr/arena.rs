@@ -1,4 +1,4 @@
-use std::{io, mem, sync::Arc};
+use std::{io, mem, os::fd::AsRawFd, sync::Arc};
 
 use crate::buffer;
 use crate::device::Handle;
@@ -49,7 +49,7 @@ impl Arena {
         };
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -68,7 +68,7 @@ impl Arena {
         };
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -94,7 +94,7 @@ impl Arena {
         };
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )

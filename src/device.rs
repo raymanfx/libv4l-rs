@@ -72,7 +72,7 @@ impl Device {
         unsafe {
             let mut v4l2_caps: v4l2_capability = mem::zeroed();
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QUERYCAP,
                 &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -91,7 +91,7 @@ impl Device {
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_COMPOUND;
                 match v4l2::ioctl(
-                    self.handle().fd(),
+                    self.handle().as_raw_fd(),
                     v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
                     &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
                 ) {
@@ -114,7 +114,7 @@ impl Device {
                                     ..mem::zeroed()
                                 };
                                 let res = v4l2::ioctl(
-                                    self.handle().fd(),
+                                    self.handle().as_raw_fd(),
                                     v4l2::vidioc::VIDIOC_QUERYMENU,
                                     &mut v4l2_menu as *mut _ as *mut std::os::raw::c_void,
                                 );
@@ -169,7 +169,7 @@ impl Device {
                 ..mem::zeroed()
             };
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
                 &mut queryctrl as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -188,7 +188,7 @@ impl Device {
                 ..mem::zeroed()
             };
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_G_EXT_CTRLS,
                 &mut v4l2_ctrls as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -311,7 +311,7 @@ impl Device {
             };
 
             v4l2::ioctl(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 v4l2::vidioc::VIDIOC_S_EXT_CTRLS,
                 &mut controls as *mut _ as *mut std::os::raw::c_void,
             )
@@ -323,7 +323,7 @@ impl io::Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         unsafe {
             let ret = libc::read(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 buf.as_mut_ptr() as *mut std::os::raw::c_void,
                 buf.len(),
             );
@@ -339,7 +339,7 @@ impl io::Write for Device {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {
             let ret = libc::write(
-                self.handle().fd(),
+                self.handle().as_raw_fd(),
                 buf.as_ptr() as *const std::os::raw::c_void,
                 buf.len(),
             );
@@ -386,14 +386,6 @@ impl Handle {
         }
 
         Ok(Handle(fd))
-    }
-
-    /// Returns the raw file descriptor
-    ///
-    /// The caller must ensure not to use the fd once the handle instance is dropped, since it
-    /// will close the fd.
-    pub unsafe fn fd(&self) -> RawFd {
-        self.0
     }
 
     /// Polls the file descriptor for I/O events

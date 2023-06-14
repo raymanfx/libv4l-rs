@@ -1,4 +1,4 @@
-use std::{io, mem, ptr, slice, sync::Arc};
+use std::{io, mem, os::fd::AsRawFd, ptr, slice, sync::Arc};
 
 use crate::buffer;
 use crate::device::Handle;
@@ -57,7 +57,7 @@ impl<'a> Arena<'a> {
         };
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -70,7 +70,7 @@ impl<'a> Arena<'a> {
             };
             unsafe {
                 v4l2::ioctl(
-                    self.handle.fd(),
+                    self.handle.as_raw_fd(),
                     v4l2::vidioc::VIDIOC_QUERYBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
@@ -80,7 +80,7 @@ impl<'a> Arena<'a> {
                     v4l2_buf.length as usize,
                     libc::PROT_READ | libc::PROT_WRITE,
                     libc::MAP_SHARED,
-                    self.handle.fd(),
+                    self.handle.as_raw_fd(),
                     v4l2_buf.m.offset as libc::off_t,
                 )?;
 
@@ -107,7 +107,7 @@ impl<'a> Arena<'a> {
         };
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
