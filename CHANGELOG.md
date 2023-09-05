@@ -7,6 +7,9 @@ Currently, the focus is on implementing the high-level V4L2 single-planar API.
 Multi-planar capture will not be targeted in the near future unless someone else starts working on it.
 
 
+## [0.13.1] - 2023-05-26
+### Added
+- Basic multi-planar streaming support
 
 ## [0.14.0] - 2023-05-13
 ### Added

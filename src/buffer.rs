@@ -30,6 +30,15 @@ pub enum Type {
     Private             = 0x80,
 }
 
+impl Type {
+    pub fn planar(&self) -> bool {
+        match self {
+            Type::VideoCaptureMplane | Type::VideoOutputMplane => true,
+            _ => false,
+        }
+    }
+}
+
 bitflags! {
     #[allow(clippy::unreadable_literal)]
     pub struct Flags: u32 {

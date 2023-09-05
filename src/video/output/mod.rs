@@ -4,7 +4,7 @@ pub use parameters::Parameters;
 use std::convert::TryFrom;
 use std::{io, mem};
 
-use crate::buffer::Type;
+use crate::buffer::Type::VideoOutput;
 use crate::device::Device;
 use crate::format::FourCC;
 use crate::format::{Description as FormatDescription, Format};
@@ -17,14 +17,16 @@ use crate::video::traits::Output;
 impl Output for Device {
     impl_enum_frameintervals!();
     impl_enum_framesizes!();
-    impl_enum_formats!(Type::VideoOutput);
-    impl_format!(Type::VideoOutput);
-    impl_set_format!(Type::VideoOutput);
+    impl_enum_formats!(VideoOutput);
+    impl_format!(VideoOutput);
+    impl_set_format!(VideoOutput);
+
+    type Format = Format;
 
     fn params(&self) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params = v4l2_streamparm {
-                type_: Type::VideoOutput as u32,
+                type_: VideoOutput as u32,
                 ..mem::zeroed()
             };
             v4l2::ioctl(
@@ -40,7 +42,7 @@ impl Output for Device {
     fn set_params(&self, params: &Parameters) -> io::Result<Parameters> {
         unsafe {
             let mut v4l2_params = v4l2_streamparm {
-                type_: Type::VideoOutput as u32,
+                type_: VideoOutput as u32,
                 parm: v4l2_streamparm__bindgen_ty_1 {
                     output: (*params).into(),
                 },

@@ -3,7 +3,7 @@ use std::time::Duration;
 use std::{io, mem, sync::Arc};
 
 use crate::buffer::{Metadata, Type};
-use crate::device::{Device, Handle};
+use crate::device::{PlanarDevice, Handle};
 use crate::io::mmap::arena::Arena;
 use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::Memory;
@@ -44,11 +44,15 @@ impl<'a> Stream<'a> {
     ///     let stream = Stream::new(&dev, Type::VideoCapture);
     /// }
     /// ```
-    pub fn new(dev: &Device, buf_type: Type) -> io::Result<Self> {
+    pub fn new<const M: bool>(
+        dev: &PlanarDevice<M>, buf_type: Type
+    ) -> io::Result<Self> {
         Stream::with_buffers(dev, buf_type, 4)
     }
 
-    pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
+    pub fn with_buffers<const M: bool>(
+        dev: &PlanarDevice<M>, buf_type: Type, buf_count: u32
+    ) -> io::Result<Self> {
         let mut arena = Arena::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
         let mut buf_meta = Vec::new();
@@ -80,12 +84,18 @@ impl<'a> Stream<'a> {
         self.timeout = None;
     }
 
-    fn buffer_desc(&self) -> v4l2_buffer {
-        v4l2_buffer {
+    fn buffer_desc(&mut self, index: usize) -> v4l2_buffer {
+        let mut v4l2_buf = v4l2_buffer {
+            index: index as u32,
             type_: self.buf_type as u32,
             memory: Memory::Mmap as u32,
             ..unsafe { mem::zeroed() }
+        };
+        if self.buf_type.planar() {
+            v4l2_buf.length = self.arena.planes[index].len() as u32;
+            v4l2_buf.m.planes = self.arena.planes[index].as_mut_ptr();
         }
+        v4l2_buf
     }
 }
 
@@ -108,7 +118,7 @@ impl<'a> Drop for Stream<'a> {
 }
 
 impl<'a> StreamTrait for Stream<'a> {
-    type Item = [u8];
+    type Item = Vec<&'a mut [u8]>;
 
     fn start(&mut self) -> io::Result<()> {
         unsafe {
@@ -142,8 +152,7 @@ impl<'a> StreamTrait for Stream<'a> {
 impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf = v4l2_buffer {
-            index: index as u32,
-            ..self.buffer_desc()
+            ..self.buffer_desc(index)
         };
 
         unsafe {
@@ -158,7 +167,7 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
     }
 
     fn dequeue(&mut self) -> io::Result<usize> {
-        let mut v4l2_buf = self.buffer_desc();
+        let mut v4l2_buf = self.buffer_desc(0);
 
         if self.handle.poll(libc::POLLIN, self.timeout.unwrap_or(-1))? == 0 {
             // This condition can only happen if there was a timeout.
@@ -187,6 +196,10 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
         Ok(self.arena_index)
     }
 
+    fn get(&self, index: usize) -> io::Result<(&Self::Item, &Metadata)> {
+        Ok((&self.arena.bufs[index], &self.buf_meta[index]))
+    }
+
     fn next(&'b mut self) -> io::Result<(&Self::Item, &Metadata)> {
         if !self.active {
             // Enqueue all buffers once on stream start
@@ -199,21 +212,15 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
             CaptureStream::queue(self, self.arena_index)?;
         }
 
-        self.arena_index = CaptureStream::dequeue(self)?;
-
-        // The index used to access the buffer elements is given to us by v4l2, so we assume it
-        // will always be valid.
-        let bytes = &self.arena.bufs[self.arena_index];
-        let meta = &self.buf_meta[self.arena_index];
-        Ok((bytes, meta))
+        let index = CaptureStream::dequeue(self)?;
+        CaptureStream::get(self, index)
     }
 }
 
 impl<'a, 'b> OutputStream<'b> for Stream<'a> {
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf = v4l2_buffer {
-            index: index as u32,
-            ..self.buffer_desc()
+            ..self.buffer_desc(index)
         };
         unsafe {
             // output settings
@@ -244,7 +251,7 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
     }
 
     fn dequeue(&mut self) -> io::Result<usize> {
-        let mut v4l2_buf = self.buffer_desc();
+        let mut v4l2_buf = self.buffer_desc(0);
 
         unsafe {
             v4l2::ioctl(
