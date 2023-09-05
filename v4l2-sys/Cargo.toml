@@ -1,7 +1,7 @@
 [package]
 name = "v4l2-sys-mit"
 description = "Raw v4l2 bindings (MIT licensed)"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Christopher N. Hesse <raymanfx@gmail.com>"]
 edition = "2018"
 license = "MIT"
