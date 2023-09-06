@@ -1,8 +1,8 @@
-use std::convert::TryFrom;
-use std::path::Path;
 use std::{
+    convert::TryFrom,
     io, mem,
-    os::fd::{AsRawFd, RawFd},
+    os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, OwnedFd, RawFd},
+    path::Path,
     sync::Arc,
 };
 
@@ -72,7 +72,7 @@ impl Device {
         unsafe {
             let mut v4l2_caps: v4l2_capability = mem::zeroed();
             v4l2::ioctl(
-                self.handle().as_raw_fd(),
+                self.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QUERYCAP,
                 &mut v4l2_caps as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -91,7 +91,7 @@ impl Device {
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
                 v4l2_ctrl.id |= V4L2_CTRL_FLAG_NEXT_COMPOUND;
                 match v4l2::ioctl(
-                    self.handle().as_raw_fd(),
+                    self.as_raw_fd(),
                     v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
                     &mut v4l2_ctrl as *mut _ as *mut std::os::raw::c_void,
                 ) {
@@ -114,7 +114,7 @@ impl Device {
                                     ..mem::zeroed()
                                 };
                                 let res = v4l2::ioctl(
-                                    self.handle().as_raw_fd(),
+                                    self.as_raw_fd(),
                                     v4l2::vidioc::VIDIOC_QUERYMENU,
                                     &mut v4l2_menu as *mut _ as *mut std::os::raw::c_void,
                                 );
@@ -169,7 +169,7 @@ impl Device {
                 ..mem::zeroed()
             };
             v4l2::ioctl(
-                self.handle().as_raw_fd(),
+                self.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
                 &mut queryctrl as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -188,7 +188,7 @@ impl Device {
                 ..mem::zeroed()
             };
             v4l2::ioctl(
-                self.handle().as_raw_fd(),
+                self.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_G_EXT_CTRLS,
                 &mut v4l2_ctrls as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -311,7 +311,7 @@ impl Device {
             };
 
             v4l2::ioctl(
-                self.handle().as_raw_fd(),
+                self.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_S_EXT_CTRLS,
                 &mut controls as *mut _ as *mut std::os::raw::c_void,
             )
@@ -323,7 +323,7 @@ impl io::Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         unsafe {
             let ret = libc::read(
-                self.handle().as_raw_fd(),
+                self.as_raw_fd(),
                 buf.as_mut_ptr() as *mut std::os::raw::c_void,
                 buf.len(),
             );
@@ -339,7 +339,7 @@ impl io::Write for Device {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {
             let ret = libc::write(
-                self.handle().as_raw_fd(),
+                self.as_raw_fd(),
                 buf.as_ptr() as *const std::os::raw::c_void,
                 buf.len(),
             );
@@ -358,17 +358,29 @@ impl io::Write for Device {
     }
 }
 
+impl AsFd for Device {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.handle.as_fd()
+    }
+}
+
+impl AsRawFd for Device {
+    fn as_raw_fd(&self) -> RawFd {
+        self.handle.as_raw_fd()
+    }
+}
+
 /// Device handle for low-level access.
 ///
 /// Acquiring a handle facilitates (possibly mutating) interactions with the device.
-#[derive(Debug, Clone)]
-pub struct Handle(RawFd);
+#[derive(Debug)]
+pub struct Handle(OwnedFd);
 
 impl Handle {
     /// Wraps an existing file descriptor
     ///
     /// The caller must ensure that `fd` is a valid, open file descriptor for a V4L device.
-    pub unsafe fn new(fd: RawFd) -> Self {
+    pub fn new(fd: OwnedFd) -> Self {
         Self(fd)
     }
 
@@ -385,7 +397,7 @@ impl Handle {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Handle(fd))
+        Ok(Handle(unsafe { OwnedFd::from_raw_fd(fd) }))
     }
 
     /// Polls the file descriptor for I/O events
@@ -400,35 +412,38 @@ impl Handle {
     pub fn poll(&self, events: i16, timeout: i32) -> io::Result<i32> {
         match unsafe {
             libc::poll(
-                [libc::pollfd {
-                    fd: self.0,
+                &mut libc::pollfd {
+                    fd: self.as_raw_fd(),
                     events,
                     revents: 0,
-                }]
-                .as_mut_ptr(),
+                },
                 1,
                 timeout,
             )
         } {
             -1 => Err(io::Error::last_os_error()),
-            ret => {
-                // A return value of zero means that we timed out. A positive value signifies the
-                // number of fds with non-zero revents fields (aka I/O activity).
-                assert!(ret == 0 || ret == 1);
-                Ok(ret)
-            }
+            // A return value of zero means that we timed out. A positive value signifies the
+            // number of fds with non-zero revents fields (aka I/O activity).
+            ret @ 0..=1 => Ok(ret),
+            ret => panic!("Invalid return value {}", ret),
         }
     }
 }
 
-impl Drop for Handle {
-    fn drop(&mut self) {
-        let _ = v4l2::close(self.0);
+impl AsFd for Handle {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.0.as_fd()
     }
 }
 
 impl AsRawFd for Handle {
     fn as_raw_fd(&self) -> RawFd {
-        self.0
+        self.0.as_raw_fd()
+    }
+}
+
+impl IntoRawFd for Handle {
+    fn into_raw_fd(self) -> RawFd {
+        self.0.into_raw_fd()
     }
 }
