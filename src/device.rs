@@ -276,19 +276,19 @@ impl Device {
                     }
                     control::Value::CompoundU8(ref val) => {
                         control.__bindgen_anon_1.p_u8 = val.as_ptr() as *mut u8;
-                        control.size = (val.len() * std::mem::size_of::<u8>()) as u32;
+                        control.size = std::mem::size_of_val(val.as_slice()) as u32;
                     }
                     control::Value::CompoundU16(ref val) => {
                         control.__bindgen_anon_1.p_u16 = val.as_ptr() as *mut u16;
-                        control.size = (val.len() * std::mem::size_of::<u16>()) as u32;
+                        control.size = std::mem::size_of_val(val.as_slice()) as u32;
                     }
                     control::Value::CompoundU32(ref val) => {
                         control.__bindgen_anon_1.p_u32 = val.as_ptr() as *mut u32;
-                        control.size = (val.len() * std::mem::size_of::<u32>()) as u32;
+                        control.size = std::mem::size_of_val(val.as_slice()) as u32;
                     }
                     control::Value::CompoundPtr(ref val) => {
                         control.__bindgen_anon_1.ptr = val.as_ptr() as *mut std::os::raw::c_void;
-                        control.size = (val.len() * std::mem::size_of::<u8>()) as u32;
+                        control.size = std::mem::size_of_val(val.as_slice()) as u32;
                     }
                 };
 
