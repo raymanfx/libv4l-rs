@@ -3,7 +3,7 @@ use std::{
     marker::PhantomData,
     mem,
     ops::{Index, IndexMut},
-    os::unix::io::AsRawFd,
+    os::fd::AsRawFd,
     ptr, slice,
     sync::Arc,
 };
