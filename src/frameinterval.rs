@@ -30,8 +30,8 @@ pub enum FrameIntervalEnum {
 impl fmt::Display for FrameIntervalEnum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FrameIntervalEnum::Discrete(val) => write!(f, "Discrete({val})")?,
-            FrameIntervalEnum::Stepwise(val) => write!(f, "Stepwise({val})")?,
+            FrameIntervalEnum::Discrete(val) => write!(f, "Discrete({})", val)?,
+            FrameIntervalEnum::Stepwise(val) => write!(f, "Stepwise({})", val)?,
         }
 
         Ok(())
@@ -56,7 +56,7 @@ impl TryFrom<v4l2_frmivalenum> for FrameIntervalEnum {
                         step: Fraction::from(desc.__bindgen_anon_1.stepwise.step),
                     })
                 }),
-                typ => Err(format!("Unknown frame size type: {typ}")),
+                typ => Err(format!("Unknown frame size type: {}", typ)),
             }
         }
     }

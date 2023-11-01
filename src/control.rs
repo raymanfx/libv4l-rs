@@ -112,10 +112,10 @@ impl fmt::Display for MenuItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             MenuItem::Name(name) => {
-                write!(f, "{name}")?;
+                write!(f, "{}", name)?;
             }
             MenuItem::Value(value) => {
-                write!(f, "{value}")?;
+                write!(f, "{}", value)?;
             }
         }
         Ok(())

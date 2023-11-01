@@ -52,8 +52,8 @@ impl FrameSizeEnum {
 impl fmt::Display for FrameSizeEnum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FrameSizeEnum::Discrete(val) => write!(f, "Discrete({val})")?,
-            FrameSizeEnum::Stepwise(val) => write!(f, "Stepwise({val})")?,
+            FrameSizeEnum::Discrete(val) => write!(f, "Discrete({})", val)?,
+            FrameSizeEnum::Stepwise(val) => write!(f, "Stepwise({})", val)?,
         }
 
         Ok(())
@@ -84,7 +84,7 @@ impl TryFrom<v4l2_frmsizeenum> for FrameSizeEnum {
                         step_height: desc.__bindgen_anon_1.stepwise.step_height,
                     })
                 }),
-                typ => Err(format!("Unknown frame size type: {typ}")),
+                typ => Err(format!("Unknown frame size type: {}", typ)),
             }
         }
     }

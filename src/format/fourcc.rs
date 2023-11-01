@@ -42,7 +42,7 @@ impl fmt::Display for FourCC {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let string = str::from_utf8(&self.repr);
         if let Ok(string) = string {
-            write!(f, "{string}")?;
+            write!(f, "{}", string)?;
         }
         Ok(())
     }

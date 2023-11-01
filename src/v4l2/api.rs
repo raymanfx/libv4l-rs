@@ -47,7 +47,7 @@ mod detail {
             prot,
             flags,
             fd,
-            offset,
+            offset as i64,
         )
     }
     pub unsafe fn munmap(start: *mut std::os::raw::c_void, length: usize) -> std::os::raw::c_int {
