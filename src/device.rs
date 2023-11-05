@@ -212,30 +212,6 @@ impl Device {
         }
     }
 
-    /// Convenience method to get the current control by ID.  Requires an extra syscall compared to
-    /// [`Device::control()`] when a [`Description`] is already available.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - Control identifier
-    pub fn control_from_id(&self, id: u32) -> io::Result<Control> {
-        let queryctrl = unsafe {
-            let mut queryctrl = v4l2_query_ext_ctrl {
-                id,
-                ..mem::zeroed()
-            };
-            v4l2::ioctl(
-                self.handle().fd(),
-                v4l2::vidioc::VIDIOC_QUERY_EXT_CTRL,
-                &mut queryctrl as *mut _ as *mut std::os::raw::c_void,
-            )?;
-
-            queryctrl
-        };
-
-        self.control(&Description::from(queryctrl))
-    }
-
     /// Modifies the control value
     ///
     /// # Arguments
