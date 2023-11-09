@@ -1,4 +1,3 @@
-use bitflags::bitflags;
 use std::{convert::TryFrom, fmt, mem};
 
 use crate::v4l_sys::*;
@@ -21,8 +20,8 @@ pub use quantization::Quantization;
 pub mod transfer;
 pub use transfer::TransferFunction;
 
-bitflags! {
-    #[allow(clippy::unreadable_literal)]
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Flags : u32 {
         const PREMUL_ALPHA  = 0x00000001;
     }

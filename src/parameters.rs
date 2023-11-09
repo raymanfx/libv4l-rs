@@ -1,9 +1,8 @@
-use bitflags::bitflags;
 use std::fmt;
 
-bitflags! {
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Capabilities: u32 {
-        #[allow(clippy::unreadable_literal)]
         const TIME_PER_FRAME    = 0x1000;
     }
 }

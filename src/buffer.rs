@@ -1,4 +1,3 @@
-use bitflags::bitflags;
 use std::fmt;
 
 use crate::timestamp::Timestamp;
@@ -30,8 +29,8 @@ pub enum Type {
     Private             = 0x80,
 }
 
-bitflags! {
-    #[allow(clippy::unreadable_literal)]
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Flags: u32 {
         /// Buffer is mapped
         const MAPPED                = 0x00000001;
