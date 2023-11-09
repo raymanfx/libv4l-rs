@@ -81,7 +81,7 @@ impl Default for Flags {
 
 impl From<u32> for Flags {
     fn from(flags: u32) -> Self {
-        Self::from_bits_truncate(flags)
+        Self::from_bits_retain(flags)
     }
 }
 
