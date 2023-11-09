@@ -40,7 +40,7 @@ mod detail {
     ) -> *mut std::os::raw::c_void {
         // libv4l expects `request` to be a u64, but this is not guaranteed on all platforms.
         // For the default CI platform (x86_64) clippy will complain about a useless conversion.
-        #![allow(clippy::useless_conversion)]
+        #![allow(clippy::useless_conversion, clippy::unnecessary_cast)]
         v4l2_mmap(
             start,
             length.try_into().expect("usize -> c size_t failed"),
@@ -51,6 +51,7 @@ mod detail {
         )
     }
     pub unsafe fn munmap(start: *mut std::os::raw::c_void, length: usize) -> std::os::raw::c_int {
+        #![allow(clippy::useless_conversion)]
         v4l2_munmap(start, length.try_into().expect("usize -> c size_t failed"))
     }
 }
