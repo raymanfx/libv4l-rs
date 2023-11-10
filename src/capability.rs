@@ -1,10 +1,9 @@
-use bitflags::bitflags;
 use std::{fmt, str};
 
 use crate::v4l_sys::*;
 
-bitflags! {
-    #[allow(clippy::unreadable_literal)]
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Flags: u32 {
         const VIDEO_CAPTURE         = 0x00000001;
         const VIDEO_OUTPUT          = 0x00000002;

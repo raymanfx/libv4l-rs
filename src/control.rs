@@ -1,4 +1,3 @@
-use bitflags::bitflags;
 use std::convert::{TryFrom, TryInto};
 use std::{ffi, fmt, mem, str};
 
@@ -63,8 +62,8 @@ impl fmt::Display for Type {
     }
 }
 
-bitflags! {
-    #[allow(clippy::unreadable_literal)]
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Flags: u32 {
         const DISABLED              = 0x0001;
         const GRABBED               = 0x0002;

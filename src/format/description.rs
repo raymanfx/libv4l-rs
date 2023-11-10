@@ -1,11 +1,10 @@
-use bitflags::bitflags;
 use std::{fmt, str};
 
 use crate::format::FourCC;
 use crate::v4l_sys::*;
 
-bitflags! {
-    #[allow(clippy::unreadable_literal)]
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Flags : u32 {
         const COMPRESSED            = 0x0001;
         const EMULATED              = 0x0002;
