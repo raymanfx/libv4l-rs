@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Instant;
 
 use glium::index::PrimitiveType;
-use glium::{glutin, Surface};
+use glium::Surface;
 use glium::{implement_vertex, program, uniform};
 
 use jpeg_decoder as jpeg;
@@ -54,10 +54,8 @@ fn main() -> io::Result<()> {
     println!("Active parameters:\n{}", params);
 
     // Setup the GL display stuff
-    let event_loop = glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new();
-    let cb = glutin::ContextBuilder::new().with_vsync(true);
-    let display = glium::Display::new(wb, cb, &event_loop).unwrap();
+    let event_loop = winit::event_loop::EventLoop::new();
+    let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
 
     // building the vertex buffer, which contains all the vertices that we will draw
     let vertex_buffer = {
@@ -183,12 +181,12 @@ fn main() -> io::Result<()> {
         target.finish().unwrap();
 
         // polling and handling the events received by the window
-        if let glutin::event::Event::WindowEvent {
-            event: glutin::event::WindowEvent::CloseRequested,
+        if let winit::event::Event::WindowEvent {
+            event: winit::event::WindowEvent::CloseRequested,
             ..
         } = event
         {
-            *control_flow = glutin::event_loop::ControlFlow::Exit;
+            *control_flow = winit::event_loop::ControlFlow::Exit;
         }
 
         print!(
