@@ -382,30 +382,32 @@ impl Handle {
     ///               A value of zero returns immedately, even if the fd is not ready.
     ///               A negative value means infinite timeout (blocking).
     pub fn poll(&self, events: i16, timeout: i32) -> io::Result<i32> {
-        match unsafe {
-            libc::poll(
-                [libc::pollfd {
-                    fd: self.fd,
-                    events,
-                    revents: 0,
-                }]
-                .as_mut_ptr(),
-                1,
-                timeout,
-            )
-        } {
-            -1 => {
-                let e = io::Error::last_os_error();
-                match e.kind() {
-                    io::ErrorKind::Interrupted => self.poll(events, timeout),
-                    _ => Err(e),
+        loop {
+            return match unsafe {
+                libc::poll(
+                    [libc::pollfd {
+                        fd: self.fd,
+                        events,
+                        revents: 0,
+                    }]
+                    .as_mut_ptr(),
+                    1,
+                    timeout,
+                )
+            } {
+                -1 => {
+                    let e = io::Error::last_os_error();
+                    match e.kind() {
+                        io::ErrorKind::Interrupted => continue,
+                        _ => Err(e),
+                    }
+                },
+                ret => {
+                    // A return value of zero means that we timed out. A positive value signifies the
+                    // number of fds with non-zero revents fields (aka I/O activity).
+                    assert!(ret == 0 || ret == 1);
+                    Ok(ret)
                 }
-            },
-            ret => {
-                // A return value of zero means that we timed out. A positive value signifies the
-                // number of fds with non-zero revents fields (aka I/O activity).
-                assert!(ret == 0 || ret == 1);
-                Ok(ret)
             }
         }
     }
