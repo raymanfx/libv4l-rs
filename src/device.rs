@@ -394,7 +394,13 @@ impl Handle {
                 timeout,
             )
         } {
-            -1 => Err(io::Error::last_os_error()),
+            -1 => {
+                let e = io::Error::last_os_error();
+                match e.kind() {
+                    io::ErrorKind::Interrupted => self.poll(events, timeout),
+                    _ => Err(e),
+                }
+            },
             ret => {
                 // A return value of zero means that we timed out. A positive value signifies the
                 // number of fds with non-zero revents fields (aka I/O activity).
