@@ -54,7 +54,7 @@ fn main() -> io::Result<()> {
     println!("Active parameters:\n{}", params);
 
     // Setup the GL display stuff
-    let event_loop = winit::event_loop::EventLoop::new();
+    let event_loop = winit::event_loop::EventLoop::new().map_err(io::Error::other)?;
     let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
 
     // building the vertex buffer, which contains all the vertices that we will draw
@@ -146,53 +146,57 @@ fn main() -> io::Result<()> {
         }
     });
 
-    event_loop.run(move |event, _, control_flow| {
-        let t0 = Instant::now();
-        let data = rx.recv().unwrap();
-        let t1 = Instant::now();
+    event_loop
+        .run(move |event, elwt| {
+            let t0 = Instant::now();
+            let data = rx.recv().unwrap();
+            let t1 = Instant::now();
 
-        let image =
-            glium::texture::RawImage2d::from_raw_rgb_reversed(&data, (format.width, format.height));
-        let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
+            let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
+                &data,
+                (format.width, format.height),
+            );
+            let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
 
-        // building the uniforms
-        let uniforms = uniform! {
-            matrix: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0, 1.0f32]
-            ],
-            tex: &opengl_texture
-        };
+            // building the uniforms
+            let uniforms = uniform! {
+                matrix: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0f32]
+                ],
+                tex: &opengl_texture
+            };
 
-        // drawing a frame
-        let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 0.0, 0.0);
-        target
-            .draw(
-                &vertex_buffer,
-                &index_buffer,
-                &program,
-                &uniforms,
-                &Default::default(),
-            )
-            .unwrap();
-        target.finish().unwrap();
+            // drawing a frame
+            let mut target = display.draw();
+            target.clear_color(0.0, 0.0, 0.0, 0.0);
+            target
+                .draw(
+                    &vertex_buffer,
+                    &index_buffer,
+                    &program,
+                    &uniforms,
+                    &Default::default(),
+                )
+                .unwrap();
+            target.finish().unwrap();
 
-        // polling and handling the events received by the window
-        if let winit::event::Event::WindowEvent {
-            event: winit::event::WindowEvent::CloseRequested,
-            ..
-        } = event
-        {
-            *control_flow = winit::event_loop::ControlFlow::Exit;
-        }
+            // polling and handling the events received by the window
+            if let winit::event::Event::WindowEvent {
+                event: winit::event::WindowEvent::CloseRequested,
+                ..
+            } = event
+            {
+                elwt.exit();
+            }
 
-        print!(
-            "\rms: {}\t (buffer) + {}\t (UI)",
-            t1.duration_since(t0).as_millis(),
-            t0.elapsed().as_millis()
-        );
-    });
+            print!(
+                "\rms: {}\t (buffer) + {}\t (UI)",
+                t1.duration_since(t0).as_millis(),
+                t0.elapsed().as_millis()
+            );
+        })
+        .map_err(io::Error::other)
 }
