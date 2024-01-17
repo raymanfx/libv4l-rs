@@ -8,4 +8,8 @@ license = "MIT"
 build = "build.rs"
 
 [build-dependencies]
-bindgen = "0.69.1"
+bindgen = { version = "0.69.1", default-features = false }
+
+[features]
+runtime = ["bindgen/runtime"]
+static = ["bindgen/static"]
