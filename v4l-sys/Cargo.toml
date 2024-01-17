@@ -9,4 +9,9 @@ links = "v4l1 v4l2 v4lconvert"
 build = "build.rs"
 
 [build-dependencies]
-bindgen = "0.69.1"
+bindgen = { git = "https://github.com/callum-hopkins-dev/rust-bindgen.git", rev = "d353b4889e446ee37347f8e19de985c1e24761b5", default-features = false }
+
+[features]
+runtime = ["bindgen/runtime"]
+static = ["bindgen/static"]
+
