@@ -53,6 +53,24 @@ pub trait Capture {
     fn set_params(&self, params: &CaptureParameters) -> io::Result<CaptureParameters>;
 }
 
+/// Multi-Planar Capture device protocol
+pub trait MultiPlanarCapture {
+    /// Returns the format currently in use
+    fn format(&self) -> io::Result<Format>;
+    
+    /// Modifies the capture format and returns the actual format
+    ///
+    /// The driver tries to match the format parameters on a best effort basis.
+    /// Thus, if the combination of format properties cannot be achieved, the closest possible
+    /// settings are used and reported back.
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `fmt` - Desired format
+    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
+}
+
 /// Output device protocol
 pub trait Output {
     /// Returns a vector of all frame intervals that the device supports for the given pixel format

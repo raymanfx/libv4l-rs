@@ -50,6 +50,40 @@ impl<'a> Arena<'a> {
         }
     }
 
+    pub fn allocate_mplane(&mut self, mplane_count: u32, count: u32) -> io::Result<u32> {
+        let mut v4l2_reqbufs = v4l2_requestbuffers {
+            count,
+            ..self.requestbuffers_desc()
+        };
+        unsafe {
+            v4l2::ioctl(
+                self.handle.fd(),
+                v4l2::vidioc::VIDIOC_REQBUFS,
+                &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        for index in 0..v4l2_reqbufs.count {
+            let mut planes = vec![v4l2_plane {..unsafe { mem::zeroed()}}; mplane_count as _];
+
+            let mut v4l2_buf = v4l2_buffer {
+                index,
+                length: mplane_count,
+                ..self.buffer_desc()
+            };
+            v4l2_buf.m.planes = planes.as_mut_ptr();
+
+            unsafe {
+                v4l2::ioctl(
+                    self.handle.fd(),
+                    v4l2::vidioc::VIDIOC_QUERYBUF,
+                    &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
+                )?;
+            }
+        }
+        Ok(0)
+    }
+
     pub fn allocate(&mut self, count: u32) -> io::Result<u32> {
         let mut v4l2_reqbufs = v4l2_requestbuffers {
             count,

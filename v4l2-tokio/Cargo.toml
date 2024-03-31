@@ -1,0 +1,6 @@
+[package]
+name = "v4l2-tokio"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
