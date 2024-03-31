@@ -3,8 +3,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::{io, mem};
 
-use libc;
-
 use crate::capability::Capabilities;
 use crate::control::{self, Control, Description};
 use crate::v4l2;

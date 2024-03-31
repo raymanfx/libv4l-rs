@@ -51,6 +51,8 @@ impl<'a> Arena<'a> {
     }
 
     pub fn allocate_mplane(&mut self, mplane_count: u32, count: u32) -> io::Result<u32> {
+        assert!(mplane_count == 1, "only support mplane count 1 for now");
+
         let mut v4l2_reqbufs = v4l2_requestbuffers {
             count,
             ..self.requestbuffers_desc()
@@ -79,9 +81,22 @@ impl<'a> Arena<'a> {
                     v4l2::vidioc::VIDIOC_QUERYBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
+
+                let ptr = v4l2::mmap(
+                    ptr::null_mut(),
+                    v4l2_buf.m.planes.as_ref().unwrap().length as usize,
+                    libc::PROT_READ | libc::PROT_WRITE,
+                    libc::MAP_SHARED,
+                    self.handle.fd(),
+                    v4l2_buf.m.planes.as_ref().unwrap().m.mem_offset as libc::off_t,
+                )?;
+
+                let slice = 
+                    slice::from_raw_parts_mut::<u8>(ptr as *mut u8, v4l2_buf.m.planes.as_ref().unwrap().length as usize);
+                self.bufs.push(slice);
             }
         }
-        Ok(0)
+        Ok(v4l2_reqbufs.count)
     }
 
     pub fn allocate(&mut self, count: u32) -> io::Result<u32> {
