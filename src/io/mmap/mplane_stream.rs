@@ -150,6 +150,13 @@ impl<'a, 'b> CaptureStream<'b> for MPlaneStream<'a> {
         let mut planes = vec![v4l2_plane {..unsafe { mem::zeroed() }}; self.mplane_count as usize];
         let mut v4l2_buf = self.buffer_desc(planes.as_mut_ptr(), self.mplane_count);
 
+        if self.handle.poll(libc::POLLIN, self.timeout.unwrap_or(-1))? == 0 {
+            // This condition can only happen if there was a timeout.
+            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
+            // propagate it to the caller.
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_DQBUF"));
+        }
+
         unsafe {
             v4l2::ioctl(
                 self.handle.fd(), 
