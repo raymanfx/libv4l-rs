@@ -129,7 +129,7 @@ impl From<v4l2_pix_format> for Format {
             stride: fmt.bytesperline,
             size: fmt.sizeimage,
             flags: Flags::from(fmt.flags),
-            colorspace: Colorspace::try_from(fmt.colorspace).expect("Invalid colorspace"),
+            colorspace: Colorspace::try_from(fmt.colorspace).unwrap_or(Colorspace::Default),
             quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
             transfer: TransferFunction::try_from(fmt.xfer_func).expect("Invalid transfer function"),
         }
