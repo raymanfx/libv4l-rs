@@ -140,7 +140,7 @@ macro_rules! impl_format {
                     v4l2::vidioc::VIDIOC_G_FMT,
                     &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
                 )?;
-
+                println!("{:?}", v4l2_fmt.fmt.pix.colorspace);
                 Ok(Format::from(v4l2_fmt.fmt.pix))
             }
         }
