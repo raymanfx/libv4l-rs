@@ -25,15 +25,13 @@ fn main() -> io::Result<()> {
         return Err(io::Error::last_os_error());
     }
 
-    let format = dev.format()?;
-    println!("Active format:\n{}", format);
-    // let mut format = Format::new(640, 480, FourCC::new(b"NV12"));
-    // format.field_order = FieldOrder::Interlaced;
-    // dev.set_format(&format)?;
+    let mut format = Format::new(640, 480, FourCC::new(b"NV12"));
+    format.field_order = FieldOrder::Interlaced;
+    dev.set_format(&format)?;
 
-    // let mut mplane_stream = MPlaneStream::new(&dev, Type::VideoCaptureMplane, 1)?;
+    let mut mplane_stream = MPlaneStream::new(&dev, Type::VideoCaptureMplane, 1)?;
 
-    // mplane_stream.next()?;
+    mplane_stream.next()?;
 
     
     Ok(())
