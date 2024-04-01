@@ -26,5 +26,5 @@ v4l2 = ["v4l2-sys"]
 [workspace]
 members = [
     "v4l-sys",
-    "v4l2-sys", "v4l2-tokio",
+    "v4l2-sys",
 ]
