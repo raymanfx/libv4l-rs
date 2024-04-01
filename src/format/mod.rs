@@ -130,8 +130,8 @@ impl From<v4l2_pix_format> for Format {
             size: fmt.sizeimage,
             flags: Flags::from(fmt.flags),
             colorspace: Colorspace::try_from(fmt.colorspace).unwrap_or(Colorspace::Default),
-            quantization: Quantization::try_from(fmt.quantization).expect("Invalid quantization"),
-            transfer: TransferFunction::try_from(fmt.xfer_func).expect("Invalid transfer function"),
+            quantization: Quantization::try_from(fmt.quantization).unwrap_or(Quantization::Default),
+            transfer: TransferFunction::try_from(fmt.xfer_func).unwrap_or(TransferFunction::None),
         }
     }
 }
