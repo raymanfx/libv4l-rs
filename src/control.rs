@@ -24,35 +24,51 @@ pub enum Type {
     U16             = 0x0101,
     U32             = 0x0102,
     Area            = 0x0106,
+
+    Unknown(u32),
 }
 
-impl TryFrom<u32> for Type {
-    type Error = ();
-
-    fn try_from(repr: u32) -> Result<Self, Self::Error> {
+impl From<u32> for Type {
+    fn from(repr: u32) -> Self {
         match repr {
-            1 => Ok(Type::Integer),
-            2 => Ok(Type::Boolean),
-            3 => Ok(Type::Menu),
-            4 => Ok(Type::Button),
-            5 => Ok(Type::Integer64),
-            6 => Ok(Type::CtrlClass),
-            7 => Ok(Type::String),
-            8 => Ok(Type::Bitmask),
-            9 => Ok(Type::IntegerMenu),
+            1 => Self::Integer,
+            2 => Self::Boolean,
+            3 => Self::Menu,
+            4 => Self::Button,
+            5 => Self::Integer64,
+            6 => Self::CtrlClass,
+            7 => Self::String,
+            8 => Self::Bitmask,
+            9 => Self::IntegerMenu,
 
-            0x0100 => Ok(Type::U8),
-            0x0101 => Ok(Type::U16),
-            0x0102 => Ok(Type::U32),
-            0x0106 => Ok(Type::Area),
-            _ => Err(()),
+            0x0100 => Self::U8,
+            0x0101 => Self::U16,
+            0x0102 => Self::U32,
+            0x0106 => Self::Area,
+            repr => Self::Unknown(repr),
         }
     }
 }
 
 impl From<Type> for u32 {
     fn from(t: Type) -> Self {
-        t as Self
+        match t {
+            Type::Integer => 1,
+            Type::Boolean => 2,
+            Type::Menu => 3,
+            Type::Button => 4,
+            Type::Integer64 => 5,
+            Type::CtrlClass => 6,
+            Type::String => 7,
+            Type::Bitmask => 8,
+            Type::IntegerMenu => 9,
+
+            Type::U8 => 0x0100,
+            Type::U16 => 0x0101,
+            Type::U32 => 0x0102,
+            Type::Area => 0x0106,
+            Type::Unknown(t) => t,
+        }
     }
 }
 
@@ -168,7 +184,7 @@ impl From<v4l2_query_ext_ctrl> for Description {
     fn from(ctrl: v4l2_query_ext_ctrl) -> Self {
         Self {
             id: ctrl.id,
-            typ: Type::try_from(ctrl.type_).unwrap(),
+            typ: Type::from(ctrl.type_),
             name: unsafe { ffi::CStr::from_ptr(ctrl.name.as_ptr()) }
                 .to_str()
                 .unwrap()
