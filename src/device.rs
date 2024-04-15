@@ -107,7 +107,8 @@ impl Device {
                 ) {
                     Ok(_) => {
                         // get the basic control information
-                        let mut control = Description::from(v4l2_ctrl);
+                        let mut control = Description::try_from(v4l2_ctrl)
+                            .map_err(|()| io::Error::other("Description::try_from failed"))?;
 
                         // if this is a menu control, enumerate its items
                         if control.typ == control::Type::Menu

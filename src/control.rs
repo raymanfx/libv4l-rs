@@ -164,14 +164,16 @@ pub struct Description {
     pub items: Option<Vec<(u32, MenuItem)>>,
 }
 
-impl From<v4l2_query_ext_ctrl> for Description {
-    fn from(ctrl: v4l2_query_ext_ctrl) -> Self {
-        Self {
+impl TryFrom<v4l2_query_ext_ctrl> for Description {
+    type Error = ();
+
+    fn try_from(ctrl: v4l2_query_ext_ctrl) -> Result<Self, Self::Error> {
+        Ok(Self {
             id: ctrl.id,
-            typ: Type::try_from(ctrl.type_).unwrap(),
+            typ: Type::try_from(ctrl.type_)?,
             name: unsafe { ffi::CStr::from_ptr(ctrl.name.as_ptr()) }
                 .to_str()
-                .unwrap()
+                .map_err(|_| ())?
                 .to_string(),
             minimum: ctrl.minimum,
             maximum: ctrl.maximum,
@@ -179,7 +181,7 @@ impl From<v4l2_query_ext_ctrl> for Description {
             default: ctrl.default_value,
             flags: Flags::from(ctrl.flags),
             items: None,
-        }
+        })
     }
 }
 
