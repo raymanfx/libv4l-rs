@@ -27,7 +27,7 @@ pub enum Type {
 }
 
 impl TryFrom<u32> for Type {
-    type Error = ();
+    type Error = &'static str;
 
     fn try_from(repr: u32) -> Result<Self, Self::Error> {
         match repr {
@@ -45,7 +45,7 @@ impl TryFrom<u32> for Type {
             0x0101 => Ok(Type::U16),
             0x0102 => Ok(Type::U32),
             0x0106 => Ok(Type::Area),
-            _ => Err(()),
+            _ => Err("Number is not a valid Type"),
         }
     }
 }
@@ -122,7 +122,7 @@ impl fmt::Display for MenuItem {
 }
 
 impl TryFrom<(Type, v4l2_querymenu)> for MenuItem {
-    type Error = ();
+    type Error = &'static str;
 
     fn try_from(item: (Type, v4l2_querymenu)) -> Result<Self, Self::Error> {
         unsafe {
@@ -134,7 +134,7 @@ impl TryFrom<(Type, v4l2_querymenu)> for MenuItem {
                         .to_string(),
                 )),
                 Type::IntegerMenu => Ok(MenuItem::Value(item.1.__bindgen_anon_1.value)),
-                _ => Err(()),
+                _ => Err("Type is not a Menu or IntegerMenu"),
             }
         }
     }
@@ -164,14 +164,16 @@ pub struct Description {
     pub items: Option<Vec<(u32, MenuItem)>>,
 }
 
-impl From<v4l2_query_ext_ctrl> for Description {
-    fn from(ctrl: v4l2_query_ext_ctrl) -> Self {
-        Self {
+impl TryFrom<v4l2_query_ext_ctrl> for Description {
+    type Error = &'static str;
+
+    fn try_from(ctrl: v4l2_query_ext_ctrl) -> Result<Self, Self::Error> {
+        Ok(Self {
             id: ctrl.id,
-            typ: Type::try_from(ctrl.type_).unwrap(),
+            typ: Type::try_from(ctrl.type_)?,
             name: unsafe { ffi::CStr::from_ptr(ctrl.name.as_ptr()) }
                 .to_str()
-                .unwrap()
+                .map_err(|_| "String is not UTF-8")?
                 .to_string(),
             minimum: ctrl.minimum,
             maximum: ctrl.maximum,
@@ -179,7 +181,7 @@ impl From<v4l2_query_ext_ctrl> for Description {
             default: ctrl.default_value,
             flags: Flags::from(ctrl.flags),
             items: None,
-        }
+        })
     }
 }
 
