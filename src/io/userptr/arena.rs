@@ -1,10 +1,11 @@
 use std::{io, mem, sync::Arc};
 
+use v4l2_sys::{v4l2_format, v4l2_requestbuffers};
+
 use crate::buffer;
 use crate::device::Handle;
 use crate::memory::Memory;
 use crate::v4l2;
-use crate::v4l_sys::*;
 
 /// Manage user allocated buffers
 ///

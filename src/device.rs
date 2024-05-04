@@ -5,11 +5,15 @@ use std::{io, mem};
 
 use libc;
 
+use v4l2_sys::{
+    v4l2_capability, v4l2_ext_control, v4l2_query_ext_ctrl, v4l2_querymenu,
+    V4L2_CTRL_FLAG_NEXT_COMPOUND, V4L2_CTRL_FLAG_NEXT_CTRL,
+};
+
 use crate::capability::Capabilities;
 use crate::control::{self, Control, Description};
 use crate::v4l2;
 use crate::v4l2::videodev::v4l2_ext_controls;
-use crate::v4l_sys::*;
 
 /// Linux capture device abstraction
 pub struct Device {

@@ -1,5 +1,6 @@
-use crate::v4l_sys::*;
 use std::fmt;
+
+use v4l2_sys::v4l2_fract;
 
 #[derive(Debug, Default, Clone, Copy)]
 /// Fraction used for timing settings

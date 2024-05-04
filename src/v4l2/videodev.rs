@@ -1,4 +1,4 @@
-use crate::v4l_sys::v4l2_ext_control;
+use v4l2_sys::v4l2_ext_control;
 
 // We need to carry our own copy of this struct, because the `which` field used to be called
 // `ctrl_class` and Linux now has both fields in a union. While the change is transparent as far as

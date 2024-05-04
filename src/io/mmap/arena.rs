@@ -1,10 +1,11 @@
 use std::{io, mem, ptr, slice, sync::Arc};
 
+use v4l2_sys::{v4l2_buffer, v4l2_requestbuffers};
+
 use crate::buffer;
 use crate::device::Handle;
 use crate::memory::Memory;
 use crate::v4l2;
-use crate::v4l_sys::*;
 
 /// Manage mapped buffers
 ///

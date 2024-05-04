@@ -1,8 +1,12 @@
 use std::convert::TryFrom;
 use std::fmt;
 
+use v4l2_sys::{
+    v4l2_frmivalenum, v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS,
+    v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_DISCRETE, v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE,
+};
+
 use crate::{format::FourCC, fraction::Fraction};
-use crate::{v4l_sys, v4l_sys::*};
 
 #[derive(Debug)]
 /// Format description as returned by [`crate::v4l2::vidioc::VIDIOC_ENUM_FRAMEINTERVALS`]
@@ -44,12 +48,13 @@ impl TryFrom<v4l2_frmivalenum> for FrameIntervalEnum {
     fn try_from(desc: v4l2_frmivalenum) -> Result<Self, Self::Error> {
         unsafe {
             // Unsafe because of access to union __bindgen_anon_1
+            #[allow(non_upper_case_globals)]
             match desc.type_ {
-                v4l_sys::v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_DISCRETE => Ok(
-                    FrameIntervalEnum::Discrete(Fraction::from(desc.__bindgen_anon_1.discrete)),
-                ),
-                v4l_sys::v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS
-                | v4l_sys::v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE => Ok({
+                v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_DISCRETE => Ok(FrameIntervalEnum::Discrete(
+                    Fraction::from(desc.__bindgen_anon_1.discrete),
+                )),
+                v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS
+                | v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE => Ok({
                     FrameIntervalEnum::Stepwise(Stepwise {
                         min: Fraction::from(desc.__bindgen_anon_1.stepwise.min),
                         max: Fraction::from(desc.__bindgen_anon_1.stepwise.max),

@@ -1,8 +1,9 @@
 use std::{fmt, mem};
 
+use v4l2_sys::v4l2_captureparm;
+
 use crate::fraction::Fraction;
 use crate::parameters::Capabilities;
-use crate::v4l_sys::*;
 
 bitflags::bitflags! {
     #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]

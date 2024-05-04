@@ -1,6 +1,6 @@
 use std::{convert::TryFrom, fmt, mem};
 
-use crate::v4l_sys::*;
+use v4l2_sys::v4l2_pix_format;
 
 pub mod colorspace;
 pub use colorspace::Colorspace;

@@ -1,4 +1,4 @@
-use crate::v4l_sys::*;
+use v4l2_sys::*;
 
 #[cfg(not(target_env = "musl"))]
 #[allow(non_camel_case_types)]

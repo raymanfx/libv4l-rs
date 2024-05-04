@@ -1,6 +1,6 @@
 use std::{fmt, str};
 
-use crate::v4l_sys::*;
+use v4l2_sys::v4l2_capability;
 
 bitflags::bitflags! {
     #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]

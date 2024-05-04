@@ -7,8 +7,8 @@ use crate::v4l2::vidioc;
 #[cfg(feature = "v4l-sys")]
 mod detail {
     use crate::v4l2::vidioc;
-    use crate::v4l_sys::*;
     use std::convert::TryInto;
+    use v4l_sys::*;
 
     pub unsafe fn open(path: *const std::os::raw::c_char, flags: i32) -> std::os::raw::c_int {
         v4l2_open(path, flags)
@@ -56,7 +56,7 @@ mod detail {
     }
 }
 
-#[cfg(feature = "v4l2-sys")]
+#[cfg(not(feature = "v4l-sys"))]
 mod detail {
     use crate::v4l2::vidioc;
 
@@ -183,8 +183,8 @@ pub fn close(fd: std::os::raw::c_int) -> io::Result<()> {
 ///
 /// use std::mem;
 ///
-/// use v4l::v4l_sys::*;
 /// use v4l::v4l2;
+/// use v4l2_sys::v4l2_capability;
 ///
 /// let fd = v4l2::open("/dev/video0", libc::O_RDWR);
 /// let mut v4l2_caps: v4l2_capability;

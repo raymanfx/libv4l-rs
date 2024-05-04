@@ -1,8 +1,9 @@
 use std::{fmt, mem};
 
+use v4l2_sys::v4l2_outputparm;
+
 use crate::fraction::Fraction;
 use crate::parameters::Capabilities;
-use crate::v4l_sys::*;
 
 #[derive(Debug, Copy, Clone)]
 /// Output parameters (single-planar)

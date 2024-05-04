@@ -2,13 +2,14 @@ use std::convert::TryInto;
 use std::time::Duration;
 use std::{io, mem, sync::Arc};
 
+use v4l2_sys::v4l2_buffer;
+
 use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
 use crate::io::mmap::arena::Arena;
 use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::Memory;
 use crate::v4l2;
-use crate::v4l_sys::*;
 
 /// Stream of mapped buffers
 ///

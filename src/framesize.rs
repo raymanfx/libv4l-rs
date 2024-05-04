@@ -1,9 +1,12 @@
 use std::convert::TryFrom;
 use std::fmt;
 
+use v4l2_sys::{
+    v4l2_frmsizeenum, v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS,
+    v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_DISCRETE, v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE,
+};
+
 use crate::format::FourCC;
-use crate::v4l_sys;
-use crate::v4l_sys::*;
 
 #[derive(Debug)]
 /// Format description as returned by [`crate::v4l2::vidioc::VIDIOC_ENUM_FRAMESIZES`]
@@ -66,15 +69,16 @@ impl TryFrom<v4l2_frmsizeenum> for FrameSizeEnum {
     fn try_from(desc: v4l2_frmsizeenum) -> Result<Self, Self::Error> {
         unsafe {
             // Unsafe because of access to union __bindgen_anon_1
+            #[allow(non_upper_case_globals)]
             match desc.type_ {
-                v4l_sys::v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_DISCRETE => Ok({
+                v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_DISCRETE => Ok({
                     FrameSizeEnum::Discrete(Discrete {
                         width: desc.__bindgen_anon_1.discrete.width,
                         height: desc.__bindgen_anon_1.discrete.height,
                     })
                 }),
-                v4l_sys::v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE
-                | v4l_sys::v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS => Ok({
+                v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE
+                | v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS => Ok({
                     FrameSizeEnum::Stepwise(Stepwise {
                         min_width: desc.__bindgen_anon_1.stepwise.min_width,
                         max_width: desc.__bindgen_anon_1.stepwise.max_width,

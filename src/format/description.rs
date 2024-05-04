@@ -1,7 +1,8 @@
 use std::{fmt, str};
 
+use v4l2_sys::v4l2_fmtdesc;
+
 use crate::format::FourCC;
-use crate::v4l_sys::*;
 
 bitflags::bitflags! {
     #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]

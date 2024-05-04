@@ -1,6 +1,6 @@
 use std::{fmt, time};
 
-use crate::v4l_sys::*;
+use v4l2_sys::{time_t, timeval};
 
 #[derive(Debug, Default, Clone, Copy)]
 /// Timestamp consisting of a seconds and a microseconds component

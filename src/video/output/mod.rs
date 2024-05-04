@@ -4,6 +4,11 @@ pub use parameters::Parameters;
 use std::convert::TryFrom;
 use std::{io, mem};
 
+use v4l2_sys::{
+    v4l2_fmtdesc, v4l2_format, v4l2_format__bindgen_ty_1, v4l2_frmivalenum, v4l2_frmsizeenum,
+    v4l2_streamparm, v4l2_streamparm__bindgen_ty_1,
+};
+
 use crate::buffer::Type;
 use crate::device::Device;
 use crate::format::FourCC;
@@ -11,7 +16,6 @@ use crate::format::{Description as FormatDescription, Format};
 use crate::frameinterval::FrameInterval;
 use crate::framesize::FrameSize;
 use crate::v4l2;
-use crate::v4l_sys::*;
 use crate::video::traits::Output;
 
 impl Output for Device {

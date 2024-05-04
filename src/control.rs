@@ -1,7 +1,7 @@
 use std::convert::{TryFrom, TryInto};
 use std::{ffi, fmt, mem, str};
 
-use crate::v4l_sys::*;
+use v4l2_sys::{v4l2_control, v4l2_query_ext_ctrl, v4l2_querymenu};
 
 /// Control data type
 #[allow(clippy::unreadable_literal)]
