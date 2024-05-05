@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use v4l::buffer::Type;
 use v4l::io::traits::CaptureStream;
+use v4l::memory::UserPtr;
 use v4l::prelude::*;
 use v4l::video::Capture;
 
@@ -23,7 +24,7 @@ fn main() -> io::Result<()> {
     println!("Active parameters:\n{}", params);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut stream = UserptrStream::with_buffers(&dev, Type::VideoCapture, buffer_count)?;
+    let mut stream = Stream::<UserPtr>::with_buffers(&dev, Type::VideoCapture, buffer_count)?;
 
     // warmup
     stream.next()?;

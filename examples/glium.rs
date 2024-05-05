@@ -11,6 +11,7 @@ use jpeg_decoder as jpeg;
 
 use v4l::buffer::Type;
 use v4l::io::traits::CaptureStream;
+use v4l::memory::Mmap;
 use v4l::prelude::*;
 use v4l::video::capture::Parameters;
 use v4l::video::Capture;
@@ -129,7 +130,8 @@ fn main() -> io::Result<()> {
         let dev = dev.write().unwrap();
 
         // Setup a buffer stream
-        let mut stream = MmapStream::with_buffers(&dev, Type::VideoCapture, buffer_count).unwrap();
+        let mut stream =
+            Stream::<Mmap>::with_buffers(&dev, Type::VideoCapture, buffer_count).unwrap();
 
         loop {
             let (buf, _) = stream.next().unwrap();

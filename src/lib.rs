@@ -47,12 +47,13 @@
 //! ```no_run
 //! use v4l::buffer::Type;
 //! use v4l::io::traits::CaptureStream;
+//! use v4l::memory::Mmap;
 //! use v4l::prelude::*;
 //!
 //! let mut dev = Device::new(0).expect("Failed to open device");
 //!
 //! let mut stream =
-//!     MmapStream::with_buffers(&mut dev, Type::VideoCapture, 4).expect("Failed to create buffer stream");
+//!     Stream::<Mmap>::with_buffers(&mut dev, Type::VideoCapture, 4).expect("Failed to create buffer stream");
 //!
 //! loop {
 //!     let (buf, meta) = stream.next().unwrap();
@@ -99,5 +100,5 @@ pub use {
 
 pub mod prelude {
     pub use crate::device::Device;
-    pub use crate::io::{mmap::Stream as MmapStream, userptr::Stream as UserptrStream};
+    pub use crate::io::Stream;
 }

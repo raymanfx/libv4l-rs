@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use v4l::buffer::Type;
 use v4l::io::traits::{CaptureStream, OutputStream};
+use v4l::memory::Mmap;
 use v4l::prelude::*;
 use v4l::video::{Capture, Output};
 
@@ -48,8 +49,8 @@ fn main() -> io::Result<()> {
     println!("New out format:\n{}", Output::format(&out)?);
 
     // Setup a buffer stream and grab a frame, then print its data
-    let mut cap_stream = MmapStream::with_buffers(&cap, Type::VideoCapture, buffer_count)?;
-    let mut out_stream = MmapStream::with_buffers(&out, Type::VideoOutput, buffer_count)?;
+    let mut cap_stream = Stream::<Mmap>::with_buffers(&cap, Type::VideoCapture, buffer_count)?;
+    let mut out_stream = Stream::<Mmap>::with_buffers(&out, Type::VideoOutput, buffer_count)?;
 
     // warmup
     CaptureStream::next(&mut cap_stream)?;
