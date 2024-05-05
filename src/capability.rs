@@ -80,6 +80,7 @@ pub struct Capabilities {
 impl From<v4l2_capability> for Capabilities {
     fn from(cap: v4l2_capability) -> Self {
         Self {
+            // TODO: CStr::from_bytes_until_nul()
             driver: str::from_utf8(&cap.driver)
                 .unwrap()
                 .trim_matches(char::from(0))

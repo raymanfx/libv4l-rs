@@ -66,6 +66,7 @@
 //!```
 //!
 //! Have a look at the examples to learn more about device and buffer management.
+#![deny(clippy::panic, clippy::unwrap_used, clippy::expect_used)]
 
 #[cfg(feature = "v4l-sys")]
 pub use v4l_sys;
