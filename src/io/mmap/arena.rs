@@ -4,7 +4,7 @@ use v4l2_sys::{v4l2_buffer, v4l2_requestbuffers};
 
 use crate::buffer;
 use crate::device::Handle;
-use crate::memory::Memory;
+use crate::memory::{Memory, Mmap};
 use crate::v4l2;
 
 /// Manage mapped buffers
@@ -13,7 +13,7 @@ use crate::v4l2;
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub struct Arena<'a> {
     handle: Arc<Handle>,
-    pub bufs: Vec<&'a mut [u8]>,
+    pub bufs: Vec<Mmap<'a>>,
     pub buf_type: buffer::Type,
 }
 
@@ -87,7 +87,7 @@ impl<'a> Arena<'a> {
 
                 let slice =
                     slice::from_raw_parts_mut::<u8>(ptr as *mut u8, v4l2_buf.length as usize);
-                self.bufs.push(slice);
+                self.bufs.push(Mmap(slice));
             }
         }
 
@@ -95,12 +95,6 @@ impl<'a> Arena<'a> {
     }
 
     pub fn release(&mut self) -> io::Result<()> {
-        for buf in &self.bufs {
-            unsafe {
-                v4l2::munmap(buf.as_ptr() as *mut core::ffi::c_void, buf.len())?;
-            }
-        }
-
         // free all buffers by requesting 0
         let mut v4l2_reqbufs = v4l2_requestbuffers {
             count: 0,

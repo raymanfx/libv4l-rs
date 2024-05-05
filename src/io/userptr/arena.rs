@@ -4,7 +4,7 @@ use v4l2_sys::{v4l2_format, v4l2_requestbuffers};
 
 use crate::buffer;
 use crate::device::Handle;
-use crate::memory::Memory;
+use crate::memory::{Memory, UserPtr};
 use crate::v4l2;
 
 /// Manage user allocated buffers
@@ -12,7 +12,7 @@ use crate::v4l2;
 /// All buffers are released in the Drop impl.
 pub struct Arena {
     handle: Arc<Handle>,
-    pub bufs: Vec<Vec<u8>>,
+    pub bufs: Vec<UserPtr>,
     pub buf_type: buffer::Type,
 }
 
@@ -76,12 +76,10 @@ impl Arena {
         }
 
         // allocate the new user buffers
-        self.bufs.resize(v4l2_reqbufs.count as usize, Vec::new());
-        for i in 0..v4l2_reqbufs.count {
-            let buf = &mut self.bufs[i as usize];
-            unsafe {
-                buf.resize(v4l2_fmt.fmt.pix.sizeimage as usize, 0);
-            }
+        for _ in 0..v4l2_reqbufs.count {
+            let size = unsafe { v4l2_fmt.fmt.pix.sizeimage };
+            let buf = vec![0u8; size as usize];
+            self.bufs.push(UserPtr(buf));
         }
 
         Ok(v4l2_reqbufs.count)
