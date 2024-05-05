@@ -9,6 +9,7 @@ use crate::v4l2;
 #[allow(clippy::unreadable_literal)]
 #[rustfmt::skip]
 #[repr(u32)]
+#[derive(Debug, Copy, Clone)]
 pub enum Memory {
     Mmap        = 1,
     UserPtr     = 2,

@@ -7,8 +7,8 @@ use v4l2_sys::{v4l2_buffer, v4l2_buffer__bindgen_ty_1};
 use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
 use crate::io::traits::{CaptureStream, Stream as StreamTrait};
-use crate::io::userptr::arena::Arena;
-use crate::memory::Memory;
+use crate::io::Arena;
+use crate::memory::{Memory, UserPtr};
 use crate::v4l2;
 
 /// Stream of user buffers
@@ -16,7 +16,7 @@ use crate::v4l2;
 /// An arena instance is used internally for buffer handling.
 pub struct Stream {
     handle: Arc<Handle>,
-    arena: Arena,
+    arena: Arena<UserPtr>,
     arena_index: usize,
     buf_type: Type,
     buf_meta: Vec<Metadata>,
@@ -50,7 +50,7 @@ impl Stream {
     }
 
     pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
-        let mut arena = Arena::new(dev.handle(), buf_type);
+        let mut arena = Arena::<UserPtr>::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
         let mut buf_meta = Vec::new();
         buf_meta.resize(count as usize, Metadata::default());

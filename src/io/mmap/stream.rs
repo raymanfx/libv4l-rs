@@ -6,9 +6,9 @@ use v4l2_sys::v4l2_buffer;
 
 use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
-use crate::io::mmap::arena::Arena;
 use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
-use crate::memory::Memory;
+use crate::io::Arena;
+use crate::memory::{Memory, Mmap};
 use crate::v4l2;
 
 /// Stream of mapped buffers
@@ -16,7 +16,7 @@ use crate::v4l2;
 /// An arena instance is used internally for buffer handling.
 pub struct Stream<'a> {
     handle: Arc<Handle>,
-    arena: Arena<'a>,
+    arena: Arena<Mmap<'a>>,
     arena_index: usize,
     buf_type: Type,
     buf_meta: Vec<Metadata>,
@@ -50,7 +50,7 @@ impl<'a> Stream<'a> {
     }
 
     pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
-        let mut arena = Arena::new(dev.handle(), buf_type);
+        let mut arena = Arena::<Mmap<'a>>::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
         let mut buf_meta = Vec::new();
         buf_meta.resize(count as usize, Metadata::default());
