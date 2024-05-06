@@ -11,7 +11,7 @@ use std::{
 
 use v4l2_sys::{v4l2_buffer, v4l2_format, v4l2_requestbuffers};
 
-use crate::buffer::{Metadata, Type};
+use crate::buffer::{Buffer, Type};
 use crate::device::{Device, Handle};
 use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::{Memory, Mmap, UserPtr};
@@ -23,7 +23,7 @@ use crate::v4l2;
 /// In case of errors during unmapping, we panic because there is memory corruption going on.
 pub(crate) struct Arena<T> {
     handle: Arc<Handle>,
-    pub bufs: Vec<T>,
+    pub bufs: Vec<Buffer<T>>,
     pub buf_mem: Memory,
     pub buf_type: Type,
 }
@@ -119,7 +119,8 @@ impl<'a> Arena<Mmap<'a>> {
 
                 let slice =
                     slice::from_raw_parts_mut::<u8>(ptr as *mut u8, v4l2_buf.length as usize);
-                self.bufs.push(Mmap(slice));
+                let buf = Buffer::new(Mmap(slice));
+                self.bufs.push(buf);
             }
         }
 
@@ -171,8 +172,8 @@ You may want to use this crate with the raw v4l2 FFI bindings instead!\n"
         let count = self.request(count)?;
         for _ in 0..count {
             let size = unsafe { v4l2_fmt.fmt.pix.sizeimage };
-            let buf = vec![0u8; size as usize];
-            self.bufs.push(UserPtr(buf));
+            let buf = Buffer::new(UserPtr(vec![0u8; size as usize]));
+            self.bufs.push(buf);
         }
 
         Ok(count)
@@ -187,7 +188,6 @@ pub struct Stream<T> {
     arena: Arena<T>,
     arena_index: usize,
     buf_type: Type,
-    buf_meta: Vec<Metadata>,
     timeout: Option<i32>,
 
     active: bool,
@@ -220,16 +220,13 @@ impl<'a> Stream<Mmap<'a>> {
 
     pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
         let mut arena = Arena::<Mmap<'a>>::new(dev.handle(), buf_type);
-        let count = arena.allocate(buf_count)?;
-        let mut buf_meta = Vec::new();
-        buf_meta.resize(count as usize, Metadata::default());
+        let _count = arena.allocate(buf_count)?;
 
         Ok(Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
             buf_type,
-            buf_meta,
             active: false,
             timeout: None,
         })
@@ -263,16 +260,13 @@ impl Stream<UserPtr> {
 
     pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
         let mut arena = Arena::<UserPtr>::new(dev.handle(), buf_type);
-        let count = arena.allocate(buf_count)?;
-        let mut buf_meta = Vec::new();
-        buf_meta.resize(count as usize, Metadata::default());
+        let _count = arena.allocate(buf_count)?;
 
         Ok(Stream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
             buf_type,
-            buf_meta,
             active: false,
             timeout: None,
         })
@@ -323,7 +317,7 @@ impl<T> Drop for Stream<T> {
 }
 
 impl<T> StreamTrait for Stream<T> {
-    type Item = [u8];
+    type Item = Buffer<T>;
 
     fn start(&mut self) -> io::Result<()> {
         unsafe {
@@ -394,18 +388,17 @@ where
         }
         self.arena_index = v4l2_buf.index as usize;
 
-        self.buf_meta[self.arena_index] = Metadata {
-            bytesused: v4l2_buf.bytesused,
-            flags: v4l2_buf.flags.into(),
-            field: v4l2_buf.field,
-            timestamp: v4l2_buf.timestamp.into(),
-            sequence: v4l2_buf.sequence,
-        };
+        let buf = &mut self.arena.bufs[self.arena_index];
+        buf.bytesused = v4l2_buf.bytesused;
+        buf.flags = v4l2_buf.flags.into();
+        buf.field = v4l2_buf.field;
+        buf.timestamp = v4l2_buf.timestamp.into();
+        buf.sequence = v4l2_buf.sequence;
 
         Ok(self.arena_index)
     }
 
-    fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata)> {
+    fn next(&'a mut self) -> io::Result<&Self::Item> {
         if !self.active {
             // Enqueue all buffers once on stream start
             for index in 0..self.arena.bufs.len() {
@@ -421,9 +414,7 @@ where
 
         // The index used to access the buffer elements is given to us by v4l2, so we assume it
         // will always be valid.
-        let bytes = &self.arena.bufs[self.arena_index];
-        let meta = &self.buf_meta[self.arena_index];
-        Ok((bytes, meta))
+        Ok(&self.arena.bufs[self.arena_index])
     }
 }
 
@@ -442,8 +433,8 @@ where
             // MetaData.bytesused is initialized to 0. For an output device, when bytesused is
             // set to 0 v4l2 will set it to the size of the plane:
             // https://www.kernel.org/doc/html/v4.15/media/uapi/v4l/buffer.html#struct-v4l2-plane
-            v4l2_buf.bytesused = self.buf_meta[index].bytesused;
-            v4l2_buf.field = self.buf_meta[index].field;
+            v4l2_buf.bytesused = self.arena.bufs[index].bytesused;
+            v4l2_buf.field = self.arena.bufs[index].field;
 
             if self
                 .handle
@@ -476,18 +467,17 @@ where
         }
         self.arena_index = v4l2_buf.index as usize;
 
-        self.buf_meta[self.arena_index] = Metadata {
-            bytesused: v4l2_buf.bytesused,
-            flags: v4l2_buf.flags.into(),
-            field: v4l2_buf.field,
-            timestamp: v4l2_buf.timestamp.into(),
-            sequence: v4l2_buf.sequence,
-        };
+        let buf = &mut self.arena.bufs[self.arena_index];
+        buf.bytesused = v4l2_buf.bytesused;
+        buf.flags = v4l2_buf.flags.into();
+        buf.field = v4l2_buf.field;
+        buf.timestamp = v4l2_buf.timestamp.into();
+        buf.sequence = v4l2_buf.sequence;
 
         Ok(self.arena_index)
     }
 
-    fn next(&'a mut self) -> io::Result<(&mut Self::Item, &mut Metadata)> {
+    fn next(&'a mut self) -> io::Result<&mut Self::Item> {
         let init = !self.active;
         if !self.active {
             self.start()?;
@@ -503,8 +493,6 @@ where
 
         // The index used to access the buffer elements is given to us by v4l2, so we assume it
         // will always be valid.
-        let bytes = &mut self.arena.bufs[self.arena_index];
-        let meta = &mut self.buf_meta[self.arena_index];
-        Ok((bytes, meta))
+        Ok(&mut self.arena.bufs[self.arena_index])
     }
 }

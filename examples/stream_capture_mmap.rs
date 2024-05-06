@@ -33,7 +33,7 @@ fn main() -> io::Result<()> {
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let (buf, meta) = stream.next()?;
+        let buf = stream.next()?;
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
@@ -47,9 +47,9 @@ fn main() -> io::Result<()> {
         }
 
         println!("Buffer");
-        println!("  sequence  : {}", meta.sequence);
-        println!("  timestamp : {}", meta.timestamp);
-        println!("  flags     : {}", meta.flags);
+        println!("  sequence  : {}", buf.sequence);
+        println!("  timestamp : {}", buf.timestamp);
+        println!("  flags     : {}", buf.flags);
         println!("  length    : {}", buf.len());
     }
 

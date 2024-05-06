@@ -56,12 +56,12 @@
 //!     Stream::<Mmap>::with_buffers(&mut dev, Type::VideoCapture, 4).expect("Failed to create buffer stream");
 //!
 //! loop {
-//!     let (buf, meta) = stream.next().unwrap();
+//!     let buf = stream.next().unwrap();
 //!     println!(
 //!         "Buffer size: {}, seq: {}, timestamp: {}",
-//!        buf.len(),
-//!        meta.sequence,
-//!        meta.timestamp
+//!        buf.memory.len(),
+//!        buf.sequence,
+//!        buf.timestamp
 //!    );
 //!}
 //!```

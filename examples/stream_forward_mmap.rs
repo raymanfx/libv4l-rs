@@ -59,18 +59,18 @@ fn main() -> io::Result<()> {
     let mut megabytes_ps: f64 = 0.0;
     for i in 0..count {
         let t0 = Instant::now();
-        let (buf_in, buf_in_meta) = CaptureStream::next(&mut cap_stream)?;
-        let (buf_out, buf_out_meta) = OutputStream::next(&mut out_stream)?;
+        let buf_in = CaptureStream::next(&mut cap_stream)?;
+        let buf_out = OutputStream::next(&mut out_stream)?;
 
         // Output devices generally cannot know the exact size of the output buffers for
         // compressed formats (e.g. MJPG). They will however allocate a size that is always
         // large enough to hold images of the format in question. We know how big a buffer we need
         // since we control the input buffer - so just enforce that size on the output buffer.
-        let buf_out = &mut buf_out[0..buf_in.len()];
+        let slice_out = &mut buf_out[0..buf_in.len()];
 
-        buf_out.copy_from_slice(buf_in);
-        buf_out_meta.field = 0;
-        buf_out_meta.bytesused = buf_in_meta.bytesused;
+        slice_out.copy_from_slice(buf_in);
+        buf_out.field = 0;
+        buf_out.bytesused = buf_in.bytesused;
         let duration_us = t0.elapsed().as_micros();
 
         let cur = buf_in.len() as f64 / 1_048_576.0 * 1_000_000.0 / duration_us as f64;
@@ -84,12 +84,12 @@ fn main() -> io::Result<()> {
         }
 
         println!("Buffer");
-        println!("  sequence   [in] : {}", buf_in_meta.sequence);
-        println!("  sequence  [out] : {}", buf_out_meta.sequence);
-        println!("  timestamp  [in] : {}", buf_in_meta.timestamp);
-        println!("  timestamp [out] : {}", buf_out_meta.timestamp);
-        println!("  flags      [in] : {}", buf_in_meta.flags);
-        println!("  flags     [out] : {}", buf_out_meta.flags);
+        println!("  sequence   [in] : {}", buf_in.sequence);
+        println!("  sequence  [out] : {}", buf_out.sequence);
+        println!("  timestamp  [in] : {}", buf_in.timestamp);
+        println!("  timestamp [out] : {}", buf_out.timestamp);
+        println!("  flags      [in] : {}", buf_in.flags);
+        println!("  flags     [out] : {}", buf_out.flags);
         println!("  length     [in] : {}", buf_in.len());
         println!("  length    [out] : {}", buf_out.len());
     }

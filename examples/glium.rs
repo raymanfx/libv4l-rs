@@ -134,12 +134,13 @@ fn main() -> io::Result<()> {
             Stream::<Mmap>::with_buffers(&dev, Type::VideoCapture, buffer_count).unwrap();
 
         loop {
-            let (buf, _) = stream.next().unwrap();
+            let buf = stream.next().unwrap();
             let data = match &format.fourcc.repr {
                 b"RGB3" => buf.to_vec(),
                 b"MJPG" => {
                     // Decode the JPEG frame to RGB
-                    let mut decoder = jpeg::Decoder::new(buf);
+                    let slice: &[u8] = buf;
+                    let mut decoder = jpeg::Decoder::new(slice);
                     decoder.decode().expect("failed to decode JPEG")
                 }
                 _ => panic!("invalid buffer pixelformat"),

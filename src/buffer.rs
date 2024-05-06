@@ -1,4 +1,7 @@
-use std::fmt;
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
 
 use crate::timestamp::Timestamp;
 
@@ -98,8 +101,10 @@ impl fmt::Display for Flags {
 }
 
 /// Buffer metadata, mostly used not to convolute the main buffer structs
-#[derive(Copy, Clone, Default)]
-pub struct Metadata {
+#[derive(Debug)]
+pub struct Buffer<T> {
+    /// Backing memory
+    pub memory: T,
     /// Number of bytes occupied by the data in the buffer
     pub bytesused: u32,
     /// Buffer flags
@@ -110,4 +115,31 @@ pub struct Metadata {
     pub timestamp: Timestamp,
     /// Sequence number, counting the frames
     pub sequence: u32,
+}
+
+impl<T> Buffer<T> {
+    pub(crate) fn new(memory: T) -> Self {
+        Buffer {
+            memory,
+            bytesused: 0,
+            flags: Flags::from(0),
+            field: 0,
+            timestamp: Timestamp::default(),
+            sequence: 0,
+        }
+    }
+}
+
+impl<T> Deref for Buffer<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.memory
+    }
+}
+
+impl<T> DerefMut for Buffer<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.memory
+    }
 }
