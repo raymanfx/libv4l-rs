@@ -17,10 +17,7 @@ use crate::io::traits::{CaptureStream, OutputStream, Stream as StreamTrait};
 use crate::memory::{Memory, Mmap, UserPtr};
 use crate::v4l2;
 
-/// Manage mapped buffers
-///
-/// All buffers are unmapped in the Drop impl.
-/// In case of errors during unmapping, we panic because there is memory corruption going on.
+/// Manage memory buffers
 pub(crate) struct Arena<T> {
     handle: Arc<Handle>,
     pub bufs: Vec<Buffer<T>>,
@@ -46,30 +43,6 @@ impl<T> Arena<T> {
         }
 
         Ok(v4l2_reqbufs.count)
-    }
-}
-
-impl<T> Drop for Arena<T> {
-    fn drop(&mut self) {
-        if self.bufs.is_empty() {
-            // nothing to do
-            return;
-        }
-
-        // free all buffers by requesting 0
-        if let Err(e) = self.request(0) {
-            if let Some(code) = e.raw_os_error() {
-                // ENODEV means the file descriptor wrapped in the handle became invalid, most
-                // likely because the device was unplugged or the connection (USB, PCI, ..)
-                // broke down. Handle this case gracefully by ignoring it.
-                if code == 19 {
-                    /* ignore */
-                    return;
-                }
-            }
-
-            panic!("{:?}", e)
-        }
     }
 }
 
@@ -300,19 +273,7 @@ impl<T> Stream<T> {
 
 impl<T> Drop for Stream<T> {
     fn drop(&mut self) {
-        if let Err(e) = self.stop() {
-            if let Some(code) = e.raw_os_error() {
-                // ENODEV means the file descriptor wrapped in the handle became invalid, most
-                // likely because the device was unplugged or the connection (USB, PCI, ..)
-                // broke down. Handle this case gracefully by ignoring it.
-                if code == 19 {
-                    /* ignore */
-                    return;
-                }
-            }
-
-            panic!("{:?}", e)
-        }
+        let _ = self.stop();
     }
 }
 
