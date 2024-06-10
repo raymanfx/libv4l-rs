@@ -4,8 +4,18 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    let pkg_conf = pkg_config::Config::new()
+        .probe("libv4l2")
+        .expect("pkg-config has failed to find `libv4l2`");
+
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
+        .clang_args(
+            pkg_conf
+                .include_paths
+                .into_iter()
+                .map(|path| format!("-I{}", path.to_string_lossy())),
+        )
         .generate()
         .expect("Failed to generate bindings");
 

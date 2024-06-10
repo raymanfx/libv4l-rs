@@ -66,6 +66,7 @@ mod detail {
     pub unsafe fn close(fd: std::os::raw::c_int) -> std::os::raw::c_int {
         libc::close(fd)
     }
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub unsafe fn ioctl(
         fd: std::os::raw::c_int,
         request: vidioc::_IOC_TYPE,
@@ -79,6 +80,14 @@ mod detail {
          * https://github.com/rust-lang/libc/issues/1036
          */
         libc::syscall(libc::SYS_ioctl, fd, request, argp) as std::os::raw::c_int
+    }
+    #[cfg(target_os = "freebsd")]
+    pub unsafe fn ioctl(
+        fd: std::os::raw::c_int,
+        request: vidioc::_IOC_TYPE,
+        argp: *mut std::os::raw::c_void,
+    ) -> std::os::raw::c_int {
+        libc::ioctl(fd, request, argp)
     }
     pub unsafe fn mmap(
         start: *mut std::os::raw::c_void,
