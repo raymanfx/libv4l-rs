@@ -1,4 +1,3 @@
-use bitflags::bitflags;
 use std::fmt;
 
 use crate::timestamp::Timestamp;

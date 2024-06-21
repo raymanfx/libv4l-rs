@@ -2,6 +2,8 @@ use std::convert::TryInto;
 use std::time::Duration;
 use std::{io, mem, sync::Arc};
 
+use allocator_api2::alloc::Allocator;
+
 use crate::buffer::{Metadata, Type};
 use crate::device::{Device, Handle};
 use crate::io::traits::{CaptureStream, Stream as StreamTrait};
@@ -13,9 +15,9 @@ use crate::v4l_sys::*;
 /// Stream of user buffers
 ///
 /// An arena instance is used internally for buffer handling.
-pub struct Stream {
+pub struct AllocStream<A: Allocator + Clone> {
     handle: Arc<Handle>,
-    arena: Arena,
+    arena: Arena<A>,
     arena_index: usize,
     buf_type: Type,
     buf_meta: Vec<Metadata>,
@@ -23,6 +25,8 @@ pub struct Stream {
 
     active: bool,
 }
+
+pub type Stream = AllocStream<allocator_api2::alloc::Global>;
 
 impl Stream {
     /// Returns a stream for frame capturing
@@ -45,16 +49,27 @@ impl Stream {
     /// }
     /// ```
     pub fn new(dev: &Device, buf_type: Type) -> io::Result<Self> {
-        Stream::with_buffers(dev, buf_type, 4)
+        Stream::with_buffers_and_alloc(dev, buf_type, 4, allocator_api2::alloc::Global)
     }
 
     pub fn with_buffers(dev: &Device, buf_type: Type, buf_count: u32) -> io::Result<Self> {
-        let mut arena = Arena::new(dev.handle(), buf_type);
+        Stream::with_buffers_and_alloc(dev, buf_type, buf_count, allocator_api2::alloc::Global)
+    }
+}
+
+impl<A: Allocator + Clone> AllocStream<A> {
+    pub fn with_buffers_and_alloc(
+        dev: &Device,
+        buf_type: Type,
+        buf_count: u32,
+        allocator: A,
+    ) -> io::Result<Self> {
+        let mut arena = Arena::with_alloc(dev.handle(), buf_type, allocator);
         let count = arena.allocate(buf_count)?;
         let mut buf_meta = Vec::new();
         buf_meta.resize(count as usize, Metadata::default());
 
-        Ok(Stream {
+        Ok(AllocStream {
             handle: dev.handle(),
             arena,
             arena_index: 0,
@@ -89,7 +104,7 @@ impl Stream {
     }
 }
 
-impl Drop for Stream {
+impl<A: Allocator + Clone> Drop for AllocStream<A> {
     fn drop(&mut self) {
         if let Err(e) = self.stop() {
             if let Some(code) = e.raw_os_error() {
@@ -107,7 +122,7 @@ impl Drop for Stream {
     }
 }
 
-impl StreamTrait for Stream {
+impl<A: Allocator + Clone> StreamTrait for AllocStream<A> {
     type Item = [u8];
 
     fn start(&mut self) -> io::Result<()> {
@@ -139,7 +154,7 @@ impl StreamTrait for Stream {
     }
 }
 
-impl<'a> CaptureStream<'a> for Stream {
+impl<'a, A: Allocator + Clone> CaptureStream<'a> for AllocStream<A> {
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let buf = &mut self.arena.bufs[index];
         let mut v4l2_buf = v4l2_buffer {

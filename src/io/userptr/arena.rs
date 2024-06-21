@@ -1,5 +1,7 @@
 use std::{io, mem, sync::Arc};
 
+use allocator_api2::{alloc::Allocator, vec::Vec as AllocatorVec};
+
 use crate::buffer;
 use crate::device::Handle;
 use crate::memory::Memory;
@@ -9,13 +11,14 @@ use crate::v4l_sys::*;
 /// Manage user allocated buffers
 ///
 /// All buffers are released in the Drop impl.
-pub struct Arena {
+pub struct Arena<A: Allocator + Clone> {
     handle: Arc<Handle>,
-    pub bufs: Vec<Vec<u8>>,
+    allocator: A,
+    pub bufs: Vec<AllocatorVec<u8, A>>,
     pub buf_type: buffer::Type,
 }
 
-impl Arena {
+impl Arena<allocator_api2::alloc::Global> {
     /// Returns a new buffer manager instance
     ///
     /// You usually do not need to use this directly.
@@ -27,6 +30,27 @@ impl Arena {
     /// * `buf_type` - Type of the buffers
     pub fn new(handle: Arc<Handle>, buf_type: buffer::Type) -> Self {
         Arena {
+            allocator: allocator_api2::alloc::Global,
+            handle,
+            bufs: Vec::new(),
+            buf_type,
+        }
+    }
+}
+
+impl<A: Allocator + Clone> Arena<A> {
+    /// Returns a new buffer manager instance
+    ///
+    /// You usually do not need to use this directly.
+    /// A UserBufferStream creates its own manager instance by default.
+    ///
+    /// # Arguments
+    ///
+    /// * `dev` - Device handle to get its file descriptor
+    /// * `buf_type` - Type of the buffers
+    pub fn with_alloc(handle: Arc<Handle>, buf_type: buffer::Type, allocator: A) -> Self {
+        Arena {
+            allocator,
             handle,
             bufs: Vec::new(),
             buf_type,
@@ -75,8 +99,9 @@ impl Arena {
         }
 
         // allocate the new user buffers
-        self.bufs.resize(v4l2_reqbufs.count as usize, Vec::new());
+        self.bufs.clear();
         for i in 0..v4l2_reqbufs.count {
+            self.bufs.push(AllocatorVec::new_in(self.allocator.clone()));
             let buf = &mut self.bufs[i as usize];
             unsafe {
                 buf.resize(v4l2_fmt.fmt.pix.sizeimage as usize, 0);
@@ -102,7 +127,7 @@ impl Arena {
     }
 }
 
-impl Drop for Arena {
+impl<A: Allocator + Clone> Drop for Arena<A> {
     fn drop(&mut self) {
         if self.bufs.is_empty() {
             // nothing to do
