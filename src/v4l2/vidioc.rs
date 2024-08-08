@@ -19,8 +19,16 @@ const _IOC_SIZESHIFT: u8 = _IOC_TYPESHIFT + _IOC_TYPEBITS;
 const _IOC_DIRSHIFT: u8 = _IOC_SIZESHIFT + _IOC_SIZEBITS;
 
 const _IOC_NONE: u8 = 0;
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const _IOC_WRITE: u8 = 1;
+#[cfg(target_os = "freebsd")]
+const _IOC_WRITE: u8 = 2;
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const _IOC_READ: u8 = 2;
+#[cfg(target_os = "freebsd")]
+const _IOC_READ: u8 = 1;
 
 macro_rules! _IOC_TYPECHECK {
     ($type:ty) => {
