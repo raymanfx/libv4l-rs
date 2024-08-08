@@ -261,11 +261,11 @@ impl Device {
                     control::Value::None => {}
                     control::Value::Integer(val) => {
                         control.__bindgen_anon_1.value64 = val;
-                        control.size = std::mem::size_of::<i64>() as u32;
+                        control.size = 0;
                     }
                     control::Value::Boolean(val) => {
                         control.__bindgen_anon_1.value64 = val as i64;
-                        control.size = std::mem::size_of::<i64>() as u32;
+                        control.size = 0;
                     }
                     control::Value::String(ref val) => {
                         control.__bindgen_anon_1.string = val.as_ptr() as *mut std::os::raw::c_char;
