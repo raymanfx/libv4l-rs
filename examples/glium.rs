@@ -28,7 +28,7 @@ fn main() -> io::Result<()> {
 
     let dev = RwLock::new(Device::with_path(path)?);
     {
-        let dev = dev.write().unwrap();
+        let dev = dev.read().unwrap();
         format = dev.format()?;
         params = dev.params()?;
 
@@ -126,7 +126,7 @@ fn main() -> io::Result<()> {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let dev = dev.write().unwrap();
+        let dev = dev.read().unwrap();
 
         // Setup a buffer stream
         let mut stream = MmapStream::with_buffers(&dev, Type::VideoCapture, buffer_count).unwrap();

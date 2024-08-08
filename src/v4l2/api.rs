@@ -270,7 +270,7 @@ pub unsafe fn mmap(
     offset: libc::off_t,
 ) -> io::Result<*mut std::os::raw::c_void> {
     let ret = detail::mmap(start, length, prot, flags, fd, offset);
-    if ret as usize == std::usize::MAX {
+    if ret as usize == usize::MAX {
         Err(io::Error::last_os_error())
     } else {
         Ok(ret)
