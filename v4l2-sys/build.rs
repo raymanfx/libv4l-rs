@@ -1,21 +1,24 @@
 extern crate bindgen;
 
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn main() {
-    let pkg_conf = pkg_config::Config::new()
-        .probe("libv4l2")
-        .expect("pkg-config has failed to find `libv4l2`");
+    let extra_include_paths = if cfg!(target_os = "freebsd") {
+        assert!(
+            Path::new("/usr/local/include/linux/videodev2.h").exists(),
+            "Video4Linux `videodev2.h` UAPI header is required to generate bindings \
+            against `libv4l2` and the header file is missing.\n\
+            Consider installing `multimedia/v4l_compat` FreeBSD package."
+        );
+        vec!["-I/usr/local/include"]
+    } else {
+        vec![]
+    };
 
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
-        .clang_args(
-            pkg_conf
-                .include_paths
-                .into_iter()
-                .map(|path| format!("-I{}", path.to_string_lossy())),
-        )
+        .clang_args(extra_include_paths)
         .generate()
         .expect("Failed to generate bindings");
 
