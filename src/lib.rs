@@ -76,7 +76,9 @@ pub use v4l_sys;
 #[cfg(all(feature = "v4l2", not(feature = "libv4l")))]
 pub use v4l2_sys as v4l_sys;
 
-// calms down rust-analyzer when `rust-analyzer.cargo.features = "all"`
+// calms down rust-analyzer when `rust-analyzer.cargo.features = "all"`,
+// though the `compile_error!()` above prevents this from being a valid,
+// compilable configuration.
 #[cfg(all(feature = "v4l2", feature = "libv4l"))]
 pub use v4l_sys;
 
