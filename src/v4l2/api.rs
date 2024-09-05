@@ -4,7 +4,7 @@ use std::{io, path::Path};
 
 use crate::v4l2::vidioc;
 
-#[cfg(feature = "libv4l")]
+#[cfg(all(feature = "libv4l", not(feature = "v4l2")))]
 mod detail {
     use crate::v4l2::vidioc;
     use crate::v4l_sys::*;
@@ -56,7 +56,7 @@ mod detail {
     }
 }
 
-#[cfg(all(feature = "v4l2", not(feature = "libv4l")))]
+#[cfg(feature = "v4l2")]
 mod detail {
     use crate::v4l2::vidioc;
 
