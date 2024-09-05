@@ -8,7 +8,7 @@ This crate provides safe bindings to the Video for Linux (V4L) stack. Modern dev
 
 ## Goals
 
-This crate shall provide the v4l-sys package to enable full (but unsafe) access to `libv4l\*`.
+This crate shall provide the `v4l-sys` package to enable full (but unsafe) access to `libv4l\*`.
 On top of that, there will be a high level, more idiomatic API to use video capture devices on Linux.
 
 There will be simple utility applications to list devices and capture frames.
