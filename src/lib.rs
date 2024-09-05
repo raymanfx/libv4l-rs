@@ -68,7 +68,11 @@
 //! Have a look at the examples to learn more about device and buffer management.
 
 #[cfg(all(feature = "libv4l", feature = "v4l2"))]
-compile_error!("You may not enable both `v4l-sys` and `v4l2-sys` features at the same time. Try disabling one of them. If you only specified one feature, you may wish to add `default-features = false` as a dependency key.");
+compile_error!(
+    "You may not enable both `v4l-sys` and `v4l2-sys` features at the same time.\
+    Try disabling one of them. If you only specified one feature, you may wish to\
+    add `default-features = false` as a dependency key."
+);
 
 #[cfg(all(feature = "libv4l", not(feature = "v4l2")))]
 pub use v4l_sys;
