@@ -7,28 +7,33 @@
 This crate provides safe bindings to the Video for Linux (V4L) stack. Modern device drivers will usually implement the `v4l2` API while older ones may depend on the legacy `v4l` API. Such legacy devices may be used with this crate by choosing the `libv4l` feature for this crate.
 
 ## Goals
-This crate shall provide the v4l-sys package to enable full (but unsafe) access to libv4l\*.
-On top of that, there will be a high level, more idiomatic API to use video capture devices in Linux.
+
+This crate shall provide the v4l-sys package to enable full (but unsafe) access to `libv4l\*`.
+On top of that, there will be a high level, more idiomatic API to use video capture devices on Linux.
 
 There will be simple utility applications to list devices and capture frames.
 A minimalistic OpenGL/Vulkan viewer to display frames is planned for the future.
 
 ## Changelog
+
 See [CHANGELOG.md](https://github.com/raymanfx/libv4l-rs/blob/master/CHANGELOG.md)
 
-## Dependencies
-You have the choice between two dependencies (both provided by this crate internally):
- * libv4l-sys
-   > Link against the libv4l* stack including libv4l1, libv4l2, libv4lconvert.
-   > This has the advantage of emulating common capture formats such as RGB3 in userspace through libv4lconvert and more.
-   > However, some features like userptr buffers are not supported in libv4l.
- * v4l2-sys
-   > Use only the Linux kernel provided v4l2 API provided by videodev2.h.
-   > You get support for all v4l2 features such as userptr buffers, but may need to do format conversion yourself if you require e.g. RGB/BGR buffers which may not be supported by commodity devices such as webcams.
+## Cargo Features
 
-Enable either the `libv4l` or the `v4l2` backend by choosing the it as feature for this crate.
+This crate has two primary features:
+
+* `libv4l`: uses the `libv4l` wrapper libraries.
+  * Links against the `libv4l*` stack, including `libv4l1`, `libv4l2`, and `libv4lconvert`.
+  * Has the advantage of emulating common capture formats such as RGB3 in userspace through `libv4lconvert` and more.
+  * However, some features, like `userptr` buffers, are not supported in `libv4l`.
+* `v4l2` (DEFAULT): uses the kernel's Video4Linux kernel header directly.
+  * Only uses the Linux kernel provided v4l2 API provided by `videodev2.h`.
+  * You get support for all v4l2 features such as `userptr` buffers, but may need to do format conversion yourself if you require certain constructs (e.g. RGB/BGR buffers), which may not be supported by commodity devices such as webcams.
+
+You must select exactly one of these features. Note that the `v4l2` feature is on by default. To use `libv4l` instead, you'll need to also use the `default-features = false` dependency key.
 
 ## Usage
+
 Below you can find a quick example usage of this crate. It introduces the basics necessary to do frame capturing from a streaming device (e.g. webcam).
 
 ```rust
@@ -93,4 +98,4 @@ fn main() {
 }
 ```
 
-Have a look at the provided `examples` for more sample applications.
+Have a look at the provided [`examples`](./examples/) for more sample applications.
