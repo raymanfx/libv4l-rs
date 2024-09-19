@@ -94,3 +94,21 @@ fn main() {
 ```
 
 Have a look at the provided `examples` for more sample applications.
+
+### Building and cross-compiling
+
+When building on targets like FreeBSD, or cross-compiling for different targets entirely (as identified by their _target triple_), bindgen may not know where to find the headers if they are located in a nonstandard directory like `/usr/local/include`, resulting in an error similar to `wrapper.h:1:10: fatal error: 'linux/videodev2.h' file not found`.  In this case, provide the system include directory with the `-I` flag using the [target-specific environment variable][bindgen-env] (note that `-` is typically substituted with `_` to help shells like `bash` parse it successfully):
+
+```console
+$ BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_freebsd="-I/usr/local/include" cargo build --target x86_64-unknown-freebsd
+```
+
+It is also possible to set this environment variable for Rust inside [`.cargo/config.toml`][cargo-config] in your project directory or user home directory:
+
+```toml
+[env]
+BINDGEN_EXTRA_CLANG_ARGS_x86_64-unknown-freebsd = "-I/usr/local/include"
+```
+
+[bindgen-env]: https://github.com/rust-lang/rust-bindgen/blob/main/README.md#environment-variables
+[cargo-config]: https://doc.rust-lang.org/cargo/reference/config.html
