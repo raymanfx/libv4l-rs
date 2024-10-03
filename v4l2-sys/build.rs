@@ -16,9 +16,18 @@ fn main() {
         vec![]
     };
 
+    let extra_include_paths_env =  if let Ok(include_path) = std::env::var("V4L2_SYS_INCLUDE_PATH") {
+        vec![format!("-I{include_path}")]
+    } else {
+        vec![]
+    };
+
+    println!("extra_include_paths_env={:?}", extra_include_paths_env);
+
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_args(extra_include_paths)
+        .clang_args(extra_include_paths_env)
         .generate()
         .expect("Failed to generate bindings");
 
