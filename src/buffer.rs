@@ -13,7 +13,7 @@ pub enum Type {
     VideoCapture        = 1,
     VideoOutput         = 2,
     VideoOverlay        = 3,
-    VbiCaputre          = 4,
+    VbiCapture          = 4,
     VbiOutput           = 5,
     SlicedVbiCapture    = 6,
     SlicedVbiOutput     = 7,
