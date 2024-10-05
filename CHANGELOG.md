@@ -178,3 +178,21 @@ Multi-planar capture will not be targeted in the near future unless someone else
 
 - v4l-sys bindings
 - I/O codes (VIDIOC_*)
+
+[0.14.0]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.14.0
+[0.13.1]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.13.1
+[0.13.0]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.13.0
+[0.12.2]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.12.2
+[0.12.1]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.12.1
+[0.12.0]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.12.0
+[0.11]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.11.0
+[0.10]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.10.0
+[0.9]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.9.0
+[0.8]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.8.0
+[0.7]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.7.0
+[0.6]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.6.0
+[0.5]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.5.0
+[0.4]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.4.0
+[0.3]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.3.0
+[0.2]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.2.0
+[0.1]: https://github.com/raymanfx/libv4l-rs/releases/tag/v4l-0.1.0
