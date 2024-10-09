@@ -197,7 +197,7 @@ fn main() -> io::Result<()> {
             print!(
                 "\rms: {}\t (buffer) + {}\t (UI)",
                 t1.duration_since(t0).as_millis(),
-                t0.elapsed().as_millis()
+                t1.elapsed().as_millis()
             );
         })
         .map_err(io::Error::other)
