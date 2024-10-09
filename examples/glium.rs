@@ -16,6 +16,11 @@ use v4l::video::capture::Parameters;
 use v4l::video::Capture;
 use v4l::{Format, FourCC};
 
+use winit::application::ApplicationHandler;
+use winit::event::WindowEvent;
+use winit::event_loop::ActiveEventLoop;
+use winit::window::WindowId;
+
 #[derive(Debug, Clone, Copy)]
 enum UserEvent {
     WakeUp,
@@ -157,58 +162,75 @@ fn main() -> io::Result<()> {
         }
     });
 
-    event_loop
-        .run(move |event, elwt| {
-            let t0 = Instant::now();
-            let data = rx.recv().unwrap();
-            let t1 = Instant::now();
+    struct LoopHandler<F> {
+        user_event: F,
+    }
 
-            let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
-                &data,
-                (format.width, format.height),
-            );
-            let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
+    impl<F: Fn(UserEvent)> ApplicationHandler<UserEvent> for LoopHandler<F> {
+        fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
 
-            // building the uniforms
-            let uniforms = uniform! {
-                matrix: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0f32]
-                ],
-                tex: &opengl_texture
-            };
-
-            // drawing a frame
-
-            let mut target = display.draw();
-            target.clear_color(0.0, 0.0, 0.0, 0.0);
-            target
-                .draw(
-                    &vertex_buffer,
-                    &index_buffer,
-                    &program,
-                    &uniforms,
-                    &Default::default(),
-                )
-                .unwrap();
-            target.finish().unwrap();
-
+        fn window_event(
+            &mut self,
+            event_loop: &ActiveEventLoop,
+            _window_id: WindowId,
+            event: WindowEvent,
+        ) {
             // polling and handling the events received by the window
-            if let winit::event::Event::WindowEvent {
-                event: winit::event::WindowEvent::CloseRequested,
-                ..
-            } = event
-            {
-                elwt.exit();
+            if let winit::event::WindowEvent::CloseRequested = event {
+                event_loop.exit();
             }
+        }
 
-            print!(
-                "\rms: {}\t (buffer) + {}\t (UI)",
-                t1.duration_since(t0).as_millis(),
-                t1.elapsed().as_millis(),
-            );
+        fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
+            (self.user_event)(event)
+        }
+    }
+
+    event_loop
+        .run_app(&mut LoopHandler {
+            user_event: move |_event| {
+                let t0 = Instant::now();
+                let data = rx.recv().unwrap();
+                let t1 = Instant::now();
+
+                let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
+                    &data,
+                    (format.width, format.height),
+                );
+                let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
+
+                // building the uniforms
+                let uniforms = uniform! {
+                    matrix: [
+                        [1.0, 0.0, 0.0, 0.0],
+                        [0.0, 1.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0, 0.0],
+                        [0.0, 0.0, 0.0, 1.0f32]
+                    ],
+                    tex: &opengl_texture
+                };
+
+                // drawing a frame
+
+                let mut target = display.draw();
+                target.clear_color(0.0, 0.0, 0.0, 0.0);
+                target
+                    .draw(
+                        &vertex_buffer,
+                        &index_buffer,
+                        &program,
+                        &uniforms,
+                        &Default::default(),
+                    )
+                    .unwrap();
+                target.finish().unwrap();
+
+                print!(
+                    "\rms: {}\t (buffer) + {}\t (UI)",
+                    t1.duration_since(t0).as_millis(),
+                    t1.elapsed().as_millis(),
+                );
+            },
         })
         .map_err(io::Error::other)
 }
