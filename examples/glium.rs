@@ -55,7 +55,9 @@ fn main() -> io::Result<()> {
 
     // Setup the GL display stuff
     let event_loop = winit::event_loop::EventLoop::new().map_err(io::Error::other)?;
-    let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
+    let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
+        .with_inner_size(format.width, format.height)
+        .build(&event_loop);
 
     // building the vertex buffer, which contains all the vertices that we will draw
     let vertex_buffer = {
