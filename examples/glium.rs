@@ -16,6 +16,16 @@ use v4l::video::capture::Parameters;
 use v4l::video::Capture;
 use v4l::{Format, FourCC};
 
+use winit::application::ApplicationHandler;
+use winit::event::WindowEvent;
+use winit::event_loop::ActiveEventLoop;
+use winit::window::WindowId;
+
+#[derive(Debug, Clone, Copy)]
+enum UserEvent {
+    WakeUp,
+}
+
 fn main() -> io::Result<()> {
     let path = "/dev/video0";
     println!("Using device: {}\n", path);
@@ -54,8 +64,13 @@ fn main() -> io::Result<()> {
     println!("Active parameters:\n{}", params);
 
     // Setup the GL display stuff
-    let event_loop = winit::event_loop::EventLoop::new().map_err(io::Error::other)?;
-    let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
+    let event_loop = winit::event_loop::EventLoop::<UserEvent>::with_user_event()
+        .build()
+        .map_err(io::Error::other)?;
+    let event_loop_proxy = event_loop.create_proxy();
+    let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
+        .with_inner_size(format.width, format.height)
+        .build(&event_loop);
 
     // building the vertex buffer, which contains all the vertices that we will draw
     let vertex_buffer = {
@@ -142,61 +157,84 @@ fn main() -> io::Result<()> {
                 }
                 _ => panic!("invalid buffer pixelformat"),
             };
+            let _ = event_loop_proxy.send_event(UserEvent::WakeUp);
             tx.send(data).unwrap();
         }
     });
 
-    event_loop
-        .run(move |event, elwt| {
-            let t0 = Instant::now();
-            let data = rx.recv().unwrap();
-            let t1 = Instant::now();
+    struct LoopHandler<F> {
+        user_event: F,
+    }
 
-            let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
-                &data,
-                (format.width, format.height),
-            );
-            let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
+    impl<F: Fn(UserEvent)> ApplicationHandler<UserEvent> for LoopHandler<F> {
+        fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
 
-            // building the uniforms
-            let uniforms = uniform! {
-                matrix: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0f32]
-                ],
-                tex: &opengl_texture
-            };
-
-            // drawing a frame
-            let mut target = display.draw();
-            target.clear_color(0.0, 0.0, 0.0, 0.0);
-            target
-                .draw(
-                    &vertex_buffer,
-                    &index_buffer,
-                    &program,
-                    &uniforms,
-                    &Default::default(),
-                )
-                .unwrap();
-            target.finish().unwrap();
-
+        fn window_event(
+            &mut self,
+            event_loop: &ActiveEventLoop,
+            _window_id: WindowId,
+            event: WindowEvent,
+        ) {
             // polling and handling the events received by the window
-            if let winit::event::Event::WindowEvent {
-                event: winit::event::WindowEvent::CloseRequested,
-                ..
-            } = event
-            {
-                elwt.exit();
+            if let winit::event::WindowEvent::CloseRequested = event {
+                event_loop.exit();
             }
+        }
 
-            print!(
-                "\rms: {}\t (buffer) + {}\t (UI)",
-                t1.duration_since(t0).as_millis(),
-                t0.elapsed().as_millis()
-            );
+        fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
+            (self.user_event)(event)
+        }
+    }
+
+    event_loop
+        .run_app(&mut LoopHandler {
+            user_event: move |_event| {
+                let t0 = Instant::now();
+                let mut data = rx.recv().unwrap();
+                while let Ok(frame) = rx.try_recv() {
+                    data = frame;
+                }
+                let data = data;
+                let t1 = Instant::now();
+
+                let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
+                    &data,
+                    (format.width, format.height),
+                );
+                let opengl_texture = glium::texture::Texture2d::new(&display, image).unwrap();
+
+                // building the uniforms
+                let uniforms = uniform! {
+                    matrix: [
+                        [1.0, 0.0, 0.0, 0.0],
+                        [0.0, 1.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0, 0.0],
+                        [0.0, 0.0, 0.0, 1.0f32]
+                    ],
+                    tex: &opengl_texture
+                };
+
+                // drawing a frame
+
+                let mut target = display.draw();
+                target.clear_color(0.0, 0.0, 0.0, 0.0);
+                target
+                    .draw(
+                        &vertex_buffer,
+                        &index_buffer,
+                        &program,
+                        &uniforms,
+                        &Default::default(),
+                    )
+                    .unwrap();
+                target.finish().unwrap();
+
+                print!(
+                    "\rms: {}\t (buffer) + {}\t (UI)",
+                    t1.duration_since(t0).as_millis(),
+                    t1.elapsed().as_millis(),
+                );
+            },
         })
         .map_err(io::Error::other)
 }
