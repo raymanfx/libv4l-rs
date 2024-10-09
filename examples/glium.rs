@@ -190,7 +190,11 @@ fn main() -> io::Result<()> {
         .run_app(&mut LoopHandler {
             user_event: move |_event| {
                 let t0 = Instant::now();
-                let data = rx.recv().unwrap();
+                let mut data = rx.recv().unwrap();
+                while let Ok(frame) = rx.try_recv() {
+                    data = frame;
+                }
+                let data = data;
                 let t1 = Instant::now();
 
                 let image = glium::texture::RawImage2d::from_raw_rgb_reversed(
