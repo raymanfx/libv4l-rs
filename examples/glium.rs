@@ -16,6 +16,11 @@ use v4l::video::capture::Parameters;
 use v4l::video::Capture;
 use v4l::{Format, FourCC};
 
+#[derive(Debug, Clone, Copy)]
+enum UserEvent {
+    WakeUp,
+}
+
 fn main() -> io::Result<()> {
     let path = "/dev/video0";
     println!("Using device: {}\n", path);
@@ -54,7 +59,10 @@ fn main() -> io::Result<()> {
     println!("Active parameters:\n{}", params);
 
     // Setup the GL display stuff
-    let event_loop = winit::event_loop::EventLoop::new().map_err(io::Error::other)?;
+    let event_loop = winit::event_loop::EventLoop::<UserEvent>::with_user_event()
+        .build()
+        .map_err(io::Error::other)?;
+    let event_loop_proxy = event_loop.create_proxy();
     let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
         .with_inner_size(format.width, format.height)
         .build(&event_loop);
@@ -144,6 +152,7 @@ fn main() -> io::Result<()> {
                 }
                 _ => panic!("invalid buffer pixelformat"),
             };
+            let _ = event_loop_proxy.send_event(UserEvent::WakeUp);
             tx.send(data).unwrap();
         }
     });
@@ -172,6 +181,7 @@ fn main() -> io::Result<()> {
             };
 
             // drawing a frame
+
             let mut target = display.draw();
             target.clear_color(0.0, 0.0, 0.0, 0.0);
             target
@@ -197,7 +207,7 @@ fn main() -> io::Result<()> {
             print!(
                 "\rms: {}\t (buffer) + {}\t (UI)",
                 t1.duration_since(t0).as_millis(),
-                t1.elapsed().as_millis()
+                t1.elapsed().as_millis(),
             );
         })
         .map_err(io::Error::other)
