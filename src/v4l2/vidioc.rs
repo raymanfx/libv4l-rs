@@ -1,86 +1,29 @@
 use crate::v4l_sys::*;
 
-#[cfg(not(target_env = "musl"))]
 #[allow(non_camel_case_types)]
-pub type _IOC_TYPE = std::os::raw::c_ulong;
-#[cfg(target_env = "musl")]
-#[allow(non_camel_case_types)]
-pub type _IOC_TYPE = std::os::raw::c_int;
-
-// linux ioctl.h
-const _IOC_NRBITS: u8 = 8;
-const _IOC_TYPEBITS: u8 = 8;
-
-const _IOC_SIZEBITS: u8 = 14;
-
-const _IOC_NRSHIFT: u8 = 0;
-const _IOC_TYPESHIFT: u8 = _IOC_NRSHIFT + _IOC_NRBITS;
-const _IOC_SIZESHIFT: u8 = _IOC_TYPESHIFT + _IOC_TYPEBITS;
-const _IOC_DIRSHIFT: u8 = _IOC_SIZESHIFT + _IOC_SIZEBITS;
-
-const _IOC_NONE: u8 = 0;
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-const _IOC_WRITE: u8 = 1;
-#[cfg(target_os = "freebsd")]
-const _IOC_WRITE: u8 = 2;
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-const _IOC_READ: u8 = 2;
-#[cfg(target_os = "freebsd")]
-const _IOC_READ: u8 = 1;
-
-macro_rules! _IOC_TYPECHECK {
-    ($type:ty) => {
-        std::mem::size_of::<$type>()
-    };
-}
-
-macro_rules! _IOC {
-    ($dir:expr, $type:expr, $nr:expr, $size:expr) => {
-        (($dir as _IOC_TYPE) << $crate::v4l2::vidioc::_IOC_DIRSHIFT)
-            | (($type as _IOC_TYPE) << $crate::v4l2::vidioc::_IOC_TYPESHIFT)
-            | (($nr as _IOC_TYPE) << $crate::v4l2::vidioc::_IOC_NRSHIFT)
-            | (($size as _IOC_TYPE) << $crate::v4l2::vidioc::_IOC_SIZESHIFT)
-    };
-}
+pub type _IOC_TYPE = rustix::ioctl::Opcode;
 
 macro_rules! _IO {
     ($type:expr, $nr:expr) => {
-        _IOC!($crate::v4l2::vidioc::_IOC_NONE, $type, $nr, 0)
+        rustix::ioctl::Opcode::none::<()>($type, $nr)
     };
 }
 
 macro_rules! _IOR {
     ($type:expr, $nr:expr, $size:ty) => {
-        _IOC!(
-            $crate::v4l2::vidioc::_IOC_READ,
-            $type,
-            $nr,
-            _IOC_TYPECHECK!($size)
-        )
+        rustix::ioctl::Opcode::read::<$size>($type, $nr)
     };
 }
 
 macro_rules! _IOW {
     ($type:expr, $nr:expr, $size:ty) => {
-        _IOC!(
-            $crate::v4l2::vidioc::_IOC_WRITE,
-            $type,
-            $nr,
-            _IOC_TYPECHECK!($size)
-        )
+        rustix::ioctl::Opcode::write::<$size>($type, $nr)
     };
 }
 
 macro_rules! _IOWR {
     ($type:expr, $nr:expr, $size:ty) => {
-        _IOC!(
-            $crate::v4l2::vidioc::_IOC_READ | $crate::v4l2::vidioc::_IOC_WRITE,
-            $type,
-            $nr,
-            _IOC_TYPECHECK!($size)
-        )
+        rustix::ioctl::Opcode::read_write::<$size>($type, $nr)
     };
 }
 
